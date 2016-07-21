@@ -29,6 +29,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from requests.adapters import ConnectionError
 from requests.models import InvalidURL
 from transform import *
+from collections import namedtuple
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -56,11 +57,8 @@ global_token = None
 access_token = None
 DEBUG = True
 VERBOSE_DEBUG = False  # if you want to write raw request/response to the console
-COORDS_LATITUDE = 0
-COORDS_LONGITUDE = 0
-COORDS_ALTITUDE = 0
-FLOAT_LAT = 0
-FLOAT_LONG = 0
+MAP_CENTER_LAT = 0
+MAP_CENTER_LONG = 0
 NEXT_LAT = 0
 NEXT_LONG = 0
 auto_refresh = 0
@@ -116,9 +114,9 @@ def encode(cellid):
     return ''.join(output)
 
 
-def getNeighbors():
-    origin = CellId.from_lat_lng(LatLng.from_degrees(FLOAT_LAT,
-                                                     FLOAT_LONG)).parent(15)
+def getNeighbors(geo_coords):
+    origin = CellId.from_lat_lng(LatLng.from_degrees(geo_coords.float_lat,
+                                                     geo_coords.float_long)).parent(15)
     walk = [origin.id()]
 
     # 10 before and 10 after
@@ -154,8 +152,7 @@ def retrying_set_location(location_name):
 
     while True:
         try:
-            set_location(location_name)
-            return
+            return set_location(location_name)
         except (GeocoderTimedOut, GeocoderServiceError), e:
             debug(
                 'retrying_set_location: geocoder exception ({}), retrying'.format(
@@ -179,27 +176,27 @@ def set_location(location_name):
         print '[!] Your given location: {}'.format(loc.address.encode('utf-8'))
 
     print('[!] lat/long/alt: {} {} {}'.format(local_lat, local_lng, alt))
-    set_location_coords(local_lat, local_lng, alt)
+    return create_location_coords(local_lat, local_lng, alt)
 
 
-def set_location_coords(lat, long, alt):
-    global COORDS_LATITUDE, COORDS_LONGITUDE, COORDS_ALTITUDE
-    global FLOAT_LAT, FLOAT_LONG
-    FLOAT_LAT = lat
-    FLOAT_LONG = long
-    COORDS_LATITUDE = f2i(lat)  # 0x4042bd7c00000000 # f2i(lat)
-    COORDS_LONGITUDE = f2i(long)  # 0xc05e8aae40000000 #f2i(long)
-    COORDS_ALTITUDE = f2i(alt)
+def create_location_coords(lat, long, alt):
+    geo_coords = namedtuple('GeoCoord', ['float_lat', 'float_long', 'lat', 'long', 'alt'])
+    geo_coords.float_lat = lat
+    geo_coords.float_long = long
+    geo_coords.lat = f2i(lat)  # 0x4042bd7c00000000 # f2i(lat)
+    geo_coords.long = f2i(long)  # 0xc05e8aae40000000 #f2i(long)
+    geo_coords.alt = f2i(alt)
+    return geo_coords
 
 
-def get_location_coords():
-    return (COORDS_LATITUDE, COORDS_LONGITUDE, COORDS_ALTITUDE)
+def get_location_coords(geo_coords):
+    return (geo_coords.lat, geo_coords.long, geo_coords.alt,)
 
 
-def retrying_api_req(service, api_endpoint, access_token, *args, **kwargs):
+def retrying_api_req(service, api_endpoint, access_token, geo_coord, *args, **kwargs):
     while True:
         try:
-            response = api_req(service, api_endpoint, access_token, *args,
+            response = api_req(service, api_endpoint, access_token, geo_coord, *args,
                                **kwargs)
             if response:
                 return response
@@ -210,14 +207,14 @@ def retrying_api_req(service, api_endpoint, access_token, *args, **kwargs):
         time.sleep(1)
 
 
-def api_req(service, api_endpoint, access_token, *args, **kwargs):
+def api_req(service, api_endpoint, access_token, geo_coord, *args, **kwargs):
     p_req = pokemon_pb2.RequestEnvelop()
     p_req.rpc_id = 1469378659230941192
 
     p_req.unknown1 = 2
 
     (p_req.latitude, p_req.longitude, p_req.altitude) = \
-        get_location_coords()
+        get_location_coords(geo_coord)
 
     p_req.unknown12 = 989
 
@@ -252,10 +249,10 @@ def api_req(service, api_endpoint, access_token, *args, **kwargs):
     return p_ret
 
 
-def get_api_endpoint(service, access_token, api=API_URL):
+def get_api_endpoint(service, access_token, geo_coord, api=API_URL):
     profile_response = None
     while not profile_response:
-        profile_response = retrying_get_profile(service, access_token, api,
+        profile_response = retrying_get_profile(service, access_token, geo_coord, api,
                                                 None)
         if not hasattr(profile_response, 'api_url'):
             debug(
@@ -269,10 +266,10 @@ def get_api_endpoint(service, access_token, api=API_URL):
 
     return 'https://%s/rpc' % profile_response.api_url
 
-def retrying_get_profile(service, access_token, api, useauth, *reqq):
+def retrying_get_profile(service, access_token, geo_coord, api, useauth, *reqq):
     profile_response = None
     while not profile_response:
-        profile_response = get_profile(service, access_token, api, useauth,
+        profile_response = get_profile(service, access_token, geo_coord, api, useauth,
                                        *reqq)
         if not hasattr(profile_response, 'payload'):
             debug(
@@ -286,7 +283,8 @@ def retrying_get_profile(service, access_token, api, useauth, *reqq):
 
     return profile_response
 
-def get_profile(service, access_token, api, useauth, *reqq):
+
+def get_profile(service, access_token, geo_coord, api, useauth, *reqq):
     req = pokemon_pb2.RequestEnvelop()
     req1 = req.requests.add()
     req1.type = 2
@@ -312,7 +310,7 @@ def get_profile(service, access_token, api, useauth, *reqq):
     req5.type = 5
     if len(reqq) >= 5:
         req5.MergeFrom(reqq[4])
-    return retrying_api_req(service, api, access_token, req, useauth=useauth)
+    return retrying_api_req(service, api, access_token, geo_coord, req, useauth=useauth)
 
 def login_google(username, password):
     print '[!] Google login for: {}'.format(username)
@@ -378,6 +376,7 @@ def login_ptc(username, password):
 def get_heartbeat(service,
                   api_endpoint,
                   access_token,
+                  geo_coord,
                   response, ):
     m4 = pokemon_pb2.RequestEnvelop.Requests()
     m = pokemon_pb2.RequestEnvelop.MessageSingleInt()
@@ -387,18 +386,19 @@ def get_heartbeat(service,
     m = pokemon_pb2.RequestEnvelop.MessageSingleString()
     m.bytes = '05daf51635c82611d1aac95c0b051d3ec088a930'
     m5.message = m.SerializeToString()
-    walk = sorted(getNeighbors())
+    walk = sorted(getNeighbors(geo_coord))
     m1 = pokemon_pb2.RequestEnvelop.Requests()
     m1.type = 106
     m = pokemon_pb2.RequestEnvelop.MessageQuad()
     m.f1 = ''.join(map(encode, walk))
     m.f2 = \
         "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
-    m.lat = COORDS_LATITUDE
-    m.long = COORDS_LONGITUDE
+    m.lat = geo_coord.lat
+    m.long = geo_coord.long
     m1.message = m.SerializeToString()
     response = get_profile(service,
                            access_token,
+                           geo_coord,
                            api_endpoint,
                            response.unknown7,
                            m1,
@@ -503,7 +503,7 @@ def get_args():
     return parser.parse_args()
 
 @memoize
-def login(args):
+def login(args, geo_coord):
     global global_password
     if not global_password:
       if args.password:
@@ -517,13 +517,13 @@ def login(args):
 
     print '[+] RPC Session Token: {} ...'.format(access_token[:25])
 
-    api_endpoint = get_api_endpoint(args.auth_service, access_token)
+    api_endpoint = get_api_endpoint(args.auth_service, access_token, geo_coord)
     if api_endpoint is None:
         raise Exception('[-] RPC server offline')
 
     print '[+] Received API endpoint: {}'.format(api_endpoint)
 
-    profile_response = retrying_get_profile(args.auth_service, access_token,
+    profile_response = retrying_get_profile(args.auth_service, access_token, geo_coord,
                                             api_endpoint, None)
     if profile_response is None or not profile_response.payload:
         raise Exception('Could not get profile')
@@ -546,7 +546,7 @@ def login(args):
 
     return api_endpoint, access_token, profile_response
 
-def main():
+def main(location):
     full_path = os.path.realpath(__file__)
     (path, filename) = os.path.split(full_path)
 
@@ -566,9 +566,16 @@ def main():
         print '[!] DEBUG mode on'
 
     # only get location for first run
-    if not (FLOAT_LAT and FLOAT_LONG):
-      print('[+] Getting initial location')
-      retrying_set_location(args.location)
+    print('[+] Getting initial location')
+    if (location) :
+        geo_coord = retrying_set_location(location)
+    else :
+        geo_coord = retrying_set_location(args.location)
+    global MAP_CENTER_LAT, MAP_CENTER_LONG
+    if (MAP_CENTER_LAT == 0):
+        MAP_CENTER_LAT = geo_coord.float_lat
+    if (MAP_CENTER_LONG == 0):
+        MAP_CENTER_LONG = geo_coord.float_long
 
     if args.auto_refresh:
         global auto_refresh
@@ -578,7 +585,7 @@ def main():
     	global is_ampm_clock
     	is_ampm_clock = True
 
-    api_endpoint, access_token, profile_response = login(args)
+    api_endpoint, access_token, profile_response = login(args, geo_coord)
 
     clear_stale_pokemons()
 
@@ -603,13 +610,13 @@ def main():
         #debug('steplimit: {} x: {} y: {} pos: {} dx: {} dy {}'.format(steplimit2, x, y, pos, dx, dy))
         # Scan location math
         if -steplimit2 / 2 < x <= steplimit2 / 2 and -steplimit2 / 2 < y <= steplimit2 / 2:
-            set_location_coords(x * 0.0025 + origin_lat, y * 0.0025 + origin_lon, 0)
+            geo_coord = create_location_coords(x * 0.0025 + origin_lat, y * 0.0025 + origin_lon, 0)
         if x == y or x < 0 and x == -y or x > 0 and x == 1 - y:
             (dx, dy) = (-dy, dx)
 
         (x, y) = (x + dx, y + dy)
 
-        process_step(args, api_endpoint, access_token, profile_response,
+        process_step(args, api_endpoint, access_token, geo_coord, profile_response,
                      pokemonsJSON, ignore, only)
 
         print('Completed: ' + str(
@@ -617,37 +624,37 @@ def main():
 
     global NEXT_LAT, NEXT_LONG
     if (NEXT_LAT and NEXT_LONG and
-            (NEXT_LAT != FLOAT_LAT or NEXT_LONG != FLOAT_LONG)):
+            (NEXT_LAT != location.float_lat or NEXT_LONG != location.float_long)):
         print('Update to next location %f, %f' % (NEXT_LAT, NEXT_LONG))
-        set_location_coords(NEXT_LAT, NEXT_LONG, 0)
+        geo_coord = create_location_coords(NEXT_LAT, NEXT_LONG, 0)
         NEXT_LAT = 0
         NEXT_LONG = 0
     else:
-        set_location_coords(origin_lat, origin_lon, 0)
+        geo_coord = create_location_coords(origin_lat, origin_lon, 0)
 
-    register_background_thread()
+    register_thread(main, 30)
 
 
-def process_step(args, api_endpoint, access_token, profile_response,
+def process_step(args, api_endpoint, access_token, geo_coord, profile_response,
                  pokemonsJSON, ignore, only):
-    print('[+] Searching for Pokemon at location {} {}'.format(FLOAT_LAT, FLOAT_LONG))
-    origin = LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)
-    step_lat = FLOAT_LAT
-    step_long = FLOAT_LONG
-    parent = CellId.from_lat_lng(LatLng.from_degrees(FLOAT_LAT,
-                                                     FLOAT_LONG)).parent(15)
-    h = get_heartbeat(args.auth_service, api_endpoint, access_token,
+    print('[+] Searching for Pokemon at location {} {}'.format(geo_coord.float_lat, geo_coord.float_long))
+    origin = LatLng.from_degrees(geo_coord.float_lat, geo_coord.float_long)
+    step_lat = geo_coord.float_lat
+    step_long = geo_coord.float_long
+    parent = CellId.from_lat_lng(LatLng.from_degrees(geo_coord.float_lat,
+                                                     geo_coord.float_long)).parent(15)
+    h = get_heartbeat(args.auth_service, api_endpoint, access_token, geo_coord,
                       profile_response)
     hs = [h]
     seen = {}
 
     for child in parent.children():
         latlng = LatLng.from_point(Cell(child).get_center())
-        set_location_coords(latlng.lat().degrees, latlng.lng().degrees, 0)
+        create_location_coords(latlng.lat().degrees, latlng.lng().degrees, 0)
         hs.append(
-            get_heartbeat(args.auth_service, api_endpoint, access_token,
+            get_heartbeat(args.auth_service, api_endpoint, access_token, geo_coord,
                           profile_response))
-    set_location_coords(step_lat, step_long, 0)
+    create_location_coords(step_lat, step_long, 0)
     visible = []
 
     for hh in hs:
@@ -718,7 +725,17 @@ def clear_stale_pokemons():
             del pokemons[pokemon_key]
 
 
-def register_background_thread(initial_registration=False):
+def register_thread(func, fargs=(), delay_time=0):
+    if (delay_time):
+        new_thread = threading.Timer(delay_time, func, args)
+    else:
+        new_thread = threading.Thread(target=func, args=fargs)
+    new_thread.daemon = True;
+    new_thread.name = 'dynamic_thread'
+    new_thread.start()
+
+
+def register_background_thread(initial_registration=False, fargs=()):
     """
     Start a background thread to search for Pokemon
     while Flask is still able to serve requests for the map
@@ -740,11 +757,11 @@ def register_background_thread(initial_registration=False):
             return
 
         debug('register_background_thread: initial registration')
-        search_thread = threading.Thread(target=main)
+        search_thread = threading.Thread(target=main, args=fargs)
 
     else:
         debug('register_background_thread: queueing')
-        search_thread = threading.Timer(30, main)  # delay, in seconds
+        search_thread = threading.Timer(30, main, fargs)  # delay, in seconds
 
     search_thread.daemon = True
     search_thread.name = 'search_thread'
@@ -776,8 +793,8 @@ def raw_data():
 def config():
     """ Gets the settings for the Google Maps via REST"""
     center = {
-        'lat': FLOAT_LAT,
-        'lng': FLOAT_LONG,
+        'lat': MAP_CENTER_LAT,
+        'lng': MAP_CENTER_LONG,
         'zoom': 15,
         'identifier': "fullmap"
     }
@@ -905,5 +922,11 @@ def get_map():
 
 if __name__ == '__main__':
     args = get_args()
-    register_background_thread(initial_registration=True)
+
+    """ only after running from flask """
+    if werkzeug.serving.is_running_from_reloader():
+        locations = args.location.split(";")
+        for location in locations:
+            register_thread(main, (location,))
+
     app.run(debug=True, threaded=True, host=args.host, port=args.port)
