@@ -73,7 +73,7 @@ numbertoteam = {  # At least I'm pretty sure that's it. I could be wrong and the
     2: 'Valor',
     3: 'Instinct',
 }
-origin_lat, origin_lon = None, None
+
 is_ampm_clock = False
 
 # stuff for in-background search thread
@@ -163,8 +163,6 @@ def retrying_set_location(location_name):
 def set_location(location_name):
     geolocator = GoogleV3()
     prog = re.compile('^(\-?\d+(\.\d+)?),\s*(\-?\d+(\.\d+)?)$')
-    global origin_lat
-    global origin_lon
     if prog.match(location_name):
         local_lat, local_lng = [float(x) for x in location_name.split(",")]
         alt = 0
@@ -438,10 +436,13 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-a', '--auth_service', type=str.lower, help='Auth Service', default='ptc')
-    parser.add_argument('-u', '--username', help='Username', required=True)
+    parser.add_argument('-u', '--username', help='Username', required=False)
     parser.add_argument('-p', '--password', help='Password', required=False)
     parser.add_argument(
-        '-l', '--location', type=parse_unicode, help='Location', required=True)
+        '-l', '--location', type=parse_unicode, help='Location', required=False)
+    parser.add_argument(
+        '-lf', '--location_from_file', type=parse_unicode, help='Read location & account bindings from json file' +
+        '. Incompatible with --location', required=False)
     parser.add_argument('-st', '--step-limit', help='Steps', required=True)
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
@@ -503,27 +504,26 @@ def get_args():
     return parser.parse_args()
 
 @memoize
-def login(args, geo_coord):
+def login(auth_service, username, password, geo_coord):
+    if not password:
+        password = getpass.getpass()
     global global_password
     if not global_password:
-      if args.password:
-        global_password = args.password
-      else:
-        global_password = getpass.getpass()
+        global_password = password
 
-    access_token = get_token(args.auth_service, args.username, global_password)
+    access_token = get_token(auth_service, username, password)
     if access_token is None:
         raise Exception('[-] Wrong username/password')
 
     print '[+] RPC Session Token: {} ...'.format(access_token[:25])
 
-    api_endpoint = get_api_endpoint(args.auth_service, access_token, geo_coord)
+    api_endpoint = get_api_endpoint(auth_service, access_token, geo_coord)
     if api_endpoint is None:
         raise Exception('[-] RPC server offline')
 
     print '[+] Received API endpoint: {}'.format(api_endpoint)
 
-    profile_response = retrying_get_profile(args.auth_service, access_token, geo_coord,
+    profile_response = retrying_get_profile(auth_service, access_token, geo_coord,
                                             api_endpoint, None)
     if profile_response is None or not profile_response.payload:
         raise Exception('Could not get profile')
@@ -546,11 +546,9 @@ def login(args, geo_coord):
 
     return api_endpoint, access_token, profile_response
 
-def main(location):
+def main(instance_settings):
     full_path = os.path.realpath(__file__)
     (path, filename) = os.path.split(full_path)
-
-    args = get_args()
 
     if args.auth_service not in ['ptc', 'google']:
         print '[!] Invalid Auth service specified'
@@ -567,10 +565,8 @@ def main(location):
 
     # only get location for first run
     print('[+] Getting initial location')
-    if (location) :
-        geo_coord = retrying_set_location(location)
-    else :
-        geo_coord = retrying_set_location(args.location)
+    geo_coord = retrying_set_location(instance_settings['location'])
+    origin_lat, origin_lon = geo_coord.float_lat, geo_coord.float_long
     global MAP_CENTER_LAT, MAP_CENTER_LONG
     if (MAP_CENTER_LAT == 0):
         MAP_CENTER_LAT = geo_coord.float_lat
@@ -585,7 +581,8 @@ def main(location):
     	global is_ampm_clock
     	is_ampm_clock = True
 
-    api_endpoint, access_token, profile_response = login(args, geo_coord)
+    api_endpoint, access_token, profile_response = login(args.auth_service, instance_settings['username'],
+                                                         instance_settings['password'], geo_coord)
 
     clear_stale_pokemons()
 
@@ -632,7 +629,7 @@ def main(location):
     else:
         geo_coord = create_location_coords(origin_lat, origin_lon, 0)
 
-    register_thread(main, 30)
+    register_thread(main, instance_settings, 30)
 
 
 def process_step(args, api_endpoint, access_token, geo_coord, profile_response,
@@ -827,8 +824,8 @@ def next_loc():
 def get_pokemarkers():
     pokeMarkers = [{
         'icon': icons.dots.red,
-        'lat': origin_lat,
-        'lng': origin_lon,
+        'lat': MAP_CENTER_LAT,
+        'lng': MAP_CENTER_LONG,
         'infobox': "Start position",
         'type': 'custom',
         'key': 'start-position',
@@ -913,8 +910,8 @@ def get_map():
     fullmap = Map(
         identifier="fullmap2",
         style='height:100%;width:100%;top:0;left:0;position:absolute;z-index:200;',
-        lat=origin_lat,
-        lng=origin_lon,
+        lat=MAP_CENTER_LAT,
+        lng=MAP_CENTER_LONG,
         markers=get_pokemarkers(),
         zoom='15', )
     return fullmap
@@ -922,11 +919,26 @@ def get_map():
 
 if __name__ == '__main__':
     args = get_args()
+    if (args.location_from_file) :
+        with open('locations.json') as file:
+            locations = json.load(file)
+        if not locations :
+            print ('failed to open locations file')
+            exit
+    elif args.location:
+        if not args.username :
+            print ('--username is required')
+            exit
+    else:
+        print('--location or --location_from_file is required')
+        exit
 
-    """ only after running from flask """
+        """ only after running from flask """
     if werkzeug.serving.is_running_from_reloader():
-        locations = args.location.split(";")
-        for location in locations:
-            register_thread(main, (location,))
+        if locations :
+            for location in locations:
+                register_thread(main, (location,))
+        else :
+            register_thread(main, ({'username' : args.username, 'password' : args.password, 'location': args.location },))
 
     app.run(debug=True, threaded=True, host=args.host, port=args.port)
