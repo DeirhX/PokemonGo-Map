@@ -5,7 +5,7 @@ import logging
 import time
 
 from pgoapi import PGoApi
-from pgoapi.utilities import f2i, get_cellid
+from pgoapi.utilities import f2i, get_cellid, get_pos_by_name
 
 from . import config
 from .models import parse_map
@@ -43,21 +43,22 @@ def generate_location_steps(initial_location, num_steps):
         x, y = x + dx, y + dy
 
 
-def login(args, position):
+def login(args, actor_entry):
     log.info('Attempting login to Pokemon Go.')
 
-    api.set_position(*position)
+    api.set_position(*actor_entry['position'])
 
-    while not api.login(args.auth_service, args.username, args.password):
+    while not api.login(args.auth_service, actor_entry['username'], actor_entry['password']):
         log.info('Failed to login to Pokemon Go. Trying again.')
         time.sleep(REQ_SLEEP)
 
     log.info('Login to Pokemon Go successful.')
 
 
-def search(args):
+def search(args, actor_entry):
     num_steps = args.step_limit
-    position = (config['ORIGINAL_LATITUDE'], config['ORIGINAL_LONGITUDE'], 0)
+    position = actor_entry['position']
+    actor_id = actor_entry['username']
 
     if api._auth_provider and api._auth_provider._ticket_expire:
         remaining_time = api._auth_provider._ticket_expire/1000 - time.time()
@@ -65,41 +66,42 @@ def search(args):
         if remaining_time > 60:
             log.info("Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
         else:
-            login(args, position)
+            login(args, actor_entry)
     else:
-        login(args, position)
+        login(args, actor_entry)
 
     i = 1
     for step_location in generate_location_steps(position, num_steps):
-        log.info('Scanning step {:d} of {:d}.'.format(i, num_steps**2))
-        log.debug('Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
+        log.info(actor_id + 'Scanning step {:d} of {:d}.'.format(i, num_steps**2))
+        log.debug(actor_id + 'Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
 
         response_dict = send_map_request(api, step_location)
         while not response_dict:
-            log.info('Map Download failed. Trying again.')
+            log.info(actor_id + 'Map Download failed. Trying again.')
             response_dict = send_map_request(api, step_location)
             time.sleep(REQ_SLEEP)
 
         try:
             parse_map(response_dict)
         except KeyError:
-            log.error('Scan step failed. Response dictionary key error.')
+            log.error(actor_id + ': Scan step failed. Response dictionary key error.')
     
             global failed_consecutive
             failed_consecutive += 1
             if(failed_consecutive >= 5):
-                log.error('Niantic servers under heavy load. Waiting before trying again')
+                log.error(actor_entry['username'] + 'Niantic servers under heavy load. Waiting before trying again')
             	time.sleep(5)
         failed_consecutive = 0
-        log.info('Completed {:5.2f}% of scan.'.format(float(i) / num_steps**2*100))
+        log.info(actor_entry['username'] + 'Completed {:5.2f}% of scan.'.format(float(i) / num_steps**2*100))
         i += 1
         time.sleep(REQ_SLEEP)
 
 
-def search_loop(args):
+def search_loop(args, actor_entry):
+    actor_entry['position'] = get_pos_by_name(actor_entry['location'])
     while True:
-        search(args)
-        log.info("Scanning complete.")
+        search(args, actor_entry)
+        log.info(actor_entry['username'] + ": Scanning complete.")
         if args.scan_delay > 1:
             log.info('Waiting {:d} seconds before beginning new scan.'.format(args.scan_delay))
         time.sleep(args.scan_delay)

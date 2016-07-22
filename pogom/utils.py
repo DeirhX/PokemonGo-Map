@@ -26,6 +26,8 @@ def get_args():
     parser.add_argument('-u', '--username', help='Username', required=True)
     parser.add_argument('-p', '--password', help='Password', required=False)
     parser.add_argument('-l', '--location', type=parse_unicode, help='Location, can be an address or coordinates', required=True)
+    parser.add_argument('-lf', '--location_from_file', type=parse_unicode,help='Read location & account bindings from json file.'
+                        'Incompatible with --location', required=False)
     parser.add_argument('-st', '--step-limit', help='Steps', required=True, type=int)
     parser.add_argument('-sd', '--scan-delay', help='Time delay before beginning new scan', required=False, type=int, default=1)
     parser.add_argument('-dc','--display-in-console',help='Display Found Pokemon in Console',action='store_true',default=False)
@@ -111,3 +113,7 @@ def load_credentials(filepath):
                 " Please take a look at the wiki for instructions on how to generate this key,"
                 " then add that key to the file!")
         return creds
+
+def load_location_plan(filepath):
+    with open(filepath) as file:
+        return json.load(file)

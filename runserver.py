@@ -4,11 +4,11 @@
 import os
 import logging
 
-from threading import Thread
+from threading import Thread, Timer
 
 from pogom import config
 from pogom.app import Pogom
-from pogom.utils import get_args, insert_mock_data, load_credentials
+from pogom.utils import get_args, insert_mock_data, load_credentials, load_location_plan
 from pogom.search import search_loop
 from pogom.models import create_tables, Pokemon, Pokestop, Gym
 
@@ -17,11 +17,14 @@ from pogom.pgoapi.utilities import get_pos_by_name
 log = logging.getLogger(__name__)
 
 
-def start_locator_thread(args):
-    search_thread = Thread(target=search_loop, args=(args,))
-    search_thread.daemon = True
-    search_thread.name = 'search_thread'
-    search_thread.start()
+def start_locator_thread(args, location_plan):
+    thread_num = 0
+    for location_entry in location_plan:
+        search_thread = Timer(thread_num * 4, search_loop, args=(args,location_entry), )
+        search_thread.daemon = True
+        search_thread.name = 'search_thread-' + str(thread_num)
+        search_thread.start()
+        thread_num += 1
 
 
 if __name__ == '__main__':
@@ -49,8 +52,13 @@ if __name__ == '__main__':
     config['ORIGINAL_LONGITUDE'] = position[1]
     config['LOCALE'] = args.locale
 
+    if (args.location_from_file):
+        location_plan = load_location_plan(args.location_from_file)
+    else:
+        location_plan = [{'username': args.username, 'password': args.password, 'location': args.position}]
+
     if not args.mock:
-        start_locator_thread(args)
+        start_locator_thread(args, location_plan)
     else:
         insert_mock_data()
 
