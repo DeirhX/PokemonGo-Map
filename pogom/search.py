@@ -128,11 +128,10 @@ def search(args, actor_entry, i):
         response_dict = {}
         failed_consecutive = 0
         while not response_dict:
-            log.info(actor_id + ' | Map Download failed. Trying again.')
             response_dict = send_map_request(api, step_location)
             if response_dict:
                 try:
-                    parse_map(response_dict, i, step, step_location)
+                    parse_map(args, response_dict, i, step, step_location)
                 except KeyError:
                     log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
                     failed_consecutive += 1
@@ -141,7 +140,7 @@ def search(args, actor_entry, i):
                         time.sleep(config['REQ_HEAVY_SLEEP'])
                         failed_consecutive = 0
             else:
-                log.info('Map Download failed. Trying again.')
+                log.info(actor_id + ' | Map Download failed. Trying again.')
 
         log.info('Completed {:5.2f}% of scan.'.format(float(step) / num_steps**2*100))
         time.sleep(config['REQ_SLEEP'])
@@ -153,7 +152,7 @@ def search_loop(args, actor_entry):
     try:
         while True:
             log.info(actor_entry['username'] + ": Map iteration: {}".format(i))
-            search(args, i)
+            search(args, actor_entry, i)
             log.info(actor_entry['username'] + ": Scanning complete.")
             if args.scan_delay > 1:
                 log.info('Waiting {:d} seconds before beginning new scan.'.format(args.scan_delay))
@@ -163,4 +162,4 @@ def search_loop(args, actor_entry):
     except:
         log.info('Crashed, waiting {:d} seconds before restarting search.'.format(args.scan_delay))
         time.sleep(args.scan_delay)
-        search_loop(args)
+        search_loop(args, actor_entry)
