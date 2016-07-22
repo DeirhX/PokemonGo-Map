@@ -162,6 +162,7 @@ def bulk_upsert(cls, data):
 def write_thread(in_q) :
     while True:
         cls, data = in_q.get()
+        log.info("Update queue size: " + str(in_q.qsize()))
         if data is end_queue:
             return
 
