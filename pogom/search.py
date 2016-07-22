@@ -64,7 +64,7 @@ def search(args, actor_entry):
         remaining_time = api._auth_provider._ticket_expire/1000 - time.time()
 
         if remaining_time > 60:
-            log.info("Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
+            log.info(actor_id + " | Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
         else:
             login(args, actor_entry)
     else:
@@ -72,27 +72,27 @@ def search(args, actor_entry):
 
     i = 1
     for step_location in generate_location_steps(position, num_steps):
-        log.info(actor_id + 'Scanning step {:d} of {:d}.'.format(i, num_steps**2))
-        log.debug(actor_id + 'Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
+        log.info(actor_id + ' | Scanning step {:d} of {:d}.'.format(i, num_steps**2))
+        log.debug(actor_id + ' | Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
 
         response_dict = send_map_request(api, step_location)
         while not response_dict:
-            log.info(actor_id + 'Map Download failed. Trying again.')
+            log.info(actor_id + ' | Map Download failed. Trying again.')
             response_dict = send_map_request(api, step_location)
             time.sleep(REQ_SLEEP)
 
         try:
             parse_map(args, response_dict)
         except KeyError:
-            log.error(actor_id + ': Scan step failed. Response dictionary key error.')
+            log.error(actor_id + ' |  Scan step failed. Response dictionary key error.')
     
             global failed_consecutive
             failed_consecutive += 1
             if(failed_consecutive >= 5):
-                log.error(actor_entry['username'] + 'Niantic servers under heavy load. Waiting before trying again')
+                log.error(actor_entry['username'] + ' | Niantic servers under heavy load. Waiting before trying again')
             	time.sleep(5)
         failed_consecutive = 0
-        log.info(actor_entry['username'] + 'Completed {:5.2f}% of scan.'.format(float(i) / num_steps**2*100))
+        log.info(actor_entry['username'] + ' | Completed {:5.2f}% of scan.'.format(float(i) / num_steps**2*100))
         i += 1
         time.sleep(REQ_SLEEP)
 
