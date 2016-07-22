@@ -171,7 +171,12 @@ def write_thread(in_q) :
 
         while i < num_rows:
             log.debug("Inserting items {} to {}".format(i, min(i + step, num_rows)))
-            InsertQuery(cls, rows=data.values()[i:min(i + step, num_rows)]).upsert().execute()
+            while True:
+                try:
+                    InsertQuery(cls, rows=data.values()[i:min(i + step, num_rows)]).upsert().execute()
+                    break
+                except:
+                    continue
             i += step
 
 writer_thread = Thread(target=write_thread, args=(q,))
