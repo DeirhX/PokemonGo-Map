@@ -7,14 +7,17 @@ from peewee import Model, SqliteDatabase, InsertQuery, IntegerField,\
 
 from playhouse.apsw_ext import *
 from datetime import datetime
+from datetime import timedelta
 from base64 import b64encode
 from queue import Queue
 from threading import Thread
 
-from .utils import get_pokemon_name
+from .utils import get_pokemon_name, get_args
 from .transform import transform_from_wgs_to_gcj
 from .customLog import printPokemon
 
+args = get_args()
+db = SqliteDatabase(args.db)
 db = APSWDatabase('pogom-aps.db')
 db.get_cursor().execute("pragma busy_timeout = 15000")
 #db.get_cursor().execute("pragma journal_mode=wal")
@@ -87,11 +90,31 @@ class Gym(BaseModel):
     longitude = FloatField()
     last_modified = DateTimeField()
 
+class ScannedLocation(BaseModel):
+    scanned_id = CharField(primary_key=True)
+    latitude = FloatField()
+    longitude = FloatField()
+    last_modified = DateTimeField()
 
 def parse_map(args, map_dict):
+    @classmethod
+    def get_recent(cls):
+        query = (ScannedLocation
+                 .select()
+                 .where(ScannedLocation.last_modified >= (datetime.utcnow() - timedelta(minutes=15)))
+                 .dicts())
+
+        scans = []
+        for s in query:
+            scans.append(s)
+
+        return scans
+
+def parse_map(map_dict, iteration_num, step, step_location):
     pokemons = {}
     pokestops = {}
     gyms = {}
+    scanned = {}
 
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     for cell in cells:
@@ -109,40 +132,41 @@ def parse_map(args, map_dict):
                 'disappear_time': d_t
             }
 
-        for f in cell.get('forts', []):
-            if f.get('type') == 1:  # Pokestops
-                    if 'lure_info' in f:
-                        lure_expiration = datetime.utcfromtimestamp(
-                            f['lure_info']['lure_expires_timestamp_ms'] / 1000.0)
-                        active_pokemon_id = f['lure_info']['active_pokemon_id']
-                    else:
-                        if (args.only_lure):
-                            continue
-                        lure_expiration, active_pokemon_id = None, None
+        if iteration_num > 0 or step > 50:
+            for f in cell.get('forts', []):
+                if f.get('type') == 1:  # Pokestops
+                        if 'lure_info' in f:
+                            lure_expiration = datetime.utcfromtimestamp(
+                                f['lure_info']['lure_expires_timestamp_ms'] / 1000.0)
+                            active_pokemon_id = f['lure_info']['active_pokemon_id']
+                        else:
+                            lure_expiration, active_pokemon_id = None, None
+                            if (args.only_lure):
+                                continue
 
-                    pokestops[f['id']] = {
-                        'pokestop_id': f['id'],
+                        pokestops[f['id']] = {
+                            'pokestop_id': f['id'],
+                            'enabled': f['enabled'],
+                            'latitude': f['latitude'],
+                            'longitude': f['longitude'],
+                            'last_modified': datetime.utcfromtimestamp(
+                                f['last_modified_timestamp_ms'] / 1000.0),
+                            'lure_expiration': lure_expiration,
+                            'active_pokemon_id': active_pokemon_id
+                    }
+
+                else:  # Currently, there are only stops and gyms
+                    gyms[f['id']] = {
+                        'gym_id': f['id'],
+                        'team_id': f.get('owned_by_team', 0),
+                        'guard_pokemon_id': f.get('guard_pokemon_id', 0),
+                        'gym_points': f.get('gym_points', 0),
                         'enabled': f['enabled'],
                         'latitude': f['latitude'],
                         'longitude': f['longitude'],
                         'last_modified': datetime.utcfromtimestamp(
                             f['last_modified_timestamp_ms'] / 1000.0),
-                        'lure_expiration': lure_expiration,
-                        'active_pokemon_id': active_pokemon_id
-                }
-
-            else:  # Currently, there are only stops and gyms
-                gyms[f['id']] = {
-                    'gym_id': f['id'],
-                    'team_id': f['owned_by_team'],
-                    'guard_pokemon_id': f['guard_pokemon_id'],
-                    'gym_points': f['gym_points'],
-                    'enabled': f['enabled'],
-                    'latitude': f['latitude'],
-                    'longitude': f['longitude'],
-                    'last_modified': datetime.utcfromtimestamp(
-                        f['last_modified_timestamp_ms'] / 1000.0),
-                }
+                    }
 
     if pokemons:
         log.info("Upserting {} pokemon".format(len(pokemons)))
@@ -155,6 +179,15 @@ def parse_map(args, map_dict):
     if gyms:
         log.info("Upserting {} gyms".format(len(gyms)))
         bulk_upsert(Gym, gyms)
+
+    scanned[0] = {
+        'scanned_id': str(step_location[0])+','+str(step_location[1]),
+        'latitude': step_location[0],
+        'longitude': step_location[1],
+        'last_modified': datetime.utcnow(),
+    }
+
+    bulk_upsert(ScannedLocation, scanned)
 
 def bulk_upsert(cls, data):
     q.put((cls, data))
@@ -186,7 +219,7 @@ writer_thread.start()
 
 def create_tables():
     db.connect()
-    db.create_tables([Pokemon, Pokestop, Gym], safe=True)
+    db.create_tables([Pokemon, Pokestop, Gym, ScannedLocation], safe=True)
     db.close()
 
 
