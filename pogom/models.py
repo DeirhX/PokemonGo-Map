@@ -24,7 +24,7 @@ db.get_cursor().execute("pragma busy_timeout = 15000")
 
 log = logging.getLogger(__name__)
 
-q = Queue()
+q = Queue(1000)
 end_queue = object()
 
 
