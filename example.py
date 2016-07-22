@@ -64,9 +64,14 @@ NEXT_LONG = 0
 auto_refresh = 0
 default_step = 0.001
 api_endpoint = None
+
 pokemons = {}
+pokemons_lock = threading.Lock()
 gyms = {}
+gyms_lock = threading.Lock()
 pokestops = {}
+pokestops_lock = threading.Lock()
+
 numbertoteam = {  # At least I'm pretty sure that's it. I could be wrong and then I'd be displaying the wrong owner team of gyms.
     0: 'Gym',
     1: 'Mystic',
@@ -583,7 +588,7 @@ def main(instance_settings):
 
     api_endpoint, access_token, profile_response = login(args.auth_service, instance_settings['username'],
                                                          instance_settings['password'], geo_coord)
-
+    username = instance_settings['username']
     clear_stale_pokemons()
 
     steplimit = int(args.step_limit)
@@ -603,7 +608,7 @@ def main(instance_settings):
     steplimit2 = steplimit**2
     for step in range(steplimit2):
         #starting at 0 index
-        debug('looping: step {} of {}'.format((step+1), steplimit**2))
+        debug(username + ': looping: step {} of {}'.format((step+1), steplimit**2))
         #debug('steplimit: {} x: {} y: {} pos: {} dx: {} dy {}'.format(steplimit2, x, y, pos, dx, dy))
         # Scan location math
         if -steplimit2 / 2 < x <= steplimit2 / 2 and -steplimit2 / 2 < y <= steplimit2 / 2:
@@ -616,7 +621,7 @@ def main(instance_settings):
         process_step(args, api_endpoint, access_token, geo_coord, profile_response,
                      pokemonsJSON, ignore, only)
 
-        print('Completed: ' + str(
+        print(username + ': Completed: ' + str(
             ((step+1) + pos * .25 - .25) / (steplimit2) * 100) + '%')
 
     global NEXT_LAT, NEXT_LONG
@@ -629,7 +634,7 @@ def main(instance_settings):
     else:
         geo_coord = create_location_coords(origin_lat, origin_lon, 0)
 
-    register_thread(main, instance_settings, 30)
+    register_thread(main, (instance_settings,), 30)
 
 
 def process_step(args, api_endpoint, access_token, geo_coord, profile_response,
@@ -669,8 +674,9 @@ def process_step(args, api_endpoint, access_token, geo_coord, profile_response,
                                 (Fort.Latitude, Fort.Longitude) = \
 transform_from_wgs_to_gcj(Location(Fort.Latitude, Fort.Longitude))
                             if Fort.GymPoints and args.display_gym:
-                                gyms[Fort.FortId] = [Fort.Team, Fort.Latitude,
-                                                     Fort.Longitude, Fort.GymPoints]
+                                with gyms_lock:
+                                    gyms[Fort.FortId] = [Fort.Team, Fort.Latitude,
+                                                         Fort.Longitude, Fort.GymPoints]
 
                             elif Fort.FortType \
                                 and args.display_pokestop:
@@ -680,8 +686,9 @@ transform_from_wgs_to_gcj(Location(Fort.Latitude, Fort.Longitude))
                                         .fromtimestamp(Fort.LureInfo.LureExpiresTimestampMs / 1000.0)\
                                         .strftime("%H:%M:%S")
                                 if (expire_time != 0 or not args.onlylure):
-                                    pokestops[Fort.FortId] = [Fort.Latitude,
-                                                              Fort.Longitude, expire_time]
+                                    with pokestops_lock:
+                                        pokestops[Fort.FortId] = [Fort.Latitude,
+                                                                  Fort.Longitude, expire_time]
         except AttributeError:
             break
 
@@ -703,28 +710,30 @@ transform_from_wgs_to_gcj(Location(Fort.Latitude, Fort.Longitude))
                 transform_from_wgs_to_gcj(Location(poke.Latitude,
                     poke.Longitude))
 
-        pokemons[poke.SpawnPointId] = {
-            "lat": poke.Latitude,
-            "lng": poke.Longitude,
-            "disappear_time": disappear_timestamp,
-            "id": poke.pokemon.PokemonId,
-            "name": pokename
-        }
+        with pokemons_lock:
+            pokemons[poke.SpawnPointId] = {
+                "lat": poke.Latitude,
+                "lng": poke.Longitude,
+                "disappear_time": disappear_timestamp,
+                "id": poke.pokemon.PokemonId,
+                "name": pokename
+            }
 
 def clear_stale_pokemons():
     current_time = time.time()
 
-    for pokemon_key in pokemons.keys():
-        pokemon = pokemons[pokemon_key]
-        if current_time > pokemon['disappear_time']:
-            print "[+] removing stale pokemon %s at %f, %f from list" % (
-                pokemon['name'].encode('utf-8'), pokemon['lat'], pokemon['lng'])
-            del pokemons[pokemon_key]
+    with pokemons_lock:
+        for pokemon_key in pokemons.keys():
+            pokemon = pokemons[pokemon_key]
+            if current_time > pokemon['disappear_time']:
+                print "[+] removing stale pokemon %s at %f, %f from list" % (
+                    pokemon['name'].encode('utf-8'), pokemon['lat'], pokemon['lng'])
+                del pokemons[pokemon_key]
 
 
 def register_thread(func, fargs=(), delay_time=0):
     if (delay_time):
-        new_thread = threading.Timer(delay_time, func, args)
+        new_thread = threading.Timer(delay_time, func, fargs)
     else:
         new_thread = threading.Thread(target=func, args=fargs)
     new_thread.daemon = True;
@@ -783,7 +792,8 @@ def data():
 @app.route('/raw_data')
 def raw_data():
     """ Gets raw data for pokemons/gyms/pokestops via REST """
-    return flask.jsonify(pokemons=pokemons, gyms=gyms, pokestops=pokestops)
+    with pokemons_lock, gyms_lock, pokestops_lock:
+        return flask.jsonify(pokemons=pokemons, gyms=gyms, pokestops=pokestops)
 
 
 @app.route('/config')
@@ -832,77 +842,81 @@ def get_pokemarkers():
         'disappear_time': -1
     }]
 
-    for pokemon_key in pokemons:
-        pokemon = pokemons[pokemon_key]
-        datestr = datetime.fromtimestamp(pokemon[
-            'disappear_time'])
-        dateoutput = datestr.strftime("%H:%M:%S")
-        if is_ampm_clock:
-        	dateoutput = datestr.strftime("%I:%M%p").lstrip('0')
-        pokemon['disappear_time_formatted'] = dateoutput
+    with pokemons_lock:
+        for pokemon_key in pokemons:
+            pokemon = pokemons[pokemon_key]
+            datestr = datetime.fromtimestamp(pokemon[
+                'disappear_time'])
+            dateoutput = datestr.strftime("%H:%M:%S")
+            if is_ampm_clock:
+                dateoutput = datestr.strftime("%I:%M%p").lstrip('0')
+            pokemon['disappear_time_formatted'] = dateoutput
 
-        LABEL_TMPL = u'''
-<div><b>{name}</b><span> - </span><small><a href='http://www.pokemon.com/us/pokedex/{id}' target='_blank' title='View in Pokedex'>#{id}</a></small></div>
-<div>Disappears at - {disappear_time_formatted} <span class='label-countdown' disappears-at='{disappear_time}'></span></div>
-<div><a href='https://www.google.com/maps/dir/Current+Location/{lat},{lng}' target='_blank' title='View in Maps'>Get Directions</a></div>
-'''
-        label = LABEL_TMPL.format(**pokemon)
-        #  NOTE: `infobox` field doesn't render multiple line string in frontend
-        label = label.replace('\n', '')
+            LABEL_TMPL = u'''
+    <div><b>{name}</b><span> - </span><small><a href='http://www.pokemon.com/us/pokedex/{id}' target='_blank' title='View in Pokedex'>#{id}</a></small></div>
+    <div>Disappears at - {disappear_time_formatted} <span class='label-countdown' disappears-at='{disappear_time}'></span></div>
+    <div><a href='https://www.google.com/maps/dir/Current+Location/{lat},{lng}' target='_blank' title='View in Maps'>Get Directions</a></div>
+    '''
+            label = LABEL_TMPL.format(**pokemon)
+            #  NOTE: `infobox` field doesn't render multiple line string in frontend
+            label = label.replace('\n', '')
 
-        pokeMarkers.append({
-            'type': 'pokemon',
-            'key': pokemon_key,
-            'disappear_time': pokemon['disappear_time'],
-            'icon': 'static/icons/%d.png' % pokemon["id"],
-            'lat': pokemon["lat"],
-            'lng': pokemon["lng"],
-            'infobox': label
-        })
-
-    for gym_key in gyms:
-        gym = gyms[gym_key]
-        if gym[0] == 0:
-            color = "rgba(0,0,0,.4)"
-        if gym[0] == 1:
-            color = "rgba(74, 138, 202, .6)"
-        if gym[0] == 2:
-            color = "rgba(240, 68, 58, .6)"
-        if gym[0] == 3:
-            color = "rgba(254, 217, 40, .6)"
-
-        icon = 'static/forts/'+numbertoteam[gym[0]]+'_large.png'
-        pokeMarkers.append({
-            'icon': 'static/forts/' + numbertoteam[gym[0]] + '.png',
-            'type': 'gym',
-            'key': gym_key,
-            'disappear_time': -1,
-            'lat': gym[1],
-            'lng': gym[2],
-            'infobox': "<div><center><small>Gym owned by:</small><br><b style='color:" + color + "'>Team " + numbertoteam[gym[0]] + "</b><br><img id='" + numbertoteam[gym[0]] + "' height='100px' src='"+icon+"'><br>Prestige: " + str(gym[3]) + "</center>"
-        })
-    for stop_key in pokestops:
-        stop = pokestops[stop_key]
-        if stop[2] > 0:
             pokeMarkers.append({
-                'type': 'lured_stop',
-                'key': stop_key,
-                'disappear_time': -1,
-                'icon': 'static/forts/PstopLured.png',
-                'lat': stop[0],
-                'lng': stop[1],
-                'infobox': 'Lured Pokestop, expires at ' + stop[2],
+                'type': 'pokemon',
+                'key': pokemon_key,
+                'disappear_time': pokemon['disappear_time'],
+                'icon': 'static/icons/%d.png' % pokemon["id"],
+                'lat': pokemon["lat"],
+                'lng': pokemon["lng"],
+                'infobox': label
             })
-        else:
+
+    with gyms_lock:
+        for gym_key in gyms:
+            gym = gyms[gym_key]
+            if gym[0] == 0:
+                color = "rgba(0,0,0,.4)"
+            if gym[0] == 1:
+                color = "rgba(74, 138, 202, .6)"
+            if gym[0] == 2:
+                color = "rgba(240, 68, 58, .6)"
+            if gym[0] == 3:
+                color = "rgba(254, 217, 40, .6)"
+
+            icon = 'static/forts/'+numbertoteam[gym[0]]+'_large.png'
             pokeMarkers.append({
-                'type': 'stop',
-                'key': stop_key,
+                'icon': 'static/forts/' + numbertoteam[gym[0]] + '.png',
+                'type': 'gym',
+                'key': gym_key,
                 'disappear_time': -1,
-                'icon': 'static/forts/Pstop.png',
-                'lat': stop[0],
-                'lng': stop[1],
-                'infobox': 'Pokestop',
+                'lat': gym[1],
+                'lng': gym[2],
+                'infobox': "<div><center><small>Gym owned by:</small><br><b style='color:" + color + "'>Team " + numbertoteam[gym[0]] + "</b><br><img id='" + numbertoteam[gym[0]] + "' height='100px' src='"+icon+"'><br>Prestige: " + str(gym[3]) + "</center>"
             })
+
+    with pokestops_lock:
+        for stop_key in pokestops:
+            stop = pokestops[stop_key]
+            if stop[2] > 0:
+                pokeMarkers.append({
+                    'type': 'lured_stop',
+                    'key': stop_key,
+                    'disappear_time': -1,
+                    'icon': 'static/forts/PstopLured.png',
+                    'lat': stop[0],
+                    'lng': stop[1],
+                    'infobox': 'Lured Pokestop, expires at ' + stop[2],
+                })
+            else:
+                pokeMarkers.append({
+                    'type': 'stop',
+                    'key': stop_key,
+                    'disappear_time': -1,
+                    'icon': 'static/forts/Pstop.png',
+                    'lat': stop[0],
+                    'lng': stop[1],
+                    'infobox': 'Pokestop',
+                })
     return pokeMarkers
 
 
@@ -936,8 +950,11 @@ if __name__ == '__main__':
         """ only after running from flask """
     if werkzeug.serving.is_running_from_reloader():
         if locations :
+            sleep_secs = 0
+            """ don't log in all at the same time """
             for location in locations:
-                register_thread(main, (location,))
+                register_thread(main, (location,), sleep_secs )
+                sleep_secs += 5
         else :
             register_thread(main, ({'username' : args.username, 'password' : args.password, 'location': args.location },))
 
