@@ -82,7 +82,7 @@ def search(args, actor_entry):
             time.sleep(REQ_SLEEP)
 
         try:
-            parse_map(response_dict)
+            parse_map(args, response_dict)
         except KeyError:
             log.error(actor_id + ': Scan step failed. Response dictionary key error.')
     

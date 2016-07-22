@@ -30,6 +30,7 @@ def get_args():
                         'Incompatible with --location', required=False)
     parser.add_argument('-st', '--step-limit', help='Steps', required=True, type=int)
     parser.add_argument('-sd', '--scan-delay', help='Time delay before beginning new scan', required=False, type=int, default=1)
+    parser.add_argument('-ol', '--only-lure', help='Display only lured Pokestops', required=False, action='store_true')
     parser.add_argument('-dc','--display-in-console',help='Display Found Pokemon in Console',action='store_true',default=False)
     parser.add_argument('-H', '--host', help='Set web server listening host', default='127.0.0.1')
     parser.add_argument('-P', '--port', type=int, help='Set web server listening port', default=5000)

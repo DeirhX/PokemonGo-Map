@@ -4,15 +4,28 @@
 import logging
 from peewee import Model, SqliteDatabase, InsertQuery, IntegerField,\
                    CharField, FloatField, BooleanField, DateTimeField
+
+from playhouse.apsw_ext import *
 from datetime import datetime
 from base64 import b64encode
+from queue import Queue
+from threading import Thread
 
 from .utils import get_pokemon_name
 from .transform import transform_from_wgs_to_gcj
 from .customLog import printPokemon
 
-db = SqliteDatabase('pogom.db')
+db = APSWDatabase('pogom-aps.db')
+db.get_cursor().execute("pragma busy_timeout = 15000")
+#db.get_cursor().execute("pragma journal_mode=wal")
+# custom auto checkpoint interval (use zero to disable)
+#db.wal_autocheckpoint(10)
+'''db = SqliteDatabase('pogom.db', threadlocals=True) '''
+
 log = logging.getLogger(__name__)
+
+q = Queue()
+end_queue = object()
 
 
 class BaseModel(Model):
@@ -75,7 +88,7 @@ class Gym(BaseModel):
     last_modified = DateTimeField()
 
 
-def parse_map(map_dict):
+def parse_map(args, map_dict):
     pokemons = {}
     pokestops = {}
     gyms = {}
@@ -103,6 +116,8 @@ def parse_map(map_dict):
                             f['lure_info']['lure_expires_timestamp_ms'] / 1000.0)
                         active_pokemon_id = f['lure_info']['active_pokemon_id']
                     else:
+                        if (args.only_lure):
+                            continue
                         lure_expiration, active_pokemon_id = None, None
 
                     pokestops[f['id']] = {
@@ -142,18 +157,30 @@ def parse_map(map_dict):
         bulk_upsert(Gym, gyms)
 
 def bulk_upsert(cls, data):
-    num_rows = len(data.values())
-    i = 0
-    step = 120
+    q.put((cls, data))
 
-    while i < num_rows:
-        log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
-        InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
-        i+=step
+def write_thread(in_q) :
+    while True:
+        cls, data = in_q.get()
+        if data is end_queue:
+            return
 
+        num_rows = len(data.values())
+        i = 0
+        step = 120
+
+        while i < num_rows:
+            log.debug("Inserting items {} to {}".format(i, min(i + step, num_rows)))
+            InsertQuery(cls, rows=data.values()[i:min(i + step, num_rows)]).upsert().execute()
+            i += step
+
+writer_thread = Thread(target=write_thread, args=(q,))
+writer_thread.start()
 
 
 def create_tables():
     db.connect()
     db.create_tables([Pokemon, Pokestop, Gym], safe=True)
     db.close()
+
+
