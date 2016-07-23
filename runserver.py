@@ -12,7 +12,7 @@ from flask_cors import CORS, cross_origin
 from pogom import config
 from pogom.app import Pogom
 from pogom.utils import get_args, insert_mock_data, load_credentials, load_location_plan
-from pogom.search import search_loop
+from pogom.search import search_loop, create_search_threads
 from pogom.models import create_tables, Pokemon, Pokestop, Gym
 
 from pogom.pgoapi.utilities import get_pos_by_name
@@ -66,6 +66,8 @@ if __name__ == '__main__':
         location_plan = load_location_plan(args.location_from_file)
     else:
         location_plan = [{'username': args.username, 'password': args.password, 'location': args.location}]
+
+    create_search_threads(args.num_threads)
 
     if not args.mock:
         start_locator_thread(args, location_plan)

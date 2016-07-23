@@ -6,6 +6,7 @@ import time
 import math
 
 from threading import Thread, Semaphore
+from queue import Queue
 
 from pgoapi import PGoApi
 from pgoapi.utilities import f2i, get_cellid, get_pos_by_name
@@ -99,37 +100,53 @@ def login(args, actor_entry):
     log.info('Login to Pokemon Go successful.')
 
 
+search_queue = Queue(100)
+end_queue = object()
+
+def create_search_threads(num) :
+    search_threads = []
+    for i in range(num):
+        t = Thread(target=search_thread, name='search_thread {}'.format(i), args=( search_queue,))
+        t.start()
+        search_threads.append(t)
+
 def search_thread(thread_args):
-    args, i, total_steps, step_location, step, sem = thread_args
+    queue = thread_args
+    while True:
+        args, i, total_steps, step_location, step, sem = queue.get()
+        log.info("Search queue size: " + str(queue.qsize()))
+        if args is end_queue:
+            return
 
-    log.info('Scanning step {:d} of {:d} started.'.format(step, total_steps))
-    log.debug('Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
+        log.info('Scanning step {:d} of {:d} started.'.format(step, total_steps))
+        log.debug('Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
 
-    response_dict = {}
-    failed_consecutive = 0
-    while not response_dict:
-        response_dict = send_map_request(api, step_location)
-        if response_dict:
-            try:
-                sem.acquire()
-                parse_map(args, response_dict, i, step, step_location)
-            except KeyError:
-                log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+        response_dict = {}
+        failed_consecutive = 0
+        while not response_dict:
+            response_dict = send_map_request(api, step_location)
+            if response_dict:
+                try:
+                    sem.acquire()
+                    parse_map(args, response_dict, i, step, step_location)
+                except KeyError:
+                    log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+                    failed_consecutive += 1
+                    if(failed_consecutive >= config['REQ_MAX_FAILED']):
+                        log.error('Niantic servers under heavy load. Waiting before trying again')
+                        time.sleep(config['REQ_HEAVY_SLEEP'])
+                        failed_consecutive = 0
+                    continue
+                finally:
+                    sem.release()
+            else:
+                log.info('Map Download failed. Trying again.')
                 failed_consecutive += 1
-                if(failed_consecutive >= config['REQ_MAX_FAILED']):
-                    log.error('Niantic servers under heavy load. Waiting before trying again')
-                    time.sleep(config['REQ_HEAVY_SLEEP'])
-                    failed_consecutive = 0
-            finally:
-                sem.release()
-        else:
-            log.info('Map Download failed. Trying again.')
-            failed_consecutive += 1
-            if (failed_consecutive > 5):
-                raise Exception('Too many empty responses')
-            time.sleep(config['REQ_SLEEP'] * (failed_consecutive))
+                if (failed_consecutive > 5):
+                    time.sleep(config['REQ_SLEEP'] * (failed_consecutive))
 
-    time.sleep(config['REQ_SLEEP'])
+        time.sleep(config['REQ_SLEEP'])
+
 
 def process_search_threads(search_threads, curr_steps, total_steps):
     for thread in search_threads:
@@ -139,6 +156,7 @@ def process_search_threads(search_threads, curr_steps, total_steps):
         thread.join()
         log.info('Completed {:5.2f}% of scan.'.format(float(curr_steps) / total_steps*100))
     return curr_steps
+
 
 def search(args, actor_entry, i):
     num_steps = args.step_limit
@@ -172,14 +190,7 @@ def search(args, actor_entry, i):
             return
 
         search_args = (args, i, total_steps, step_location, step, sem)
-        search_threads.append(Thread(target=search_thread, name='search_step_thread {}'.format(step), args=(search_args, )))
-
-        if step % max_threads == 0:
-            curr_steps = process_search_threads(search_threads, curr_steps, total_steps)
-            search_threads = []
-
-    if search_threads:
-        process_search_threads(search_threads, curr_steps, total_steps)
+        search_queue.put(search_args)
 
 
 def search_loop(args, actor_entry):

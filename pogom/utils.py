@@ -146,6 +146,8 @@ def load_credentials(filepath):
             " Please take a look at the wiki for instructions on how to generate this key,"
             " then add that key to the file!")
     return creds
+
 def load_location_plan(filepath):
     with open(filepath) as file:
         return json.load(file)
+

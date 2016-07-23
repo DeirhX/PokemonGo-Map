@@ -5,7 +5,7 @@ import logging
 from peewee import Model, SqliteDatabase, InsertQuery, IntegerField,\
                    CharField, FloatField, BooleanField, DateTimeField
 
-from playhouse.apsw_ext import *
+#from playhouse.apsw_ext import *
 from datetime import datetime
 from datetime import timedelta
 from base64 import b64encode
@@ -18,7 +18,7 @@ from .customLog import printPokemon
 
 args = get_args()
 db = SqliteDatabase(args.db)
-db = APSWDatabase('pogom-aps.db')
+db = SqliteDatabase('pogom-aps.db')
 db.get_cursor().execute("pragma busy_timeout = 15000")
 #db.get_cursor().execute("pragma journal_mode=wal")
 # custom auto checkpoint interval (use zero to disable)
