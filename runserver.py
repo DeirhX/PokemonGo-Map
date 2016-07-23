@@ -65,7 +65,7 @@ if __name__ == '__main__':
     if (args.location_from_file):
         location_plan = load_location_plan(args.location_from_file)
     else:
-        location_plan = [{'username': args.username, 'password': args.password, 'location': args.position}]
+        location_plan = [{'username': args.username, 'password': args.password, 'location': args.location}]
 
     if not args.mock:
         start_locator_thread(args, location_plan)
