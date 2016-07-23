@@ -67,12 +67,13 @@ if __name__ == '__main__':
     else:
         location_plan = [{'username': args.username, 'password': args.password, 'location': args.location}]
 
-    create_search_threads(args.num_threads)
+    if not args.only_server:
+        create_search_threads(args.num_threads)
 
-    if not args.mock:
-        start_locator_thread(args, location_plan)
-    else:
-        insert_mock_data()
+        if not args.mock:
+            start_locator_thread(args, location_plan)
+        else:
+            insert_mock_data()
 
     app = Pogom(__name__)
 
