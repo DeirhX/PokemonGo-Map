@@ -99,8 +99,8 @@ def login(args, actor_entry):
     log.info('Login to Pokemon Go successful.')
 
 
-def search_thread(args):
-    i, total_steps, step_location, step, sem = args
+def search_thread(thread_args):
+    args, i, total_steps, step_location, step, sem = thread_args
 
     log.info('Scanning step {:d} of {:d} started.'.format(step, total_steps))
     log.debug('Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
@@ -112,7 +112,7 @@ def search_thread(args):
         if response_dict:
             try:
                 sem.acquire()
-                parse_map(response_dict, i, step, step_location)
+                parse_map(args, response_dict, i, step, step_location)
             except KeyError:
                 log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
                 failed_consecutive += 1
@@ -171,7 +171,7 @@ def search(args, actor_entry, i):
             search(args, i)
             return
 
-        search_args = (i, total_steps, step_location, step, sem)
+        search_args = (args, i, total_steps, step_location, step, sem)
         search_threads.append(Thread(target=search_thread, name='search_step_thread {}'.format(step), args=(search_args, )))
 
         if step % max_threads == 0:
