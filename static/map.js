@@ -611,11 +611,11 @@ function deirhExtensions(map) {
             return;
 
         $.ajax({
-            url: "request_scan",
+            url: "scan",
             type: 'GET',
             data: {
-                'loc_lat': la_marker.getPosition().lat(),
-                'loc_lng': la_marker.getPosition().lng()
+                'lat': la_marker.getPosition().lat(),
+                'lon': la_marker.getPosition().lng()
             },
             dataType: "json"
         }).done(function (result) {
