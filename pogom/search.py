@@ -5,7 +5,7 @@ import logging
 import time
 import math
 
-from threading import Thread, Semaphore
+from threading import Thread, Lock
 from queue import Queue
 
 from pgoapi import PGoApi
@@ -102,6 +102,8 @@ def login(args, actor_entry):
 
 search_queue = Queue(100)
 end_queue = object()
+def search_thread(args):
+    i, total_steps, step_location, step, lock = args
 
 def create_search_threads(num) :
     search_threads = []
@@ -117,18 +119,14 @@ def search_thread(thread_args):
         log.info("Search queue size: " + str(queue.qsize()))
         if args is end_queue:
             return
-
-        log.info('Scanning step {:d} of {:d} started.'.format(step, total_steps))
-        log.debug('Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
-
-        response_dict = {}
-        failed_consecutive = 0
-        while not response_dict:
-            response_dict = send_map_request(api, step_location)
-            if response_dict:
+    response_dict = {}
+    failed_consecutive = 0
+    while not response_dict:
+        response_dict = send_map_request(api, step_location)
+        if response_dict:
+            with lock:
                 try:
-                    sem.acquire()
-                    parse_map(args, response_dict, i, step, step_location)
+                    parse_map(response_dict, i, step, step_location)
                 except KeyError:
                     log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
                     failed_consecutive += 1
@@ -136,14 +134,8 @@ def search_thread(thread_args):
                         log.error('Niantic servers under heavy load. Waiting before trying again')
                         time.sleep(config['REQ_HEAVY_SLEEP'])
                         failed_consecutive = 0
-                    continue
-                finally:
-                    sem.release()
-            else:
-                log.info('Map Download failed. Trying again.')
-                failed_consecutive += 1
-                if (failed_consecutive > 5):
-                    time.sleep(config['REQ_SLEEP'] * (failed_consecutive))
+        else:
+            log.info('Map Download failed. Trying again.')
 
         time.sleep(config['REQ_SLEEP'])
 
@@ -174,7 +166,7 @@ def search(args, actor_entry, i):
     else:
         login(args, actor_entry)
 
-    sem = Semaphore()
+    lock = Lock()
 
     search_threads = []
     curr_steps = 0
@@ -189,7 +181,7 @@ def search(args, actor_entry, i):
             search(args, i)
             return
 
-        search_args = (args, i, total_steps, step_location, step, sem)
+        search_args = (args, i, total_steps, step_location, step, lock)
         search_queue.put(search_args)
 
 

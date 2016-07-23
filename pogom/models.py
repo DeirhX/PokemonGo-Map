@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from peewee import Model, SqliteDatabase, InsertQuery, IntegerField,\
-                   CharField, FloatField, BooleanField, DateTimeField
+import os
+from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery, IntegerField,\
+                   CharField, FloatField, BooleanField, DateTimeField,\
+                   OperationalError
 
 #from playhouse.apsw_ext import *
 from datetime import datetime
@@ -12,12 +14,12 @@ from base64 import b64encode
 from queue import Queue
 from threading import Thread
 
-from .utils import get_pokemon_name, get_args
+from .utils import get_pokemon_name, load_credentials, get_args
 from .transform import transform_from_wgs_to_gcj
 from .customLog import printPokemon
 
-args = get_args()
-db = SqliteDatabase(args.db)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(module)11s] [%(levelname)7s] %(message)s')
+
 db = SqliteDatabase('pogom-aps.db')
 db.get_cursor().execute("pragma busy_timeout = 15000")
 #db.get_cursor().execute("pragma journal_mode=wal")
@@ -29,11 +31,32 @@ log = logging.getLogger(__name__)
 
 q = Queue(1000)
 end_queue = object()
+args = get_args()
+db = None
+
+def init_database(): 
+    global db
+    if db is not None:
+        return db
+
+    print args.db_type
+    if args.db_type == 'mysql':
+        db = MySQLDatabase(
+            args.db_name, 
+            user=args.db_user, 
+            password=args.db_pass, 
+            host=args.db_host)
+        log.info('Connecting to MySQL database on {}.'.format(args.db_host))
+    else:
+        db = SqliteDatabase(args.db)
+        log.info('Connecting to local SQLLite database.')
+
+    return db
 
 
 class BaseModel(Model):
     class Meta:
-        database = db
+        database = init_database()
 
     @classmethod
     def get_all(cls):
@@ -43,7 +66,6 @@ class BaseModel(Model):
                 result['latitude'],  result['longitude'] = \
                     transform_from_wgs_to_gcj(result['latitude'],  result['longitude'])
         return results
-
 
 class Pokemon(BaseModel):
     # We are base64 encoding the ids delivered by the api
@@ -196,32 +218,17 @@ def parse_map(args, map_dict, iteration_num, step, step_location):
 def bulk_upsert(cls, data):
     q.put((cls, data))
 
-def write_thread(in_q) :
-    while True:
-        cls, data = in_q.get()
-        log.info("Update queue size: " + str(in_q.qsize()))
-        if data is end_queue:
-            return
+    while i < num_rows:
+        log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
+        try:
+            InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
+        except OperationalError as e:
+            log.warn("%s... Retrying", e)
+            continue
 
-        num_rows = len(data.values())
-        i = 0
-        step = 120
+        i+=step
 
-        while i < num_rows:
-            log.debug("Inserting items {} to {}".format(i, min(i + step, num_rows)))
-            while True:
-                try:
-                    InsertQuery(cls, rows=data.values()[i:min(i + step, num_rows)]).upsert().execute()
-                    break
-                except:
-                    continue
-            i += step
-
-writer_thread = Thread(target=write_thread, args=(q,))
-writer_thread.start()
-
-
-def create_tables():
+def create_tables(db):
     db.connect()
     db.create_tables([Pokemon, Pokestop, Gym, ScannedLocation], safe=True)
     db.close()
