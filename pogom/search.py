@@ -115,27 +115,27 @@ def create_search_threads(num) :
 def search_thread(thread_args):
     queue = thread_args
     while True:
-        args, i, total_steps, step_location, step, sem = queue.get()
+        args, i, total_steps, step_location, step, lock = queue.get()
         log.info("Search queue size: " + str(queue.qsize()))
         if args is end_queue:
             return
-    response_dict = {}
-    failed_consecutive = 0
-    while not response_dict:
-        response_dict = send_map_request(api, step_location)
-        if response_dict:
-            with lock:
-                try:
-                    parse_map(response_dict, i, step, step_location)
-                except KeyError:
-                    log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
-                    failed_consecutive += 1
-                    if(failed_consecutive >= config['REQ_MAX_FAILED']):
-                        log.error('Niantic servers under heavy load. Waiting before trying again')
-                        time.sleep(config['REQ_HEAVY_SLEEP'])
-                        failed_consecutive = 0
-        else:
-            log.info('Map Download failed. Trying again.')
+        response_dict = {}
+        failed_consecutive = 0
+        while not response_dict:
+            response_dict = send_map_request(api, step_location)
+            if response_dict:
+                with lock:
+                    try:
+                        parse_map(args, response_dict, i, step, step_location)
+                    except KeyError:
+                        log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+                        failed_consecutive += 1
+                        if(failed_consecutive >= config['REQ_MAX_FAILED']):
+                            log.error('Niantic servers under heavy load. Waiting before trying again')
+                            time.sleep(config['REQ_HEAVY_SLEEP'])
+                            failed_consecutive = 0
+            else:
+                log.info('Map Download failed. Trying again.')
 
         time.sleep(config['REQ_SLEEP'])
 

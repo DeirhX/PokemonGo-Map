@@ -216,7 +216,9 @@ def parse_map(args, map_dict, iteration_num, step, step_location):
     bulk_upsert(ScannedLocation, scanned)
 
 def bulk_upsert(cls, data):
-    q.put((cls, data))
+    num_rows = len(data.values())
+    i = 0
+    step = 120
 
     while i < num_rows:
         log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
