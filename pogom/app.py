@@ -17,6 +17,7 @@ class Pogom(Flask):
         self.json_encoder = CustomJSONEncoder
         self.route("/", methods=['GET'])(self.fullmap)
         self.route("/raw_data", methods=['GET'])(self.raw_data)
+        self.route("/scan", methods=['GET'])(self.scan)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
@@ -87,6 +88,18 @@ class Pogom(Flask):
                                pokemon_list=pokemon_list,
                                origin_lat=config['ORIGINAL_LATITUDE'],
                                origin_lng=config['ORIGINAL_LONGITUDE'])
+
+    def scan(self):
+        lat = request.args.get('lat', type=float)
+        lon = request.args.get('lon', type=float)
+        if not (lat and lon):
+            print('[-] Invalid location: %s,%s' % (lat, lon))
+            return 'bad parameters', 400
+
+        d = {}
+        return jsonify(d)
+
+
 
 
 class CustomJSONEncoder(JSONEncoder):

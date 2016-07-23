@@ -116,6 +116,7 @@ function initMap() {
     });
 
     initSidebar();
+    deirhExtensions(map);
 };
 
 function initSidebar() {
@@ -589,4 +590,48 @@ function sendNotification(title, text, icon) {
             window.open(window.location.href);
         };
     }
+}
+
+function deirhExtensions(map) {
+
+    var la_marker;
+    map.addListener('click', function(e) {
+        if (la_marker) {
+            la_marker.setMap(null);
+        }
+        la_marker = new google.maps.Marker({
+            position: e.latLng,
+            label: 'ook this',
+            map: map
+        });
+    });
+
+    o=$('.home-map-scan').click(function() {
+        if (la_marker == null)
+            return;
+
+        $.ajax({
+            url: "scan",
+            type: 'GET',
+            data: {
+                'lat': la_marker.getPosition().lat(),
+                'lon': la_marker.getPosition().lng()
+            },
+            dataType: "json"
+        }).done(function (result) {
+
+            $.each(result.pokemons, function (i, item) {
+                if (!localStorage.showPokemon) {
+                    return false; // in case the checkbox was unchecked in the meantime.
+                }
+                if (!(item.encounter_id in map_pokemons) &&
+                    excludedPokemon.indexOf(item.pokemon_id) < 0) {
+                    // add marker to map and item to dict
+                    if (item.marker) item.marker.setMap(null);
+                    item.marker = setupPokemonMarker(item);
+                    map_pokemons[item.encounter_id] = item;
+                }
+            });
+        });
+    });
 }
