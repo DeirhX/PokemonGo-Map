@@ -5,6 +5,8 @@ import logging
 import time
 import math
 
+from threading import Thread, Semaphore
+
 from pgoapi import PGoApi
 from pgoapi.utilities import f2i, get_cellid, get_pos_by_name
 
@@ -97,6 +99,43 @@ def login(args, actor_entry):
     log.info('Login to Pokemon Go successful.')
 
 
+def search_thread(args):
+    i, total_steps, step_location, step, sem = args
+
+    log.info('Scanning step {:d} of {:d} started.'.format(step, total_steps))
+    log.debug('Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
+
+    response_dict = {}
+    failed_consecutive = 0
+    while not response_dict:
+        response_dict = send_map_request(api, step_location)
+        if response_dict:
+            try:
+                sem.acquire()
+                parse_map(response_dict, i, step, step_location)
+            except KeyError:
+                log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+                failed_consecutive += 1
+                if(failed_consecutive >= config['REQ_MAX_FAILED']):
+                    log.error('Niantic servers under heavy load. Waiting before trying again')
+                    time.sleep(config['REQ_HEAVY_SLEEP'])
+                    failed_consecutive = 0
+            finally:
+                sem.release()
+        else:
+            log.info('Map Download failed. Trying again.')
+
+    time.sleep(config['REQ_SLEEP'])
+
+def process_search_threads(search_threads, curr_steps, total_steps):
+    for thread in search_threads:
+        thread.start()
+    for thread in search_threads:
+        curr_steps += 1
+        thread.join()
+        log.info('Completed {:5.2f}% of scan.'.format(float(curr_steps) / total_steps*100))
+    return curr_steps
+
 def search(args, actor_entry, i):
     num_steps = args.step_limit
     actor_id = actor_entry['username']
@@ -113,6 +152,12 @@ def search(args, actor_entry, i):
     else:
         login(args, actor_entry)
 
+    sem = Semaphore()
+
+    search_threads = []
+    curr_steps = 0
+    max_threads = args.num_threads
+
     for step, step_location in enumerate(generate_location_steps(position, num_steps), 1):
         if 'NEXT_LOCATION' in config:
             log.info('New location found. Starting new scan.')
@@ -122,32 +167,15 @@ def search(args, actor_entry, i):
             search(args, i)
             return
 
-        log.info('Scanning step {:d} of {:d}.'.format(step, total_steps))
-        log.debug('Scan location is {:f}, {:f}'.format(step_location[0], step_location[1]))
+        search_args = (i, total_steps, step_location, step, sem)
+        search_threads.append(Thread(target=search_thread, name='search_step_thread {}'.format(step), args=(search_args, )))
 
-        response_dict = {}
-        failed_consecutive = 0
-        while not response_dict:
-            response_dict = send_map_request(api, step_location)
-            if response_dict:
-                try:
-                    parse_map(args, response_dict, i, step, step_location)
-                except KeyError:
-                    log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
-                    failed_consecutive += 1
-                    if(failed_consecutive >= config['REQ_MAX_FAILED']):
-                        log.error('Niantic servers under heavy load. Waiting before trying again')
-                        time.sleep(config['REQ_HEAVY_SLEEP'])
-                        failed_consecutive = 0
-            else:
-                log.info(actor_id + ' | Map Download failed. Trying again.')
-                failed_consecutive += 1
-                if (failed_consecutive > 5):
-                    raise Exception('Too many empty responses')
-                time.sleep(config['REQ_SLEEP'] * (failed_consecutive))
+        if step % max_threads == 0:
+            curr_steps = process_search_threads(search_threads, curr_steps, total_steps)
+            search_threads = []
 
-        log.info('Completed {:5.2f}% of scan.'.format(float(step) / num_steps**2*100))
-        time.sleep(config['REQ_SLEEP'])
+    if search_threads:
+        process_search_threads(search_threads, curr_steps, total_steps)
 
 
 def search_loop(args, actor_entry):
@@ -160,10 +188,11 @@ def search_loop(args, actor_entry):
             log.info(actor_entry['username'] + ": Scanning complete.")
             if args.scan_delay > 1:
                 log.info('Waiting {:d} seconds before beginning new scan.'.format(args.scan_delay))
+                time.sleep(args.scan_delay)
             i += 1
 
     # This seems appropriate
-    except:
+    except Exception as e:
         log.info('Crashed, waiting {:d} seconds before restarting search.'.format(args.scan_delay))
         time.sleep(args.scan_delay)
         search_loop(args, actor_entry)
