@@ -141,6 +141,10 @@ def search(args, actor_entry, i):
                         failed_consecutive = 0
             else:
                 log.info(actor_id + ' | Map Download failed. Trying again.')
+                failed_consecutive += 1
+                if (failed_consecutive > 5):
+                    raise Exception('Too many empty responses')
+                time.sleep(config['REQ_SLEEP'] * (failed_consecutive))
 
         log.info('Completed {:5.2f}% of scan.'.format(float(step) / num_steps**2*100))
         time.sleep(config['REQ_SLEEP'])
