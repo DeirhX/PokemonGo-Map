@@ -71,7 +71,7 @@ class RpcApi:
         except requests.exceptions.ConnectionError as e:
             raise ServerBusyOrOfflineException
 
-        if (len(http_response) > 1024*1024) :
+        if (len(http_response.content) > 1024*1024) :
             raise Exception('response too large')
 
         return http_response
