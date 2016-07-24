@@ -242,22 +242,13 @@ def write_thread(in_q) :
         num_rows = len(data.values())
         i = 0
         step = 120
-    while i < num_rows:
-        log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
-        try:
-            InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
-        except OperationalError as e:
-            log.warning("%s... Retrying", e)
-            continue
-
         while i < num_rows:
-            log.debug("Inserting items {} to {}".format(i, min(i + step, num_rows)))
+            log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
             try:
-                InsertQuery(cls, rows=data.values()[i:min(i + step, num_rows)]).upsert().execute()
+                InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
             except OperationalError as e:
-                log.warn("%s... Retrying", e)
+                log.warning("%s... Retrying", e)
                 continue
-
             i += step
 
 writer_thread = Thread(target=write_thread, args=(q,))
