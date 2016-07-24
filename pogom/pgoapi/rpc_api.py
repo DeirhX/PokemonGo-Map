@@ -70,7 +70,10 @@ class RpcApi:
             http_response = self._session.post(endpoint, data=request_proto_serialized, timeout=15.00)
         except requests.exceptions.ConnectionError as e:
             raise ServerBusyOrOfflineException
-        
+
+        if (len(http_response) > 1024*1024) :
+            raise Exception('response too large')
+
         return http_response
     
     def request(self, endpoint, subrequests, player_position):
