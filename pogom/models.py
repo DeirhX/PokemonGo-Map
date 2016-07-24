@@ -6,13 +6,9 @@ import os
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery, IntegerField,\
                    CharField, FloatField, BooleanField, DateTimeField,\
                    OperationalError
-
-#from playhouse.apsw_ext import *
 from datetime import datetime
 from datetime import timedelta
 from base64 import b64encode
-from queue import Queue
-from threading import Thread
 
 from . import config
 from .utils import get_pokemon_name, load_credentials, get_args
@@ -21,17 +17,8 @@ from .customLog import printPokemon
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(module)11s] [%(levelname)7s] %(message)s')
 
-db = SqliteDatabase('pogom-aps.db')
-db.get_cursor().execute("pragma busy_timeout = 15000")
-#db.get_cursor().execute("pragma journal_mode=wal")
-# custom auto checkpoint interval (use zero to disable)
-#db.wal_autocheckpoint(10)
-'''db = SqliteDatabase('pogom.db', threadlocals=True) '''
-
 log = logging.getLogger(__name__)
 
-q = Queue(1000)
-end_queue = object()
 args = get_args()
 db = None
 
@@ -225,7 +212,7 @@ class ScannedLocation(BaseModel):
 
         return scans
 
-def parse_map(args, map_dict, iteration_num, step, step_location):
+def parse_map(map_dict, iteration_num, step, step_location):
     pokemons = {}
     pokestops = {}
     gyms = {}
@@ -257,8 +244,6 @@ def parse_map(args, map_dict, iteration_num, step, step_location):
                             active_pokemon_id = f['lure_info']['active_pokemon_id']
                         else:
                             lure_expiration, active_pokemon_id = None, None
-                            if (args.only_lure):
-                                continue
 
                         pokestops[f['id']] = {
                             'pokestop_id': f['id'],
@@ -317,12 +302,10 @@ def bulk_upsert(cls, data):
         except OperationalError as e:
             log.warning("%s... Retrying", e)
             continue
-        i += step
 
+        i+=step
 
 def create_tables(db):
     db.connect()
     db.create_tables([Pokemon, Pokestop, Gym, ScannedLocation], safe=True)
     db.close()
-
-

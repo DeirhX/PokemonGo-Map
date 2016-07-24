@@ -9,7 +9,7 @@ from threading import Thread, Lock
 from queue import Queue
 
 from pgoapi import PGoApi
-from pgoapi.utilities import f2i, get_cellid, get_pos_by_name
+from pgoapi.utilities import f2i, get_cellid
 
 from . import config
 from .models import parse_map
@@ -27,6 +27,8 @@ lng_gap_meters = 86.6
 #111111m is approx 1 degree Lat, which is close enough for this
 meters_per_degree = 111111
 lat_gap_degrees = float(lat_gap_meters) / meters_per_degree
+
+search_queue = Queue(config['SEARCH_QUEUE_DEPTH'])
 
 def calculate_lng_degrees(lat):
     return float(lng_gap_meters) / (meters_per_degree * math.cos(math.radians(lat)))
@@ -88,22 +90,16 @@ def generate_location_steps(initial_location, num_steps):
         ring += 1
 
 
-def login(args, actor_entry):
+def login(args, position):
     log.info('Attempting login to Pokemon Go.')
 
-    api.set_position(*actor_entry['position'])
+    api.set_position(*position)
 
-    while not api.login(args.auth_service, actor_entry['username'], actor_entry['password']):
+    while not api.login(args.auth_service, args.username, args.password):
         log.info('Failed to login to Pokemon Go. Trying again.')
         time.sleep(config['REQ_SLEEP'])
 
     log.info('Login to Pokemon Go successful.')
-
-
-search_queue = Queue(100)
-end_queue = object()
-def search_thread(args):
-    i, total_steps, step_location, step, lock = args
 
 def create_search_threads(num) :
     search_threads = []
@@ -113,13 +109,11 @@ def create_search_threads(num) :
         t.start()
         search_threads.append(t)
 
-def search_thread(thread_args):
-    queue = thread_args
+def search_thread(args):
+    queue = args
     while True:
-        args, i, total_steps, step_location, step, lock = queue.get()
-        log.info("Search queue size: " + str(queue.qsize()))
-        if args is end_queue:
-            return
+        i, total_steps, step_location, step, lock = queue.get()
+        log.info("Search queue depth is: " + str(queue.qsize()))
         response_dict = {}
         failed_consecutive = 0
         while not response_dict:
@@ -127,7 +121,7 @@ def search_thread(thread_args):
             if response_dict:
                 with lock:
                     try:
-                        parse_map(args, response_dict, i, step, step_location)
+                        parse_map(response_dict, i, step, step_location)
                     except KeyError:
                         log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
                         failed_consecutive += 1
@@ -137,10 +131,9 @@ def search_thread(thread_args):
                             failed_consecutive = 0
                         response_dict = {}
             else:
-                log.warn('Map Download failed. Trying again.')
+                log.info('Map Download failed. Trying again.')
 
         time.sleep(config['REQ_SLEEP'])
-
 
 def process_search_threads(search_threads, curr_steps, total_steps):
     for thread in search_threads:
@@ -151,22 +144,20 @@ def process_search_threads(search_threads, curr_steps, total_steps):
         log.info('Completed {:5.2f}% of scan.'.format(float(curr_steps) / total_steps*100))
     return curr_steps
 
-
-def search(args, actor_entry, i):
+def search(args, i):
     num_steps = args.step_limit
-    actor_id = actor_entry['username']
     total_steps = (3 * (num_steps**2)) - (3 * num_steps) + 1
-    position = actor_entry['position']
+    position = (config['ORIGINAL_LATITUDE'], config['ORIGINAL_LONGITUDE'], 0)
 
     if api._auth_provider and api._auth_provider._ticket_expire:
         remaining_time = api._auth_provider._ticket_expire/1000 - time.time()
 
         if remaining_time > 60:
-            log.info(actor_id + " | Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
+            log.info("Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
         else:
-            login(args, actor_entry)
+            login(args, position)
     else:
-        login(args, actor_entry)
+        login(args, position)
 
     lock = Lock()
 
@@ -183,18 +174,16 @@ def search(args, actor_entry, i):
             search(args, i)
             return
 
-        search_args = (args, i, total_steps, step_location, step, lock)
+        search_args = ( i, total_steps, step_location, step, lock)
         search_queue.put(search_args)
 
-
-def search_loop(args, actor_entry):
-    actor_entry['position'] = get_pos_by_name(actor_entry['location'])
+def search_loop(args):
     i = 0
     try:
         while True:
-            log.info(actor_entry['username'] + ": Map iteration: {}".format(i))
-            search(args, actor_entry, i)
-            log.info(actor_entry['username'] + ": Scanning complete.")
+            log.info("Map iteration: {}".format(i))
+            search(args, i)
+            log.info("Scanning complete.")
             if args.scan_delay > 1:
                 log.info('Waiting {:d} seconds before beginning new scan.'.format(args.scan_delay))
                 time.sleep(args.scan_delay)
@@ -204,4 +193,4 @@ def search_loop(args, actor_entry):
     except Exception as e:
         log.info('Crashed, waiting {:d} seconds before restarting search.'.format(args.scan_delay))
         time.sleep(args.scan_delay)
-        search_loop(args, actor_entry)
+        search_loop(args)

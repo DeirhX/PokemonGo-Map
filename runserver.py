@@ -6,12 +6,12 @@ import sys
 import logging
 import time
 
-from threading import Thread, Timer
+from threading import Thread
 from flask_cors import CORS, cross_origin
 
 from pogom import config
 from pogom.app import Pogom
-from pogom.utils import get_args, insert_mock_data, load_credentials, load_location_plan
+from pogom.utils import get_args, insert_mock_data, load_credentials
 from pogom.search import search_loop, create_search_threads
 from pogom.models import init_database, create_tables, Pokemon, Pokestop, Gym
 
@@ -21,14 +21,11 @@ log = logging.getLogger(__name__)
 
 search_thread = Thread()
 
-def start_locator_thread(args, location_plan):
-    thread_num = 0
-    for location_entry in location_plan:
-        search_thread = Timer(thread_num * 4, search_loop, args=(args,location_entry), )
-        search_thread.daemon = True
-        search_thread.name = 'search_thread-' + str(thread_num)
-        search_thread.start()
-        thread_num += 1
+def start_locator_thread(args):
+    search_thread = Thread(target=search_loop, args=(args,))
+    search_thread.daemon = True
+    search_thread.name = 'search_thread'
+    search_thread.start()
 
 
 if __name__ == '__main__':
@@ -73,16 +70,10 @@ if __name__ == '__main__':
     config['LOCALE'] = args.locale
     config['CHINA'] = args.china
 
-    if (args.location_from_file):
-        location_plan = load_location_plan(args.location_from_file)
-    else:
-        location_plan = [{'username': args.username, 'password': args.password, 'location': args.location}]
-
     if not args.only_server:
         create_search_threads(args.num_threads)
-
         if not args.mock:
-            start_locator_thread(args, location_plan)
+            start_locator_thread(args)
         else:
             insert_mock_data()
 
