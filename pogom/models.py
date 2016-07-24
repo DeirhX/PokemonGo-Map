@@ -305,30 +305,20 @@ def parse_map(args, map_dict, iteration_num, step, step_location):
 
     bulk_upsert(ScannedLocation, scanned)
 
-def write_thread(in_q) :
-    while True:
-        cls, data = in_q.get()
-        log.info("Update queue size: " + str(in_q.qsize()))
-        if data is end_queue:
-            return
-
-        num_rows = len(data.values())
-        i = 0
-        step = 120
-        while i < num_rows:
-            log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
-            try:
-                InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
-            except OperationalError as e:
-                log.warning("%s... Retrying", e)
-                continue
-            i += step
-
-writer_thread = Thread(target=write_thread, args=(q,))
-writer_thread.start()
-
 def bulk_upsert(cls, data):
-    q.put((cls, data))
+    num_rows = len(data.values())
+    i = 0
+    step = 120
+    log.info("Update")
+    while i < num_rows:
+        log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
+        try:
+            InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
+        except OperationalError as e:
+            log.warning("%s... Retrying", e)
+            continue
+        i += step
+
 
 def create_tables(db):
     db.connect()
