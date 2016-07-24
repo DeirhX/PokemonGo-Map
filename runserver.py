@@ -70,8 +70,9 @@ if __name__ == '__main__':
     config['LOCALE'] = args.locale
     config['CHINA'] = args.china
 
+    create_search_threads(args.num_threads)
+
     if not args.only_server:
-        create_search_threads(args.num_threads)
         if not args.mock:
             start_locator_thread(args)
         else:

@@ -13,9 +13,11 @@ from pogom.utils import get_args
 
 from . import config
 from .models import Pokemon, Gym, Pokestop, ScannedLocation
+from .search import search
 
 log = logging.getLogger(__name__)
 compress = Compress()
+args = get_args() # Performance reasons
 
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
@@ -30,7 +32,7 @@ class Pogom(Flask):
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
 
     def fullmap(self):
-        args = get_args()
+        #args = get_args()
         display = "inline"
         if args.fixed_location:
             display = "none"
@@ -75,7 +77,7 @@ class Pogom(Flask):
         return jsonify(d)
 
     def next_loc(self):
-        args = get_args()
+        #args = get_args()
         if args.fixed_location:
             return 'Location searching is turned off', 403
        #part of query string
@@ -128,7 +130,9 @@ class Pogom(Flask):
         if not (lat and lon):
             print('[-] Invalid location: %s,%s' % (lat, lon))
             return 'bad parameters', 400
+        position = (lat, lon, 0)
 
+        search(args, 0, position, 2)
         d = {}
         return jsonify(d)
 

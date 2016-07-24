@@ -115,7 +115,7 @@ function initMap() {
     google.maps.event.addListenerOnce(map, 'idle', function(){
         updateMap();
     });
-    
+    deirhExtensions(map);
 };
 
 function createSearchMarker() {

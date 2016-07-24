@@ -4,7 +4,7 @@
     bottom:0;
     box-shadow:0 6px 0 0 #952b2b;
     left:50%;
-    width:320px;
+    width:260px;
     height:60px;
     margin:0 0 -2px -160px;
     z-index:1002;
@@ -16,7 +16,10 @@
 
 .home-map-scan small
 {
-    display:block
+    display:block;
+    margin-top: -27px;
+    font-size: small;
+    color: #555;
 }
 
 .home-map-scan:hover, .home-map-scan:active
