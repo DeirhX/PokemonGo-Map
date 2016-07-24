@@ -14,6 +14,7 @@ from base64 import b64encode
 from queue import Queue
 from threading import Thread
 
+from . import config
 from .utils import get_pokemon_name, load_credentials, get_args
 from .transform import transform_from_wgs_to_gcj
 from .customLog import printPokemon
@@ -34,7 +35,7 @@ end_queue = object()
 args = get_args()
 db = None
 
-def init_database(): 
+def init_database():
     global db
     if db is not None:
         return db
@@ -42,9 +43,9 @@ def init_database():
     print args.db_type
     if args.db_type == 'mysql':
         db = MySQLDatabase(
-            args.db_name, 
-            user=args.db_user, 
-            password=args.db_pass, 
+            args.db_name,
+            user=args.db_user,
+            password=args.db_pass,
             host=args.db_host)
         log.info('Connecting to MySQL database on {}.'.format(args.db_host))
     else:
@@ -82,6 +83,21 @@ class Pokemon(BaseModel):
         query = (Pokemon
                  .select()
                  .where(Pokemon.disappear_time > datetime.utcnow())
+                 .dicts())
+
+        pokemons = []
+        for p in query:
+            p['pokemon_name'] = get_pokemon_name(p['pokemon_id'])
+            pokemons.append(p)
+
+        return pokemons
+
+    @classmethod
+    def get_active_by_id(cls, ids):
+        query = (Pokemon
+                 .select()
+                 .where((Pokemon.pokemon_id << ids) &
+                        (Pokemon.disappear_time > datetime.utcnow()))
                  .dicts())
 
         pokemons = []
@@ -144,23 +160,24 @@ def parse_map(args, map_dict, iteration_num, step, step_location):
 
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     for cell in cells:
-        for p in cell.get('wild_pokemons', []):
-            d_t = datetime.utcfromtimestamp(
-                (p['last_modified_timestamp_ms'] +
-                 p['time_till_hidden_ms']) / 1000.0)
-            printPokemon(p['pokemon_data']['pokemon_id'],p['latitude'],p['longitude'],d_t)
-            pokemons[p['encounter_id']] = {
-                'encounter_id': b64encode(str(p['encounter_id'])),
-                'spawnpoint_id': p['spawnpoint_id'],
-                'pokemon_id': p['pokemon_data']['pokemon_id'],
-                'latitude': p['latitude'],
-                'longitude': p['longitude'],
-                'disappear_time': d_t
-            }
+        if config['parse_pokemon']:
+            for p in cell.get('wild_pokemons', []):
+                d_t = datetime.utcfromtimestamp(
+                    (p['last_modified_timestamp_ms'] +
+                     p['time_till_hidden_ms']) / 1000.0)
+                printPokemon(p['pokemon_data']['pokemon_id'],p['latitude'],p['longitude'],d_t)
+                pokemons[p['encounter_id']] = {
+                    'encounter_id': b64encode(str(p['encounter_id'])),
+                    'spawnpoint_id': p['spawnpoint_id'],
+                    'pokemon_id': p['pokemon_data']['pokemon_id'],
+                    'latitude': p['latitude'],
+                    'longitude': p['longitude'],
+                    'disappear_time': d_t
+                }
 
         if iteration_num > 0 or step > 50:
             for f in cell.get('forts', []):
-                if f.get('type') == 1:  # Pokestops
+                if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops
                         if 'lure_info' in f:
                             lure_expiration = datetime.utcfromtimestamp(
                                 f['lure_info']['lure_expires_timestamp_ms'] / 1000.0)
@@ -181,28 +198,28 @@ def parse_map(args, map_dict, iteration_num, step, step_location):
                             'active_pokemon_id': active_pokemon_id
                     }
 
-                else:  # Currently, there are only stops and gyms
-                    gyms[f['id']] = {
-                        'gym_id': f['id'],
-                        'team_id': f.get('owned_by_team', 0),
-                        'guard_pokemon_id': f.get('guard_pokemon_id', 0),
-                        'gym_points': f.get('gym_points', 0),
-                        'enabled': f['enabled'],
-                        'latitude': f['latitude'],
-                        'longitude': f['longitude'],
-                        'last_modified': datetime.utcfromtimestamp(
-                            f['last_modified_timestamp_ms'] / 1000.0),
-                    }
+                elif config['parse_gyms'] and f.get('type') == None:  # Currently, there are only stops and gyms
+                        gyms[f['id']] = {
+                            'gym_id': f['id'],
+                            'team_id': f.get('owned_by_team', 0),
+                            'guard_pokemon_id': f.get('guard_pokemon_id', 0),
+                            'gym_points': f.get('gym_points', 0),
+                            'enabled': f['enabled'],
+                            'latitude': f['latitude'],
+                            'longitude': f['longitude'],
+                            'last_modified': datetime.utcfromtimestamp(
+                                f['last_modified_timestamp_ms'] / 1000.0),
+                        }
 
-    if pokemons:
+    if pokemons and config['parse_pokemon']:
         log.info("Upserting {} pokemon".format(len(pokemons)))
         bulk_upsert(Pokemon, pokemons)
 
-    if pokestops:
+    if pokestops and config['parse_pokestops']:
         log.info("Upserting {} pokestops".format(len(pokestops)))
         bulk_upsert(Pokestop, pokestops)
 
-    if gyms:
+    if gyms and config['parse_gyms']:
         log.info("Upserting {} gyms".format(len(gyms)))
         bulk_upsert(Gym, gyms)
 
@@ -225,6 +242,13 @@ def write_thread(in_q) :
         num_rows = len(data.values())
         i = 0
         step = 120
+    while i < num_rows:
+        log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
+        try:
+            InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
+        except OperationalError as e:
+            log.warning("%s... Retrying", e)
+            continue
 
         while i < num_rows:
             log.debug("Inserting items {} to {}".format(i, min(i + step, num_rows)))
