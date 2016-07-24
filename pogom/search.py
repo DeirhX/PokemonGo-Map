@@ -137,7 +137,7 @@ def search_thread(thread_args):
                             failed_consecutive = 0
                         response_dict = {}
             else:
-                log.info('Map Download failed. Trying again.')
+                log.warn('Map Download failed. Trying again.')
 
         time.sleep(config['REQ_SLEEP'])
 
