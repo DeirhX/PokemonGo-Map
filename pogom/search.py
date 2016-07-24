@@ -183,7 +183,7 @@ def search_loop(args):
         while True:
             log.info("Map iteration: {}".format(i))
             position = (config['ORIGINAL_LATITUDE'], config['ORIGINAL_LONGITUDE'], 0)
-            search(args, i, position, args.num_steps)
+            search(args, i, position, args.step_limit)
             log.info("Scanning complete.")
             if args.scan_delay > 1:
                 log.info('Waiting {:d} seconds before beginning new scan.'.format(args.scan_delay))
