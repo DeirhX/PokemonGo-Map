@@ -1,4 +1,4 @@
-
+﻿
 //
 // Global map.js variables
 //
@@ -152,6 +152,10 @@ function createSearchMarker() {
 }
 
 function initSidebar() {
+    if (localStorage.initialized !== 'true') {
+	localStorage.showPokemon = 'true';
+	localStorage.initialized = 'true';
+    }
     $('#gyms-switch').prop('checked', localStorage.showGyms === 'true');
     $('#pokemon-switch').prop('checked', localStorage.showPokemon === 'true');
     $('#lured-pokemon-switch').prop('checked', localStorage.showLuredPokemon === 'true');
@@ -482,7 +486,8 @@ function clearOutOfBoundsMarkers(markers) {
 
 
 function updateMap() {
-
+    if (!map)
+        return;
     var loadPokemon = localStorage.showPokemon || true;
     var loadGyms = localStorage.showGyms || true;
     var loadPokestops =  localStorage.showPokestops || localStorage.showLuredPokemon || false; //lured mons need pokestop data

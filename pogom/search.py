@@ -113,8 +113,10 @@ def login_if_needed(args, position, lock):
 def login(args, position):
     log.info('Attempting login to Pokemon Go.')
 
-    api = PGoApi()
-    while not api.login(args.auth_service, args.username, args.password, *position):
+    while True:
+        api = PGoApi()
+        if api.login(args.auth_service, args.username, args.password, *position):
+            break
         log.info('Failed to login to Pokemon Go. Trying again.')
         time.sleep(config['REQ_SLEEP'])
 

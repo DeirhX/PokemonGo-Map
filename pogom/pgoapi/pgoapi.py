@@ -118,7 +118,7 @@ class PGoApi:
                 [auth_ticket['expire_timestamp_ms'], auth_ticket['start'], auth_ticket['end']])
 
         else:
-            self.log.error('Login failed - unexpected server response!')
+            self.log.error('Login failed - unexpected server response: ' + str(response))
             return False
 
         self.log.info('Finished RPC login sequence (app simulation)')
