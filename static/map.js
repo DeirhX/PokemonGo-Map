@@ -294,7 +294,6 @@ function createSearchMarker() {
     var oldLocation = null;
     google.maps.event.addListener(marker, 'dragstart', function() {
         oldLocation = marker.getPosition();
-    deirhExtensions(map);
     });
 
     google.maps.event.addListener(marker, 'dragend', function() {
@@ -315,8 +314,9 @@ function createSearchMarker() {
 
 function initSidebar() {
     if (localStorage.initialized !== 'true') {
-	localStorage.showPokemon = 'true';
-	localStorage.initialized = 'true';
+        localStorage.showPokemon = 'true';
+        localStorage.initialized = 'true';
+    }
     $('#gyms-switch').prop('checked', Store.get('showGyms'));
     $('#pokemon-switch').prop('checked', Store.get('showPokemon'));
     $('#pokestops-switch').prop('checked', Store.get('showPokestops'));
@@ -706,12 +706,6 @@ function loadRawData() {
     var loadPokestops = Store.get('showPokestops') || Store.get('showPokemon');
     var loadScanned = Store.get('showScanned');
 
-function updateMap() {
-    var loadPokemon = localStorage.showPokemon || true;
-    var loadGyms = localStorage.showGyms || true;
-    var loadPokestops =  localStorage.showPokestops || localStorage.showLuredPokemon || false; //lured mons need pokestop data
-    var loadScanned = localStorage.showScanned || false;
-
     var bounds = map.getBounds();
     var swPoint = bounds.getSouthWest();
     var nePoint = bounds.getNorthEast();
@@ -858,7 +852,6 @@ function processScanned(i, item) {
 
 
 function updateMap() {
-
     loadRawData().done(function (result) {
         $.each(result.pokemons, processPokemons);
         $.each(result.pokestops, processPokestops);
@@ -1169,28 +1162,23 @@ $(function () {
 
 function deirhExtensions(map) {
 
-    var la_marker;
     map.addListener('click', function(e) {
-        if (la_marker) {
-            la_marker.setMap(null);
-        }
-        la_marker = new google.maps.Marker({
-            position: e.latLng,
-            label: 'ook this',
-            map: map
-        });
+         marker.setPosition(e.latLng);
     });
 
     o=$('.home-map-scan').click(function() {
-        if (la_marker == null)
+        if (marker == null)
             return;
 
+        $('button.home-map-scan small')[0].innerHTML = 'Scanning of ['
+            + Math.round(marker.getPosition().lat()*10000) / 10000 + ','
+            + Math.round(marker.getPosition().lng()*10000) / 10000 + '] started';
         $.ajax({
             url: "scan",
             type: 'GET',
             data: {
-                'lat': la_marker.getPosition().lat(),
-                'lon': la_marker.getPosition().lng()
+                'lat': marker.getPosition().lat(),
+                'lon': marker.getPosition().lng()
             },
             dataType: "json"
         }).done(function (result) {
