@@ -277,6 +277,7 @@ function initMap() {
         redrawPokemon(map_data.lure_pokemons);
     });
     deirhExtensions(map);
+    window.setInterval(updateMap, 5000);
 };
 
 function createSearchMarker() {
@@ -706,8 +707,6 @@ function loadRawData() {
     var loadScanned = Store.get('showScanned');
 
 function updateMap() {
-    if (!map)
-        return;
     var loadPokemon = localStorage.showPokemon || true;
     var loadGyms = localStorage.showGyms || true;
     var loadPokestops =  localStorage.showPokestops || localStorage.showLuredPokemon || false; //lured mons need pokestop data
@@ -1101,7 +1100,6 @@ $(function () {
 
     // run interval timers to regularly update map and timediffs
     window.setInterval(updateLabelDiffTime, 1000);
-    window.setInterval(updateMap, 5000);
     window.setInterval(function() {
       if(navigator.geolocation && Store.get('geoLocate')) {
         navigator.geolocation.getCurrentPosition(function (position){
