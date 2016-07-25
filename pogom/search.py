@@ -93,6 +93,21 @@ def generate_location_steps(initial_location, num_steps):
         ring += 1
 
 
+def login_if_needed(args, position, lock):
+    global api
+    active_api = api
+    if active_api and active_api._auth_provider and active_api._auth_provider._ticket_expire:
+        remaining_time = active_api._auth_provider._ticket_expire / 1000 - time.time()
+        if remaining_time > 60:
+            log.info("Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
+        else:
+            active_api = None
+
+    if not active_api:
+        with lock:
+            api = login(args, position)
+
+
 def login(args, position):
     log.info('Attempting login to Pokemon Go.')
 
@@ -118,8 +133,10 @@ def search_thread(args):
         priority, i, total_steps, step_location, step, lock = queue.get()
         log.info("Search queue depth is: " + str(queue.qsize()))
         response_dict = {}
+        global api
         failed_consecutive = 0
         while not response_dict:
+            login_if_needed(args, step_location, lock)
             response_dict = send_map_request(api, step_location)
             if response_dict:
                 with lock:
@@ -131,6 +148,7 @@ def search_thread(args):
                         if(failed_consecutive >= config['REQ_MAX_FAILED']):
                             log.error('Niantic servers under heavy load. Waiting before trying again')
                             time.sleep(config['REQ_HEAVY_SLEEP'])
+                            api = None
                             failed_consecutive = 0
                         response_dict = {}
             else:
@@ -149,19 +167,6 @@ def process_search_threads(search_threads, curr_steps, total_steps):
 
 def search(args, i, position, num_steps):
     total_steps = (3 * (num_steps**2)) - (3 * num_steps) + 1
-
-    global api
-    # Prevent races of assigning global api in between
-    active_api = api
-    if active_api and active_api._auth_provider and active_api._auth_provider._ticket_expire:
-        remaining_time = active_api._auth_provider._ticket_expire / 1000 - time.time()
-        if remaining_time > 60:
-            log.info("Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
-        else:
-            active_api = None
-
-    if not active_api:
-        api = login(args, position)
 
     lock = Lock()
 
