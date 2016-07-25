@@ -108,6 +108,8 @@ def login_if_needed(args, position, lock):
         with lock:
             if not api:
                 api = login(args, position)
+            active_api = api
+    return active_api
 
 
 def login(args, position):
@@ -137,11 +139,10 @@ def search_thread(qargs):
         priority, args, i, total_steps, step_location, step, lock = queue.get()
         log.debug("Search queue depth is: " + str(queue.qsize()))
         response_dict = {}
-        global api
         failed_consecutive = 0
         while not response_dict:
-            login_if_needed(args, step_location, lock)
-            response_dict = send_map_request(api, step_location)
+            instance_api = login_if_needed(args, step_location, lock)
+            response_dict = send_map_request(instance_api, step_location)
             if response_dict:
                 with lock:
                     try:
@@ -152,6 +153,7 @@ def search_thread(qargs):
                         if(failed_consecutive >= config['REQ_MAX_FAILED']):
                             log.error('Niantic servers under heavy load. Waiting before trying again')
                             time.sleep(config['REQ_HEAVY_SLEEP'])
+                            global api
                             api = None
                             failed_consecutive = 0
                         response_dict = {}
