@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 TIMESTAMP = '\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000'
 api = None
+lock = Lock()
 
 #Constants for Hex Grid
 #Gap between vertical and horzonal "rows"
@@ -105,7 +106,8 @@ def login_if_needed(args, position, lock):
 
     if not active_api:
         with lock:
-            api = login(args, position)
+            if not api:
+                api = login(args, position)
 
 
 def login(args, position):
@@ -127,10 +129,10 @@ def create_search_threads(num) :
         t.start()
         search_threads.append(t)
 
-def search_thread(args):
-    queue = args
+def search_thread(qargs):
+    queue = qargs
     while True:
-        priority, i, total_steps, step_location, step, lock = queue.get()
+        priority, args, i, total_steps, step_location, step, lock = queue.get()
         log.info("Search queue depth is: " + str(queue.qsize()))
         response_dict = {}
         global api
@@ -168,8 +170,6 @@ def process_search_threads(search_threads, curr_steps, total_steps):
 def search(args, i, position, num_steps):
     total_steps = (3 * (num_steps**2)) - (3 * num_steps) + 1
 
-    lock = Lock()
-
     for step, step_location in enumerate(generate_location_steps(position, num_steps), 1):
         if 'NEXT_LOCATION' in config:
             log.info('New location found. Starting new scan.')
@@ -179,7 +179,7 @@ def search(args, i, position, num_steps):
             search(args, i, num_steps)
             return
 
-        search_args = (search_priority, i, total_steps, step_location, step, lock)
+        search_args = (search_priority, args, i, total_steps, step_location, step, lock)
         search_queue.put(search_args)
 
 def search_loop(args):
