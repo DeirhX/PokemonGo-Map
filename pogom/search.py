@@ -193,7 +193,7 @@ def search_loop(args):
             search(args, i, position, args.step_limit)
             log.info("Scanning complete.")
             if args.scan_delay > 1:
-                log.info('Waiting {:d} seconds before beginning new scan.'.format(args.scan_delay))
+                log.info('Waiting {:f} seconds before beginning new scan.'.format(args.scan_delay))
                 time.sleep(args.scan_delay)
             i += 1
 
