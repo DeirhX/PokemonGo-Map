@@ -17,8 +17,8 @@ from .models import parse_map
 log = logging.getLogger(__name__)
 
 TIMESTAMP = '\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000'
-api = None
-lock = Lock()
+shared_api = None
+shared_api_lock = Lock()
 
 #Constants for Hex Grid
 #Gap between vertical and horzonal "rows"
@@ -93,32 +93,28 @@ def generate_location_steps(initial_location, num_steps):
 
         ring += 1
 
-
-def login_if_needed(args, position, lock):
-    global api
-    active_api = api
-    if active_api and active_api._auth_provider and active_api._auth_provider._ticket_expire:
-        remaining_time = active_api._auth_provider._ticket_expire / 1000 - time.time()
+def login_if_needed(args, position):
+    global shared_api
+    api = shared_api  # So we don't have to lock here, usually api exists
+    if api and api._auth_provider and api._auth_provider._ticket_expire:
+        remaining_time = api._auth_provider._ticket_expire / 1000 - time.time()
         if remaining_time > 60:
             log.info("Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
+            return api
         else:
-            active_api = None
+            shared_api = None  # Discard connection
 
-    if not active_api:
-        with lock:
-            if not api:
-                api = login(args, position)
-            active_api = api
-    return active_api
+    with shared_api_lock:
+        if not shared_api:  # Another thread might have logged in while waiting
+            shared_api = login(args, position)
+        return shared_api
 
 
 def login(args, position):
     log.info('Attempting login to Pokemon Go.')
 
-    while True:
-        api = PGoApi()
-        if api.login(args.auth_service, args.username, args.password, *position):
-            break
+    api = PGoApi()
+    while not api.login(args.auth_service, args.username, args.password, *position):
         log.info('Failed to login to Pokemon Go. Trying again.')
         time.sleep(config['REQ_SLEEP'])
 
@@ -133,33 +129,34 @@ def create_search_threads(num) :
         t.start()
         search_threads.append(t)
 
-def search_thread(qargs):
-    queue = qargs
+def search_thread(thread_args):
+    queue = thread_args
     while True:
-        priority, args, i, total_steps, step_location, step, lock = queue.get()
+        priority, args, i, total_steps, step_location, step = queue.get()
         log.debug("Search queue depth is: " + str(queue.qsize()))
         response_dict = {}
         failed_consecutive = 0
         while not response_dict:
-            instance_api = login_if_needed(args, step_location, lock)
+            instance_api = login_if_needed(args, step_location)
             response_dict = send_map_request(instance_api, step_location)
             if response_dict:
-                with lock:
-                    try:
-                        parse_map(response_dict, i, step, step_location)
-                    except KeyError:
-                        log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
-                        failed_consecutive += 1
-                        if(failed_consecutive >= config['REQ_MAX_FAILED']):
-                            log.error('Niantic servers under heavy load. Waiting before trying again')
-                            time.sleep(config['REQ_HEAVY_SLEEP'])
-                            global api
-                            api = None
-                            failed_consecutive = 0
-                        response_dict = {}
+                try:
+                    parse_map(response_dict, i, step, step_location)
+                except KeyError:
+                    log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+                    failed_consecutive += 1
+                    response_dict = {}
             else:
                 log.info('Map Download failed. Trying again.')
-                time.sleep(config['REQ_SLEEP'])
+                failed_consecutive += 1
+
+            if (failed_consecutive >= config['REQ_MAX_FAILED']):
+                global shared_api
+                if shared_api is instance_api:  # If not already changed / reset by other worker
+                    shared_api = None  # Drop connection, will relogin on next pass
+                log.error('Niantic servers under heavy load. Waiting before trying again')
+                time.sleep(config['REQ_HEAVY_SLEEP'])
+                failed_consecutive = 0
 
         time.sleep(config['REQ_SLEEP'])
 
@@ -184,7 +181,7 @@ def search(args, i, position, num_steps):
             search(args, i, num_steps)
             return
 
-        search_args = (search_priority, args, i, total_steps, step_location, step, lock)
+        search_args = (search_priority, args, i, total_steps, step_location, step)
         search_queue.put(search_args)
 
 def search_loop(args):
