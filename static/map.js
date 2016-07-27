@@ -1209,4 +1209,32 @@ function deirhExtensions(map) {
             });
         });
     });
+
+    var infoWindow = new google.maps.InfoWindow({map: map});
+
+    // Try HTML5 geolocation.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+        var pos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        infoWindow.setPosition(pos);
+        map.setCenter(pos);
+      }, function() {
+
+      });
+    } else {
+      // Browser doesn't support Geolocation
+    };
+
+    function onSignIn(googleUser) {
+      var profile = googleUser.getBasicProfile();
+      console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+      console.log('Name: ' + profile.getName());
+      console.log('Image URL: ' + profile.getImageUrl());
+      console.log('Email: ' + profile.getEmail());
+    }
+
 }

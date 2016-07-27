@@ -9,6 +9,8 @@
 		<meta name="apple-mobile-web-app-title" content="PokeMap">
 		<meta name="mobile-web-app-capable" content="yes">
 		<meta name="theme-color" content="#3b3b3b">
+		<meta name="google-signin-client_id" content="1025081464444-8jrri89ukacqpevqsle7sv0v6lva7g5i.apps.googleusercontent.com">
+
 
 		<!-- Fav- & Apple-Touch-Icons -->
 		<!-- Favicon -->
@@ -41,6 +43,7 @@
 		<header id="header">
 			<a href="#nav">Options</a>
 			<h1><a href="#">Avast Pokémon Go Map</a></h1>
+			<div class="g-signin2" data-onsuccess="onSignIn"></div>
 		</header>
 
 		<!-- NAV -->
@@ -170,6 +173,6 @@
 
 	<script src="static/map.js"></script>
 	<script defer src="https://maps.googleapis.com/maps/api/js?key={{ gmaps_key }}&amp;callback=initMap&amp;libraries=places,geometry"></script>
-
+	<script src="https://apis.google.com/js/platform.js" async defer></script>
 	</body>
 </html>
