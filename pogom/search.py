@@ -152,11 +152,9 @@ def search_thread(q):
     threadname = threading.currentThread().getName()
     log.debug("Search thread {}: started and waiting".format(threadname))
     while True:
-        priority, args, i, total_steps, step_location, step = queue.get()
-        log.debug("Search queue depth is: " + str(queue.qsize()))
-
         # Get the next item off the queue (this blocks till there is something)
-        i, step_location, step, lock = q.get()
+        priority, args, i, total_steps, step_location, step = q.get()
+        log.debug("Search queue depth is: " + str(q.qsize()))
 
         # If a new location has been set, just mark done and continue
         if 'NEXT_LOCATION' in config:
@@ -231,7 +229,7 @@ def search(args, i, position, num_steps):
     for step, step_location in enumerate(generate_location_steps(position, num_steps), 1):
         log.debug("Queue search itteration {}, step {}".format(i, step))
 
-        search_args = (search_priority, args, i, total_steps, step_location, step)
+        search_args = (search_priority, args, i, num_steps, step_location, step)
         search_queue.put(search_args)
 
 def search_loop(args):

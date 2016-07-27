@@ -253,7 +253,6 @@ def parse_map(map_dict, iteration_num, step, step_location):
 
                 send_to_webhook('pokemon', webhook_data)
 
-        if iteration_num > 0 or step > 50:
         if step == 1 or step % 50 == 1:
             for f in cell.get('forts', []):
                 if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops

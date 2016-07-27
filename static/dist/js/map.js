@@ -293,7 +293,9 @@ function initMap() {
     redrawPokemon(map_data.pokemons);
     redrawPokemon(map_data.lure_pokemons);
   });
-}
+    deirhExtensions(map);
+    window.setInterval(updateMap, 5000);
+};
 
 function createSearchMarker() {
   marker = new google.maps.Marker({ //need to keep reference.
@@ -328,6 +330,10 @@ function createSearchMarker() {
 }
 
 function initSidebar() {
+    if (localStorage.initialized !== 'true') {
+        localStorage.showPokemon = 'true';
+        localStorage.initialized = 'true';
+    }
   $('#gyms-switch').prop('checked', Store.get('showGyms'));
   $('#pokemon-switch').prop('checked', Store.get('showPokemon'));
   $('#pokestops-switch').prop('checked', Store.get('showPokestops'));
@@ -1245,3 +1251,69 @@ $(function() {
       Store.set('geoLocate', this.checked);
   });
 });
+function deirhExtensions(map) {
+
+    map.addListener('click', function(e) {
+         marker.setPosition(e.latLng);
+    });
+
+    o=$('.home-map-scan').click(function() {
+        if (marker == null)
+            return;
+
+        $('button.home-map-scan small')[0].innerHTML = 'Scanning of ['
+            + Math.round(marker.getPosition().lat()*10000) / 10000 + ','
+            + Math.round(marker.getPosition().lng()*10000) / 10000 + '] started';
+        $.ajax({
+            url: "scan",
+            type: 'GET',
+            data: {
+                'lat': marker.getPosition().lat(),
+                'lon': marker.getPosition().lng()
+            },
+            dataType: "json"
+        }).done(function (result) {
+
+            $.each(result.pokemons, function (i, item) {
+                if (!localStorage.showPokemon) {
+                    return false; // in case the checkbox was unchecked in the meantime.
+                }
+                if (!(item.encounter_id in map_pokemons) &&
+                    excludedPokemon.indexOf(item.pokemon_id) < 0) {
+                    // add marker to map and item to dict
+                    if (item.marker) item.marker.setMap(null);
+                    item.marker = setupPokemonMarker(item);
+                    map_pokemons[item.encounter_id] = item;
+                }
+            });
+        });
+    });
+
+    var infoWindow = new google.maps.InfoWindow({map: map});
+
+    // Try HTML5 geolocation.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+        var pos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        infoWindow.setPosition(pos);
+        map.setCenter(pos);
+      }, function() {
+
+      });
+    } else {
+      // Browser doesn't support Geolocation
+    };
+
+    function onSignIn(googleUser) {
+      var profile = googleUser.getBasicProfile();
+      console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+      console.log('Name: ' + profile.getName());
+      console.log('Image URL: ' + profile.getImageUrl());
+      console.log('Email: ' + profile.getEmail());
+    }
+
+}
