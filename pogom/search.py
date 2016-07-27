@@ -1,9 +1,21 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+'''
+Search Architecture:
+ - Create a Queue
+   - Holds a list of locations to scan
+ - Create N search threads
+   - Each search thread will be responsible for hitting the API for a given scan location
+ - Create a "overseer" loop
+   - Creates/updates the search grid, populates the Queue, and waits for the current search itteration to complete
+   -
+'''
+
 import logging
 import time
 import math
+import threading
 
 from threading import Thread, Lock
 from queue import PriorityQueue
@@ -20,12 +32,12 @@ TIMESTAMP = '\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\00
 shared_api = None
 shared_api_lock = Lock()
 
-#Constants for Hex Grid
-#Gap between vertical and horzonal "rows"
+# Constants for Hex Grid
+# Gap between vertical and horzonal "rows"
 lat_gap_meters = 150
 lng_gap_meters = 86.6
 
-#111111m is approx 1 degree Lat, which is close enough for this
+# 111111m is approx 1 degree Lat, which is close enough for this
 meters_per_degree = 111111
 lat_gap_degrees = float(lat_gap_meters) / meters_per_degree
 
@@ -33,8 +45,10 @@ search_queue = PriorityQueue(config['SEARCH_QUEUE_DEPTH'])
 search_priority = 10
 scan_priority = 5
 
+
 def calculate_lng_degrees(lat):
-    return float(lng_gap_meters) / (meters_per_degree * math.cos(math.radians(lat)))
+    return float(lng_gap_meters) / \
+        (meters_per_degree * math.cos(math.radians(lat)))
 
 
 def send_map_request(api, position):
@@ -53,43 +67,43 @@ def send_map_request(api, position):
 
 def generate_location_steps(initial_location, num_steps):
 
-    ring = 1 #Which ring are we on, 0 = center
+    ring = 1  # Which ring are we on, 0 = center
     lat_location = initial_location[0]
     lng_location = initial_location[1]
 
-    yield (initial_location[0],initial_location[1], 0) #Middle circle
+    yield (initial_location[0], initial_location[1], 0)  # Middle circle
 
     while ring < num_steps:
-        #Move the location diagonally to top left spot, then start the circle which will end up back here for the next ring
-        #Move Lat north first
+        # Move the location diagonally to top left spot, then start the circle which will end up back here for the next ring
+        # Move Lat north first
         lat_location += lat_gap_degrees
         lng_location -= calculate_lng_degrees(lat_location)
 
         for direction in range(6):
             for i in range(ring):
-                if direction == 0: #Right
+                if direction == 0:  # Right
                     lng_location += calculate_lng_degrees(lat_location) * 2
 
-                if direction == 1: #Right Down
+                if direction == 1:  # Right Down
                     lat_location -= lat_gap_degrees
                     lng_location += calculate_lng_degrees(lat_location)
 
-                if direction == 2: #Left Down
+                if direction == 2:  # Left Down
                     lat_location -= lat_gap_degrees
                     lng_location -= calculate_lng_degrees(lat_location)
 
-                if direction == 3: #Left
+                if direction == 3:  # Left
                     lng_location -= calculate_lng_degrees(lat_location) * 2
 
-                if direction == 4: #Left Up
+                if direction == 4:  # Left Up
                     lat_location += lat_gap_degrees
                     lng_location -= calculate_lng_degrees(lat_location)
 
-                if direction == 5: #Right Up
+                if direction == 5:  # Right Up
                     lat_location += lat_gap_degrees
                     lng_location += calculate_lng_degrees(lat_location)
 
-                yield (lat_location, lng_location, 0) #Middle circle
+                yield (lat_location, lng_location, 0)  # Middle circle
 
         ring += 1
 
@@ -115,25 +129,42 @@ def login(args, position):
 
     api = PGoApi()
     while not api.login(args.auth_service, args.username, args.password, *position):
-        log.info('Failed to login to Pokemon Go. Trying again.')
-        time.sleep(config['REQ_SLEEP'])
+        log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(args.login_delay))
+        time.sleep(args.login_delay)
 
     log.info('Login to Pokemon Go successful.')
     return api
 
-def create_search_threads(num) :
+
+#
+# Search Threads Logic
+#
+def create_search_threads(num):
     search_threads = []
     for i in range(num):
-        t = Thread(target=search_thread, name='search_thread {}'.format(i), args=( search_queue,))
+        t = Thread(target=search_thread, name='search_thread-{}'.format(i), args=(search_queue,))
         t.daemon = True
         t.start()
         search_threads.append(t)
 
-def search_thread(thread_args):
-    queue = thread_args
+
+def search_thread(q):
+    threadname = threading.currentThread().getName()
+    log.debug("Search thread {}: started and waiting".format(threadname))
     while True:
         priority, args, i, total_steps, step_location, step = queue.get()
         log.debug("Search queue depth is: " + str(queue.qsize()))
+
+        # Get the next item off the queue (this blocks till there is something)
+        i, step_location, step, lock = q.get()
+
+        # If a new location has been set, just mark done and continue
+        if 'NEXT_LOCATION' in config:
+            log.debug("{}: new location waiting, flushing queue".format(threadname))
+            q.task_done()
+            continue
+
+        log.debug("{}: processing itteration {} step {}".format(threadname, i, step))
         response_dict = {}
         failed_consecutive = 0
         while not response_dict:
@@ -147,7 +178,8 @@ def search_thread(thread_args):
                     failed_consecutive += 1
                     response_dict = {}
             else:
-                log.info('Map Download failed. Trying again.')
+                log.info('Map download failed, waiting and retrying')
+                log.debug('{}: itteration {} step {} failed'.format(threadname, i, step))
                 failed_consecutive += 1
 
             if (failed_consecutive >= config['REQ_MAX_FAILED']):
@@ -159,27 +191,45 @@ def search_thread(thread_args):
                 failed_consecutive = 0
 
         time.sleep(config['REQ_SLEEP'])
+        q.task_done()
 
-def process_search_threads(search_threads, curr_steps, total_steps):
-    for thread in search_threads:
-        thread.start()
-    for thread in search_threads:
-        curr_steps += 1
-        thread.join()
-        log.info('Completed {:5.2f}% of scan.'.format(float(curr_steps) / total_steps*100))
-    return curr_steps
 
+#
+# Search Overseer
+#
+def search_loop(args):
+    i = 0
+    while True:
+        log.info("Search loop {} starting".format(i))
+        try:
+            search(args, i)
+            log.info("Search loop {} complete.".format(i))
+            i += 1
+        except Exception as e:
+            log.error('Scanning error @ {0.__class__.__name__}: {0}'.format(e))
+        finally:
+            if args.thread_delay > 0:
+                log.info('Waiting {:g} seconds before beginning new scan.'.format(args.thread_delay))
+                time.sleep(args.thread_delay)
+
+
+#
+# Overseer main logic
+#
+def search(args, i):
+    num_steps = args.step_limit
 def search(args, i, position, num_steps):
-    total_steps = (3 * (num_steps**2)) - (3 * num_steps) + 1
+
+    # Update the location if needed
+    if 'NEXT_LOCATION' in config:
+        log.info('New location set')
+        config['ORIGINAL_LATITUDE'] = config['NEXT_LOCATION']['lat']
+        config['ORIGINAL_LONGITUDE'] = config['NEXT_LOCATION']['lon']
+        config.pop('NEXT_LOCATION', None)
+
 
     for step, step_location in enumerate(generate_location_steps(position, num_steps), 1):
-        if 'NEXT_LOCATION' in config:
-            log.info('New location found. Starting new scan.')
-            config['ORIGINAL_LATITUDE'] = config['NEXT_LOCATION']['lat']
-            config['ORIGINAL_LONGITUDE'] = config['NEXT_LOCATION']['lon']
-            config.pop('NEXT_LOCATION', None)
-            search(args, i, num_steps)
-            return
+        log.debug("Queue search itteration {}, step {}".format(i, step))
 
         search_args = (search_priority, args, i, total_steps, step_location, step)
         search_queue.put(search_args)
@@ -202,3 +252,9 @@ def search_loop(args):
         log.info('{0.__class__.__name__}: {0} - waiting {1} sec(s) before restarting'.format(e, args.scan_delay))
         time.sleep(args.scan_delay)
         search_loop(args)
+# A fake search loop which does....nothing!
+#
+def fake_search_loop():
+    while True:
+        log.info('Fake search loop running...')
+        time.sleep(10)
