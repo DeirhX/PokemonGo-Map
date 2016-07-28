@@ -9,6 +9,8 @@ from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    DateTimeField, OperationalError
 from datetime import datetime, timedelta
 from base64 import b64encode
+from threading import Thread
+from queue import Queue
 
 from . import config
 from .utils import get_pokemon_name, get_args, send_to_webhook
@@ -320,21 +322,29 @@ def parse_map(map_dict, iteration_num, step, step_location):
 
     bulk_upsert(ScannedLocation, scanned)
 
+sqlQueue = Queue(1000)
+def write_thread(in_q) :
+    while True:
+        cls, data = in_q.get()
+        log.info("Update queue size: " + str(in_q.qsize()))
+
+        num_rows = len(data.values())
+        i = 0
+        step = 120
+        while i < num_rows:
+            log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
+            try:
+                InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
+            except OperationalError as e:
+                log.warning("%s... Retrying", e)
+                continue
+            i += step
+
+writer_thread = Thread(target=write_thread, args=(sqlQueue,))
+writer_thread.start()
 
 def bulk_upsert(cls, data):
-    num_rows = len(data.values())
-    i = 0
-    step = 120
-    while i < num_rows:
-        log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
-        try:
-            InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
-        except OperationalError as e:
-            log.warning("%s... Retrying", e)
-            continue
-
-        i+=step
-
+    sqlQueue.put((cls, data))
 
 def create_tables(db):
     db.connect()
