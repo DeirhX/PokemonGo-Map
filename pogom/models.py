@@ -6,7 +6,8 @@ import os
 import time
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
-                   DateTimeField, OperationalError
+                   DateTimeField, BigIntegerField, SmallIntegerField,\
+                   OperationalError, CompositeKey
 from playhouse.shortcuts import RetryOperationalError
 from datetime import datetime, timedelta
 from base64 import b64encode
@@ -236,6 +237,38 @@ class ScannedLocation(BaseModel):
 
         return scans
 
+class Login(BaseModel):
+    type = SmallIntegerField()
+    username = CharField(max_length=20)
+    password = CharField(max_length=20)
+    last_request = DateTimeField()
+    last_fail = DateTimeField()
+    last_login = DateTimeField()
+    requests = BigIntegerField()
+    use = SmallIntegerField()
+
+    class Meta:
+        primary_key = CompositeKey('type', 'username')
+
+    @classmethod
+    def get_least_used(cls, type):
+        query = (Login
+                 .select()
+                 .where(Login.use == 1 and Login.type == type)
+                 .order_by(Login.last_fail)
+                 .limit(1))
+        result = query.get()
+        return result
+
+    @classmethod
+    def set_failed(cls, login):
+        login.last_fail = datetime.now()
+        login.save()
+
+    @classmethod
+    def set_success(cls, login):
+        login.last_login = datetime.now()
+        login.save()
 
 def parse_map(map_dict, iteration_num, step, step_location):
     pokemons = {}

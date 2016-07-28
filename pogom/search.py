@@ -24,7 +24,7 @@ from pgoapi import PGoApi
 from pgoapi.utilities import f2i, get_cellid
 
 from . import config
-from .models import parse_map
+from .models import parse_map, Login
 
 log = logging.getLogger(__name__)
 
@@ -132,7 +132,7 @@ def login_if_needed(args, position):
             wait_time = (threads_waiting_for_login)
         with shared_api_lock:
             if not shared_api:  # Another thread might have logged in while waiting
-                api = shared_api = login(args, position)
+                api = shared_api = login(position)
             else:
                 api = shared_api
         log.info('sleep for: ' + str(wait_time))
@@ -142,15 +142,19 @@ def login_if_needed(args, position):
     return api
 
 
-def login(args, position):
+def login(position):
     log.info('Attempting login to Pokemon Go.')
 
     api = PGoApi()
-    while not api.login(args.auth_service, args.username, args.password, *position):
-        log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(args.login_delay))
-        time.sleep(args.login_delay)
+    login_info = Login.get_least_used(1)
+    auth_service = 'google' if not login_info.type else 'ptc'
+    while not api.login(auth_service, login_info.username, login_info.password, *position):
+        log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(config['LOGIN_DELAY']))
+        Login.set_failed(login_info)
+        time.sleep(config['LOGIN_DELAY'])
 
     log.info('Login to Pokemon Go successful.')
+    Login.set_success(login_info)
     return api
 
 
