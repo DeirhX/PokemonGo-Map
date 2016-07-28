@@ -342,7 +342,6 @@ function initSidebar() {
   $('#geoloc-switch').prop('checked', Store.get('geoLocate'));
   $('#scanned-switch').prop('checked', Store.get('showScanned'));
   $('#sound-switch').prop('checked', Store.get('playSound'));
-
   var searchBox = new google.maps.places.SearchBox(document.getElementById('next-location'));
   $("#next-location").css("background-color", $('#geoloc-switch').prop('checked') ? "#e0e0e0" : "#ffffff");
 
@@ -760,6 +759,7 @@ function loadRawData() {
       'neLng': neLng
     },
     dataType: "json",
+    cache: false,
     beforeSend: function() {
       if (rawDataIsLoading) {
         return false;
@@ -908,6 +908,9 @@ function updateMap() {
     showInBoundsMarkers(map_data.pokestops);
     showInBoundsMarkers(map_data.scanned);
     clearStaleMarkers();
+    if ($("#stats").hasClass("visible")) {
+      countMarkers();
+    }
   });
 }
 

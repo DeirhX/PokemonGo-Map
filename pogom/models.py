@@ -6,7 +6,9 @@ import os
 import time
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
-                   DateTimeField, OperationalError
+                   DateTimeField, BigIntegerField, SmallIntegerField,\
+                   OperationalError, CompositeKey
+from playhouse.shortcuts import RetryOperationalError
 from datetime import datetime, timedelta
 from base64 import b64encode
 from threading import Thread
@@ -23,13 +25,17 @@ args = get_args()
 db = None
 
 
+class MyRetryDB(RetryOperationalError, MySQLDatabase):
+    pass
+
+
 def init_database():
     global db
     if db is not None:
         return db
 
     if args.db_type == 'mysql':
-        db = MySQLDatabase(
+        db = MyRetryDB(
             args.db_name,
             user=args.db_user,
             password=args.db_pass,
@@ -61,11 +67,14 @@ class Pokemon(BaseModel):
     # We are base64 encoding the ids delivered by the api
     # because they are too big for sqlite to handle
     encounter_id = CharField(primary_key=True, max_length=50)
-    spawnpoint_id = CharField()
-    pokemon_id = IntegerField()
+    spawnpoint_id = CharField(index=True)
+    pokemon_id = IntegerField(index=True)
     latitude = DoubleField()
     longitude = DoubleField()
-    disappear_time = DateTimeField()
+    disappear_time = DateTimeField(index=True)
+
+    class Meta:
+        indexes = ((('latitude', 'longitude'), False),)
 
     @classmethod
     def get_active(cls, swLat, swLng, neLat, neLng):
@@ -129,9 +138,12 @@ class Pokestop(BaseModel):
     enabled = BooleanField()
     latitude = DoubleField()
     longitude = DoubleField()
-    last_modified = DateTimeField()
-    lure_expiration = DateTimeField(null=True)
+    last_modified = DateTimeField(index=True)
+    lure_expiration = DateTimeField(null=True, index=True)
     active_pokemon_id = IntegerField(null=True)
+
+    class Meta:
+        indexes = ((('latitude', 'longitude'), False),)
 
     @classmethod
     def get_stops(cls, swLat, swLng, neLat, neLng):
@@ -171,7 +183,10 @@ class Gym(BaseModel):
     enabled = BooleanField()
     latitude = DoubleField()
     longitude = DoubleField()
-    last_modified = DateTimeField()
+    last_modified = DateTimeField(index=True)
+
+    class Meta:
+        indexes = ((('latitude', 'longitude'), False),)
 
     @classmethod
     def get_gyms(cls, swLat, swLng, neLat, neLng):
@@ -199,7 +214,10 @@ class ScannedLocation(BaseModel):
     scanned_id = CharField(primary_key=True, max_length=50)
     latitude = DoubleField()
     longitude = DoubleField()
-    last_modified = DateTimeField()
+    last_modified = DateTimeField(index=True)
+
+    class Meta:
+        indexes = ((('latitude', 'longitude'), False),)
 
     @classmethod
     def get_recent(cls, swLat, swLng, neLat, neLng):
@@ -219,6 +237,38 @@ class ScannedLocation(BaseModel):
 
         return scans
 
+class Login(BaseModel):
+    type = SmallIntegerField()
+    username = CharField(max_length=20)
+    password = CharField(max_length=20)
+    last_request = DateTimeField()
+    last_fail = DateTimeField()
+    last_login = DateTimeField()
+    requests = BigIntegerField()
+    use = SmallIntegerField()
+
+    class Meta:
+        primary_key = CompositeKey('type', 'username')
+
+    @classmethod
+    def get_least_used(cls, type):
+        query = (Login
+                 .select()
+                 .where(Login.use == 1 and Login.type == type)
+                 .order_by(Login.last_fail)
+                 .limit(1))
+        result = query.get()
+        return result
+
+    @classmethod
+    def set_failed(cls, login):
+        login.last_fail = datetime.now()
+        login.save()
+
+    @classmethod
+    def set_success(cls, login):
+        login.last_login = datetime.now()
+        login.save()
 
 def parse_map(map_dict, iteration_num, step, step_location):
     pokemons = {}
@@ -349,4 +399,9 @@ def bulk_upsert(cls, data):
 def create_tables(db):
     db.connect()
     db.create_tables([Pokemon, Pokestop, Gym, ScannedLocation], safe=True)
+    db.close()
+
+def drop_tables(db):
+    db.connect()
+    db.drop_tables([Pokemon, Pokestop, Gym, ScannedLocation], safe=True)
     db.close()
