@@ -108,6 +108,7 @@ def generate_location_steps(initial_location, num_steps):
         ring += 1
 
 threads_waiting_for_login = 0
+lock_threads_waiting_for_login = Lock()
 def login_if_needed(args, position):
     global shared_api
     api = shared_api  # So we don't have to lock here, usually api exists
@@ -121,13 +122,15 @@ def login_if_needed(args, position):
 
     if not api:
         global threads_waiting_for_login
-        threads_waiting_for_login += 1
-        wait_time = threads_waiting_for_login * 1000
+        with lock_threads_waiting_for_login:
+            threads_waiting_for_login += 1
+            wait_time = (threads_waiting_for_login)
         with shared_api_lock:
             if not shared_api:  # Another thread might have logged in while waiting
                 api = shared_api = login(args, position)
             else:
                 api = shared_api
+        log.info('sleep for: ' + str(wait_time))
         time.sleep(wait_time)
     else:
         threads_waiting_for_login = 0
