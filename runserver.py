@@ -73,7 +73,6 @@ if __name__ == '__main__':
         # Gather the pokemons!
         if not args.mock:
             log.debug('Starting a real search thread and {} search runner thread(s)'.format(args.num_threads))
-            create_search_threads(args.num_threads)
             search_thread = Thread(target=search_loop, args=(args,))
         else:
             log.debug('Starting a fake search thread')
