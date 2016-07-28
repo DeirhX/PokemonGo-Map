@@ -138,7 +138,7 @@ class Pogom(Flask):
             return 'bad parameters', 400
         position = (lat, lon, 0)
 
-        search(args, 0, position, 2)
+        search(args, 0, position, 3)
         d = {}
         return jsonify(d)
 
