@@ -141,20 +141,23 @@ def login_if_needed(args, position):
         threads_waiting_for_login = 0
     return api
 
-
+loginLock = Lock()
 def login(position):
     log.info('Attempting login to Pokemon Go.')
 
     api = PGoApi()
-    login_info = Login.get_least_used(1)
-    auth_service = 'google' if not login_info.type else 'ptc'
-    while not api.login(auth_service, login_info.username, login_info.password, *position):
-        log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(config['LOGIN_DELAY']))
-        Login.set_failed(login_info)
-        time.sleep(config['LOGIN_DELAY'])
+    with loginLock:
+        login_info = Login.get_least_used(1)
+        auth_service = 'google' if not login_info.type else 'ptc'
+        while not api.login(auth_service, login_info.username, login_info.password, *position):
+            log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(config['LOGIN_DELAY']))
+            Login.set_failed(login_info)
+            loginLock.release()
+            time.sleep(config['LOGIN_DELAY'])
+            loginLock.acquire()
 
-    log.info('Login to Pokemon Go successful.')
-    Login.set_success(login_info)
+        log.info('Login to Pokemon Go successful.')
+        Login.set_success(login_info)
     return api
 
 
@@ -173,6 +176,7 @@ def create_search_threads(num):
 def search_thread(q):
     threadname = threading.currentThread().getName()
     log.debug("Search thread {}: started and waiting".format(threadname))
+    instance_api = None
     while True:
         # Get the next item off the queue (this blocks till there is something)
         priority, args, i, total_steps, step_location, step = q.get()
@@ -188,7 +192,11 @@ def search_thread(q):
         response_dict = {}
         failed_consecutive = 0
         while not response_dict:
-            instance_api = login_if_needed(args, step_location)
+            if instance_api:
+                log.info("Skipping Pokemon Go login process since already logged in")
+            else:
+                instance_api = login(step_location)
+
             response_dict = send_map_request(instance_api, step_location)
             if response_dict:
                 try:
@@ -253,6 +261,7 @@ def search(args, i, position, num_steps):
 
         search_args = (search_priority, args, i, num_steps, step_location, step)
         search_queue.put(search_args)
+        time.sleep(0.2)  # Sleep tight
 
 def search_loop(args):
     i = 0
