@@ -107,6 +107,7 @@ def generate_location_steps(initial_location, num_steps):
 
         ring += 1
 
+threads_waiting_for_login = 0
 def login_if_needed(args, position):
     global shared_api
     api = shared_api  # So we don't have to lock here, usually api exists
@@ -116,12 +117,21 @@ def login_if_needed(args, position):
             log.info("Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
             return api
         else:
-            shared_api = None  # Discard connection
+            api = shared_api = None  # Discard connection
 
-    with shared_api_lock:
-        if not shared_api:  # Another thread might have logged in while waiting
-            shared_api = login(args, position)
-        return shared_api
+    if not api:
+        global threads_waiting_for_login
+        threads_waiting_for_login += 1
+        wait_time = threads_waiting_for_login * 1000
+        with shared_api_lock:
+            if not shared_api:  # Another thread might have logged in while waiting
+                api = shared_api = login(args, position)
+            else:
+                api = shared_api
+        time.sleep(wait_time)
+    else:
+        threads_waiting_for_login = 0
+    return api
 
 
 def login(args, position):
