@@ -254,8 +254,9 @@ class Login(BaseModel):
     def get_least_used(cls, type):
         query = (Login
                  .select()
-                 .where(Login.use == 1 and Login.type == type)
-                 .order_by(Login.last_fail)
+                 .where(Login.use == 1)
+                 .where(Login.type == type)
+                 .order_by(Login.last_request)
                  .limit(1))
         result = query.get()
         return result
@@ -263,11 +264,13 @@ class Login(BaseModel):
     @classmethod
     def set_failed(cls, login):
         login.last_fail = datetime.now()
+        login.last_request = login.last_fail
         login.save()
 
     @classmethod
     def set_success(cls, login):
         login.last_login = datetime.now()
+        login.last_request = login.last_login
         login.save()
 
 def parse_map(map_dict, iteration_num, step, step_location):
