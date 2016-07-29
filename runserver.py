@@ -110,4 +110,9 @@ if __name__ == '__main__':
         while search_thread.is_alive():
             time.sleep(60)
     else:
-        app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port)
+        if args.use_ssl:
+            context = ('server.cer', 'server.key')
+            app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port,
+                    ssl_context=context)
+        else:
+            app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port)

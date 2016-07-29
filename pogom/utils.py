@@ -105,6 +105,7 @@ def get_args():
     parser.add_argument('--db-host', help='IP or hostname for the database')
     parser.add_argument('-wh', '--webhook', help='Define URL(s) to POST webhook information to',
                         nargs='*', default=False, dest='webhooks')
+    parser.add_argument('-ssl', '--use_ssl', help='Server server over SSL', action='store_true', default=False)
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
