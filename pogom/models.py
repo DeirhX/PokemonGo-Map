@@ -246,6 +246,8 @@ class Login(BaseModel):
     last_login = DateTimeField()
     requests = BigIntegerField()
     use = SmallIntegerField()
+    fail_count = IntegerField()
+    success_count = IntegerField()
 
     class Meta:
         primary_key = CompositeKey('type', 'username')
@@ -265,12 +267,14 @@ class Login(BaseModel):
     def set_failed(cls, login):
         login.last_fail = datetime.now()
         login.last_request = login.last_fail
+        login.fail_count += 1
         login.save()
 
     @classmethod
     def set_success(cls, login):
         login.last_login = datetime.now()
         login.last_request = login.last_login
+        login.success_count += 1
         login.save()
 
 def parse_map(map_dict, iteration_num, step, step_location):
