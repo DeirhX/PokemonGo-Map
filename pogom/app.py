@@ -7,7 +7,7 @@ import logging
 from flask import Flask, jsonify, render_template, request
 from flask.json import JSONEncoder
 from flask_compress import Compress
-from datetime import datetime
+from datetime import datetime, timedelta
 from s2sphere import *
 from pogom.utils import get_args
 
@@ -18,7 +18,7 @@ from .search import search
 log = logging.getLogger(__name__)
 compress = Compress()
 args = get_args() # Performance reasons
-
+users = {}
 
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
@@ -28,6 +28,7 @@ class Pogom(Flask):
         self.route("/", methods=['GET'])(self.fullmap)
         self.route("/raw_data", methods=['GET'])(self.raw_data)
         self.route("/scan", methods=['GET'])(self.scan)
+        self.route("/users", methods=['GET'])(self.users)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
@@ -70,6 +71,7 @@ class Pogom(Flask):
             d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
                                                       neLng)
 
+        users[request.remote_addr] = datetime.now();
         return jsonify(d)
 
     def loc(self):
@@ -152,6 +154,14 @@ class Pogom(Flask):
         d = {}
         return jsonify(d)
 
+
+    def users(self):
+        num_active = 0
+        now = datetime.now()
+        for (ip, timestamp) in users.items():
+            if (now < timestamp + timedelta(seconds=5*60)):
+                num_active += 1
+        return jsonify({'guests': num_active })
 
 
 

@@ -640,7 +640,8 @@ function setupScannedMarker(item) {
     center: circleCenter,
     radius: 100, // 10 miles in metres
     fillColor: getColorByDate(item.last_modified),
-    strokeWeight: 1
+    strokeWeight: 1,
+    clickable: false,
   });
 
   return marker;
@@ -1260,7 +1261,7 @@ function deirhExtensions(map) {
          marker.setPosition(e.latLng);
     });
 
-    o=$('.home-map-scan').click(function() {
+    $('.home-map-scan').click(function() {
         if (marker == null)
             return;
 
@@ -1291,6 +1292,20 @@ function deirhExtensions(map) {
             });
         });
     });
+
+    function getActiveUsers() {
+          $.ajax({
+            url: "users",
+            type: 'GET',
+            data: {},
+            dataType: "json"
+        }).done(function (result) {
+            $('#user-stats')[0].innerHTML = result.guests  + (result.guests != 1 ? ' guests' : ' guest');
+          });
+    }
+
+    getActiveUsers();
+    window.setInterval(getActiveUsers, 15000);
 
     var infoWindow = new google.maps.InfoWindow({map: map});
 

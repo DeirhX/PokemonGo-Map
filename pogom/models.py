@@ -277,6 +277,7 @@ class Login(BaseModel):
         login.success_count += 1
         login.save()
 
+
 def parse_map(map_dict, iteration_num, step, step_location):
     pokemons = {}
     pokestops = {}
