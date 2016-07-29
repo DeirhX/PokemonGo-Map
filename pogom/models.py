@@ -4,10 +4,12 @@
 import logging
 import os
 import time
-from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
+from peewee import Model, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
                    DateTimeField, BigIntegerField, SmallIntegerField,\
-                   OperationalError, CompositeKey
+                   OperationalError, CompositeKey, create_model_tables
+from playhouse.flask_utils import FlaskDB
+from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError
 from datetime import datetime, timedelta
 from base64 import b64encode
@@ -15,42 +17,41 @@ from threading import Thread
 from queue import Queue
 
 from . import config
-from .utils import get_pokemon_name, get_args, send_to_webhook
+from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, get_args, send_to_webhook
 from .transform import transform_from_wgs_to_gcj
 from .customLog import printPokemon
 
 log = logging.getLogger(__name__)
 
 args = get_args()
-db = None
+flaskDb = FlaskDB()
 
 
-class MyRetryDB(RetryOperationalError, MySQLDatabase):
+class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
     pass
 
 
-def init_database():
-    global db
-    if db is not None:
-        return db
-
+def init_database(app):
     if args.db_type == 'mysql':
         db = MyRetryDB(
             args.db_name,
             user=args.db_user,
             password=args.db_pass,
-            host=args.db_host)
+            host=args.db_host,
+            max_connections=args.db_max_connections,
+            stale_timeout=300)
         log.info('Connecting to MySQL database on {}.'.format(args.db_host))
     else:
         db = SqliteDatabase(args.db)
         log.info('Connecting to local SQLLite database.')
 
+    app.config['DATABASE'] = db
+    flaskDb.init_app(app)
+
     return db
 
 
-class BaseModel(Model):
-    class Meta:
-        database = init_database()
+class BaseModel(flaskDb.Model):
 
     @classmethod
     def get_all(cls):
@@ -96,6 +97,8 @@ class Pokemon(BaseModel):
         pokemons = []
         for p in query:
             p['pokemon_name'] = get_pokemon_name(p['pokemon_id'])
+            p['pokemon_rarity'] = get_pokemon_rarity(p['pokemon_id'])
+            p['pokemon_types'] = get_pokemon_types(p['pokemon_id'])
             if args.china:
                 p['latitude'], p['longitude'] = \
                     transform_from_wgs_to_gcj(p['latitude'], p['longitude'])
@@ -125,6 +128,8 @@ class Pokemon(BaseModel):
         pokemons = []
         for p in query:
             p['pokemon_name'] = get_pokemon_name(p['pokemon_id'])
+            p['pokemon_rarity'] = get_pokemon_rarity(p['pokemon_id'])
+            p['pokemon_types'] = get_pokemon_types(p['pokemon_id'])
             if args.china:
                 p['latitude'], p['longitude'] = \
                     transform_from_wgs_to_gcj(p['latitude'], p['longitude'])
@@ -403,6 +408,7 @@ writer_thread.start()
 
 def bulk_upsert(cls, data):
     sqlQueue.put((cls, data))
+
 
 def create_tables(db):
     db.connect()
