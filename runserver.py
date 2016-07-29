@@ -6,10 +6,6 @@ import sys
 import logging
 import time
 
-# Moved here so logger is configured at load time
-logging.basicConfig(format='%(asctime)s [%(threadName)14s][%(module)14s] [%(levelname)7s] %(message)s')
-log = logging.getLogger()
-
 from threading import Thread
 from flask_cors import CORS
 
@@ -22,6 +18,8 @@ from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pok
 
 from pogom.pgoapi.utilities import get_pos_by_name
 
+logging.basicConfig(format='%(asctime)s [%(module)14s] [%(levelname)7s] %(message)s')
+log = logging.getLogger()
 
 if __name__ == '__main__':
     args = get_args()
@@ -55,6 +53,13 @@ if __name__ == '__main__':
         logging.getLogger("pgoapi").setLevel(logging.DEBUG)
         logging.getLogger("rpc_api").setLevel(logging.DEBUG)
 
+    db = init_database()
+    if args.clear_db:
+        if args.db_type == 'mysql':
+            drop_tables(db)
+        elif os.path.isfile(args.db):
+            os.remove(args.db)
+    create_tables(db)
 
     position = get_pos_by_name(args.location)
     if not any(position):
@@ -77,15 +82,6 @@ if __name__ == '__main__':
 
     create_search_threads(args.num_threads)
 
-    app = Pogom(__name__)
-    db = init_database(app)
-    if args.clear_db:
-        if args.db_type == 'mysql':
-            drop_tables(db)
-        elif os.path.isfile(args.db):
-            os.remove(args.db)
-    create_tables(db)
-
     if not args.only_server:
         # Gather the pokemons!
         if not args.mock:
@@ -99,6 +95,8 @@ if __name__ == '__main__':
         search_thread.daemon = True
         search_thread.name = 'search_thread'
         search_thread.start()
+
+    app = Pogom(__name__)
 
     if args.cors:
         CORS(app);

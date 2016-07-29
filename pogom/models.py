@@ -4,10 +4,10 @@
 import logging
 import os
 import time
-from peewee import Model, SqliteDatabase, InsertQuery,\
+from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
-                   DateTimeField, BigIntegerField, SmallIntegerField,\
-                   OperationalError, CompositeKey, create_model_tables
+                   DateTimeField, OperationalError, SmallIntegerField,\
+                   BigIntegerField, CompositeKey, create_model_tables
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError
@@ -24,34 +24,35 @@ from .customLog import printPokemon
 log = logging.getLogger(__name__)
 
 args = get_args()
-flaskDb = FlaskDB()
+db = None
 
 
-class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
+class MyRetryDB(RetryOperationalError, MySQLDatabase):
     pass
 
 
-def init_database(app):
+def init_database():
+    global db
+    if db is not None:
+        return db
+
     if args.db_type == 'mysql':
         db = MyRetryDB(
             args.db_name,
             user=args.db_user,
             password=args.db_pass,
-            host=args.db_host,
-            max_connections=args.db_max_connections,
-            stale_timeout=300)
+            host=args.db_host)
         log.info('Connecting to MySQL database on {}.'.format(args.db_host))
     else:
         db = SqliteDatabase(args.db)
         log.info('Connecting to local SQLLite database.')
 
-    app.config['DATABASE'] = db
-    flaskDb.init_app(app)
-
     return db
 
 
-class BaseModel(flaskDb.Model):
+class BaseModel(Model):
+    class Meta:
+        database = init_database()
 
     @classmethod
     def get_all(cls):
