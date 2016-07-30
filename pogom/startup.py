@@ -17,7 +17,7 @@ def configure(app, args):
         return
     configured = True
 
-    if args.debug:
+    if args.debug_log:
         log.setLevel(logging.DEBUG);
     else:
         log.setLevel(logging.INFO);
