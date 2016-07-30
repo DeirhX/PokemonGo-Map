@@ -20,14 +20,57 @@ from pogom.pgoapi.utilities import get_pos_by_name
 
 logging.basicConfig(format='%(asctime)s [%(module)14s] [%(levelname)7s] %(message)s')
 log = logging.getLogger()
+app = Pogom(__name__)
+configured = False
 
 if __name__ == '__main__':
     args = get_args()
+
+    configure(app)
+
+    if not args.only_server:
+        # Gather the pokemons!
+        if not args.mock:
+            log.debug('Starting a real search thread and {} search runner thread(s)'.format(args.num_threads))
+            search_thread = Thread(target=search_loop, args=(args,))
+        else:
+            log.debug('Starting a fake search thread')
+            insert_mock_data()
+            search_thread = Thread(target=fake_search_loop)
+
+        search_thread.daemon = True
+        search_thread.name = 'search_thread'
+        search_thread.start()
+
+    if args.cors:
+        CORS(app);
+
+
+
+    if args.no_server:
+        # This loop allows for ctrl-c interupts to work since flask won't be holding the program open
+        while search_thread.is_alive():
+            time.sleep(60)
+    else:
+        if args.use_ssl:
+            context = ('server.cer', 'server.key')
+            app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port,
+                    ssl_context=context)
+        else:
+            app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port)
+
+
+def configure(app):
+
+    if configured:
+        return
+    configured = True
 
     if args.debug:
         log.setLevel(logging.DEBUG);
     else:
         log.setLevel(logging.INFO);
+
 
     # Let's not forget to run Grunt / Only needed when running with webserver
     if not args.no_server:
@@ -79,40 +122,8 @@ if __name__ == '__main__':
     config['ORIGINAL_LONGITUDE'] = position[1]
     config['LOCALE'] = args.locale
     config['CHINA'] = args.china
-
-    create_search_threads(args.num_threads)
-
-    if not args.only_server:
-        # Gather the pokemons!
-        if not args.mock:
-            log.debug('Starting a real search thread and {} search runner thread(s)'.format(args.num_threads))
-            search_thread = Thread(target=search_loop, args=(args,))
-        else:
-            log.debug('Starting a fake search thread')
-            insert_mock_data()
-            search_thread = Thread(target=fake_search_loop)
-
-        search_thread.daemon = True
-        search_thread.name = 'search_thread'
-        search_thread.start()
-
-    app = Pogom(__name__)
-
-    if args.cors:
-        CORS(app);
-
     config['ROOT_PATH'] = app.root_path
     config['GMAPS_KEY'] = args.gmaps_key
     config['REQ_SLEEP'] = args.scan_delay
 
-    if args.no_server:
-        # This loop allows for ctrl-c interupts to work since flask won't be holding the program open
-        while search_thread.is_alive():
-            time.sleep(60)
-    else:
-        if args.use_ssl:
-            context = ('server.cer', 'server.key')
-            app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port,
-                    ssl_context=context)
-        else:
-            app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port)
+    create_search_threads(args.num_threads)
