@@ -48,6 +48,8 @@ class Pogom(Flask):
                                lng=config['ORIGINAL_LONGITUDE'],
                                gmaps_key=config['GMAPS_KEY'],
                                lang=config['LOCALE'],
+                               script_src=config['SCRIPT_SRC'] if not args.debug else '',
+                               script_ext=config['SCRIPT_EXT'] if not args.debug else '',
                                is_fixed=display
                                )
 
@@ -57,23 +59,28 @@ class Pogom(Flask):
         swLng = request.args.get('swLng')
         neLat = request.args.get('neLat')
         neLng = request.args.get('neLng')
+        changed_since = request.args.get('changedSince')
+        if not changed_since:
+            changed_since = datetime.min
+        else:
+            changed_since = datetime.utcfromtimestamp(float(changed_since) / 1000.0)
         if request.args.get('pokemon', 'true') == 'true':
             if request.args.get('ids'):
                 ids = [int(x) for x in request.args.get('ids').split(',')]
                 d['pokemons'] = Pokemon.get_active_by_id(ids, swLat, swLng,
-                                                         neLat, neLng)
+                                                         neLat, neLng, changed_since)
             else:
-                d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng)
+                d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng, changed_since)
 
         if request.args.get('pokestops', 'false') == 'true':
-            d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng)
+            d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng, changed_since)
 
         if request.args.get('gyms', 'true') == 'true':
-            d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng)
+            d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, changed_since)
 
         if request.args.get('scanned', 'true') == 'true':
             d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
-                                                      neLng)
+                                                      neLng, changed_since)
 
         users[request.remote_addr] = datetime.now();
         return jsonify(d)

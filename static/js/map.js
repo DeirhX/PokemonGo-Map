@@ -298,7 +298,7 @@ function initMap() {
     redrawPokemon(map_data.lure_pokemons);
   });
     deirhExtensions(map);
-    window.setInterval(updateMap, 5000);
+    window.setInterval(updateMap, 5000, 5000);
 };
 
 function createSearchMarker() {
@@ -663,7 +663,7 @@ function setupScannedMarker(item) {
   var marker = new google.maps.Circle({
     map: map,
     center: circleCenter,
-    radius: 85, // metres
+    radius: 60, // metres
     fillColor: getColorByDate(item.last_modified),
     strokeWeight: 1,
     clickable: false,
@@ -757,7 +757,7 @@ function showInBoundsMarkers(markers) {
   });
 }
 
-function loadRawData() {
+function loadRawData(changedSince) {
   var loadPokemon = Store.get('showPokemon');
   var loadGyms = Store.get('showGyms');
   var loadPokestops = Store.get('showPokestops') || Store.get('showPokemon');
@@ -782,7 +782,8 @@ function loadRawData() {
       'swLat': swLat,
       'swLng': swLng,
       'neLat': neLat,
-      'neLng': neLng
+      'neLng': neLng,
+      'changedSince' : changedSince
     },
     dataType: "json",
     cache: false,
@@ -922,8 +923,11 @@ function processScanned(i, item) {
 }
 
 
-function updateMap() {
-  loadRawData().done(function(result) {
+function updateMap(maximumAge) {
+  var changedSince;
+  if (maximumAge)
+      var changedSince = Date.now() - maximumAge;
+  loadRawData(changedSince).done(function(result) {
     $.each(result.pokemons, processPokemons);
     $.each(result.pokestops, processPokestops);
     $.each(result.pokestops, processLuredPokemon);
@@ -1262,7 +1266,6 @@ $(function() {
 
   // run interval timers to regularly update map and timediffs
   window.setInterval(updateLabelDiffTime, 1000);
-  window.setInterval(updateMap, 5000);
   window.setInterval(function() {
     if (navigator.geolocation && Store.get('geoLocate')) {
       navigator.geolocation.getCurrentPosition(function(position) {
@@ -1409,7 +1412,7 @@ function deirhExtensions(map) {
           lng: position.coords.longitude
         };
 
-        infoWindow.setPosition(pos);
+        //infoWindow.setPosition(pos);
         map.setCenter(pos);
       }, function() {
 
