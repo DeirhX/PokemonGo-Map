@@ -63,6 +63,7 @@ class Pogom(Flask):
         neLat = request.args.get('neLat')
         neLng = request.args.get('neLng')
         changed_since = request.args.get('changedSince')
+        now = datetime.utcnow();
         d['request_time'] = time.mktime(now.timetuple()) * 1000  # + now.microsecond/1000
         if not changed_since:
             changed_since = datetime.min
