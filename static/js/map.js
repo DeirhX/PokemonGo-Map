@@ -932,14 +932,15 @@ function processScanned(i, item) {
   }
 
   if (item.scanned_id in map_data.scanned) {
-    map_data.scanned[item.scanned_id].marker.setOptions({
+    item.marker = map_data.scanned[item.scanned_id].marker;
+    item.marker.setOptions({
       fillColor: getColorByDate(item.last_modified)
     });
   } else { // add marker to map and item to dict
     if (item.marker) item.marker.setMap(null);
     item.marker = setupScannedMarker(item);
-    map_data.scanned[item.scanned_id] = item;
   }
+  map_data.scanned[item.scanned_id] = item;
 }
 
 function updateMap(incremental) {
