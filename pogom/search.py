@@ -149,7 +149,12 @@ def login(position):
     with loginLock:
         login_info = Login.get_least_used(1)
         auth_service = 'google' if not login_info.type else 'ptc'
-        while not api.login(auth_service, login_info.username, login_info.password, *position):
+        logged_in = False
+        while not logged_in:
+            try:
+                logged_in = api.login(auth_service, login_info.username, login_info.password, *position)
+            except Exception as ex:
+                log.error('Exception in api.login: ' + str(ex))
             log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(config['LOGIN_DELAY']))
             Login.set_failed(login_info)
             loginLock.release()
