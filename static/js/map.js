@@ -1364,7 +1364,7 @@ function deirhExtensions(map) {
     getActiveUsers();
     window.setInterval(getActiveUsers, 15000);
 
-    var infoWindow = new google.maps.InfoWindow({map: map});
+    // var infoWindow = new google.maps.InfoWindow({map: map, content: 'Detected location'});
 
     // Try HTML5 geolocation.
     if (navigator.geolocation) {
