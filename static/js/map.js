@@ -736,6 +736,11 @@ function clearStaleMarkers() {
     if (map_data.scanned[key]['last_modified'] < (new Date().getTime() - 15 * 60 * 1000)) {
       map_data.scanned[key].marker.setMap(null);
       delete map_data.scanned[key];
+    } else {
+      // Update color
+      map_data.scanned[key].marker.setOptions({
+        fillColor: getColorByDate(map_data.scanned[key]['last_modified'])
+    });
     }
   });
 }
@@ -806,7 +811,8 @@ function loadRawData(incremental) {
       }
     },
     complete: function(data) {
-      lastRawDataResponseTime = data.responseJSON.request_time;
+      if (incremental && data.responseJSON)
+        lastRawDataResponseTime = data.responseJSON.request_time;
       rawDataIsLoading = false;
     }
   })

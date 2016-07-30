@@ -63,11 +63,11 @@ class Pogom(Flask):
         neLat = request.args.get('neLat')
         neLng = request.args.get('neLng')
         changed_since = request.args.get('changedSince')
-        d['request_time'] = int(time.mktime(datetime.utcnow().timetuple())) * 1000
+        d['request_time'] = time.mktime(now.timetuple()) * 1000  # + now.microsecond/1000
         if not changed_since:
             changed_since = datetime.min
         else:
-            changed_since = datetime.utcfromtimestamp(float(changed_since) / 1000.0)
+            changed_since = datetime.fromtimestamp(float(changed_since) / 1000.0)
         if request.args.get('pokemon', 'true') == 'true':
             if request.args.get('ids'):
                 ids = [int(x) for x in request.args.get('ids').split(',')]

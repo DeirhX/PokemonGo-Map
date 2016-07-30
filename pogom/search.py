@@ -197,29 +197,34 @@ def search_thread(q):
         response_dict = {}
         failed_consecutive = 0
         while not response_dict:
-            if instance_api:
-                log.info("Skipping Pokemon Go login process since already logged in")
-            else:
-                instance_api = login(step_location)
+            try:
+                if instance_api:
+                    log.info("Skipping Pokemon Go login process since already logged in")
+                else:
+                    instance_api = login(step_location)
 
-            response_dict = send_map_request(instance_api, step_location)
-            if response_dict:
-                try:
-                    parse_map(response_dict, i, step, step_location)
-                except KeyError:
-                    log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+                response_dict = send_map_request(instance_api, step_location)
+                if response_dict:
+                    try:
+                        parse_map(response_dict, i, step, step_location)
+                        break;
+                    except KeyError:
+                        log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+                        failed_consecutive += 1
+                        response_dict = {}
+                else:
+                    log.info('Map download failed, waiting and retrying')
+                    log.debug('{}: itteration {} step {} failed'.format(threadname, i, step))
                     failed_consecutive += 1
-                    response_dict = {}
-            else:
-                log.info('Map download failed, waiting and retrying')
-                log.debug('{}: itteration {} step {} failed'.format(threadname, i, step))
-                failed_consecutive += 1
 
-            if (failed_consecutive >= config['REQ_MAX_FAILED']):
-                instance_api = None
-                log.error('Niantic servers under heavy load. Waiting before trying again')
-                time.sleep(config['REQ_HEAVY_SLEEP'])
-                failed_consecutive = 0
+                if (failed_consecutive >= config['REQ_MAX_FAILED']):
+                    instance_api = None
+                    log.error('Niantic servers under heavy load. Waiting before trying again')
+                    time.sleep(config['REQ_HEAVY_SLEEP'])
+                    failed_consecutive = 0
+            except Exception as ex:
+                log.error('Uncaught exception in search_loop, trapped: ' + str(ex))
+                response_dict = {}
 
         time.sleep(config['REQ_SLEEP'])
         q.task_done()
