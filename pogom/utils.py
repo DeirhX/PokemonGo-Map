@@ -64,7 +64,8 @@ def get_args():
     parser.add_argument('-c', '--china',
                         help='Coordinates transformer for China',
                         action='store_true')
-    parser.add_argument('-d', '--debug', help='Debug Mode', action='store_true')
+    parser.add_argument('-d', '--debug', help='Debug Server Mode', action='store_true')
+    parser.add_argument('-dl', '--debug-log', help='Debug Logging', action='store_true')
     parser.add_argument('-m', '--mock',
                         help='Mock mode. Starts the web server but not the background thread.',
                         action='store_true', default=False)
