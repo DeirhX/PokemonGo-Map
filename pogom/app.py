@@ -3,6 +3,7 @@
 
 import calendar
 import logging
+import time
 
 from flask import Flask, jsonify, render_template, request
 from flask.json import JSONEncoder
@@ -15,6 +16,7 @@ from . import config
 from .models import Pokemon, Gym, Pokestop, ScannedLocation
 from .search import search
 from .startup import configure
+from .user import verify_token
 
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -31,6 +33,7 @@ class Pogom(Flask):
         self.route("/raw_data", methods=['GET'])(self.raw_data)
         self.route("/scan", methods=['GET'])(self.scan)
         self.route("/users", methods=['GET'])(self.users)
+        self.route("/auth", methods=['GET'])(self.auth)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
@@ -60,6 +63,7 @@ class Pogom(Flask):
         neLat = request.args.get('neLat')
         neLng = request.args.get('neLng')
         changed_since = request.args.get('changedSince')
+        d['request_time'] = int(time.mktime(datetime.utcnow().timetuple())) * 1000
         if not changed_since:
             changed_since = datetime.min
         else:
@@ -174,6 +178,10 @@ class Pogom(Flask):
                 num_active += 1
         return jsonify({'guests': num_active })
 
+    def auth(self):
+        id_token = request.args.get('idToken', type=str)
+        result = verify_token(id_token)
+        return jsonify({'result': result })
 
 
 class CustomJSONEncoder(JSONEncoder):
