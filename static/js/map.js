@@ -298,7 +298,14 @@ function initMap() {
     redrawPokemon(map_data.lure_pokemons);
   });
     deirhExtensions(map);
-    window.setInterval(updateMap, 5000, 5000);
+    var updateTimer = window.setInterval(updateMap, 5000, true);
+  $(window).blur(function(){
+    //window.clearInterval(updateTimer);
+  });
+  $(window).focus(function(){
+    window.clearInterval(updateTimer);
+    updateTimer = window.setInterval(updateMap, 5000, true);
+  });
 };
 
 function createSearchMarker() {
@@ -757,10 +764,12 @@ function showInBoundsMarkers(markers) {
   });
 }
 
-function loadRawData(changedSince) {
+var lastRawDataResponseTime;
+function loadRawData(incremental) {
+
   var loadPokemon = Store.get('showPokemon');
   var loadGyms = Store.get('showGyms');
-  var loadPokestops = Store.get('showPokestops') || Store.get('showPokemon');
+  var loadPokestops = Store.get('showPokestops');
   var loadScanned = Store.get('showScanned');
 
   var bounds = map.getBounds();
@@ -771,7 +780,9 @@ function loadRawData(changedSince) {
   var neLat = nePoint.lat();
   var neLng = nePoint.lng();
 
-  return $.ajax({
+  var requestDataSince = incremental ? lastRawDataResponseTime : null;
+
+  var response = $.ajax({
     url: "raw_data",
     type: 'GET',
     data: {
@@ -783,7 +794,7 @@ function loadRawData(changedSince) {
       'swLng': swLng,
       'neLat': neLat,
       'neLng': neLng,
-      'changedSince' : changedSince
+      'changedSince' : requestDataSince
     },
     dataType: "json",
     cache: false,
@@ -794,10 +805,13 @@ function loadRawData(changedSince) {
         rawDataIsLoading = true;
       }
     },
-    complete: function() {
+    complete: function(data) {
+      lastRawDataResponseTime = data.responseJSON.request_time;
       rawDataIsLoading = false;
     }
   })
+
+  return response;
 }
 
 function processPokemons(i, item) {
@@ -922,27 +936,24 @@ function processScanned(i, item) {
   }
 }
 
-
-function updateMap(maximumAge) {
-  var changedSince;
-  if (maximumAge)
-      var changedSince = Date.now() - maximumAge;
-  loadRawData(changedSince).done(function(result) {
-    $.each(result.pokemons, processPokemons);
-    $.each(result.pokestops, processPokestops);
-    $.each(result.pokestops, processLuredPokemon);
-    $.each(result.gyms, processGyms);
-    $.each(result.scanned, processScanned);
-    showInBoundsMarkers(map_data.pokemons);
-    showInBoundsMarkers(map_data.lure_pokemons);
-    showInBoundsMarkers(map_data.gyms);
-    showInBoundsMarkers(map_data.pokestops);
-    showInBoundsMarkers(map_data.scanned);
-    clearStaleMarkers();
-    if ($("#stats").hasClass("visible")) {
-      countMarkers();
-    }
-  });
+function updateMap(incremental) {
+  loadRawData(incremental)
+      .done(function(result) {
+        $.each(result.pokemons, processPokemons);
+        $.each(result.pokestops, processPokestops);
+        $.each(result.pokestops, processLuredPokemon);
+        $.each(result.gyms, processGyms);
+        $.each(result.scanned, processScanned);
+        showInBoundsMarkers(map_data.pokemons);
+        showInBoundsMarkers(map_data.lure_pokemons);
+        showInBoundsMarkers(map_data.gyms);
+        showInBoundsMarkers(map_data.pokestops);
+        showInBoundsMarkers(map_data.scanned);
+        clearStaleMarkers();
+        if ($("#stats").hasClass("visible")) {
+          countMarkers();
+        }
+    });
 }
 
 
@@ -1421,12 +1432,20 @@ function deirhExtensions(map) {
       // Browser doesn't support Geolocation
     };
 
+}
+
     function onSignIn(googleUser) {
       var profile = googleUser.getBasicProfile();
       console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
       console.log('Name: ' + profile.getName());
       console.log('Image URL: ' + profile.getImageUrl());
       console.log('Email: ' + profile.getEmail());
-    }
+       $.ajax({
+            url: "auth",
+            type: 'GET',
+            data: {idToken: googleUser.getAuthResponse().id_token},
+            dataType: "json"
+        }).done(function (result) {
 
-}
+          });
+    }

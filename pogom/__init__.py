@@ -15,5 +15,6 @@ config = {
     'SEARCH_QUEUE_DEPTH' : 100,
     'LOGIN_DELAY' : 5,
     'SCRIPT_SRC' : 'dist/',
-    'SCRIPT_EXT' : 'min.'
+    'SCRIPT_EXT' : 'min.',
+    'OAUTH2_ID' : None,
 }
