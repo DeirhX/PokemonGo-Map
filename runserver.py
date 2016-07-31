@@ -39,7 +39,7 @@ class PrefixMiddleware(object):
             return ["This url does not belong to the app.".encode()]
 
 root_path = os.path.dirname(os.path.abspath(__file__))
-Format = '%(asctime)-15s [%(threadName)16s] [%(funcName)15s] [%(levelname)7s] %(message)s'
+Format = '%(asctime)-15s (%(process)6s) [%(threadName)16s] [%(funcName)15s] [%(levelname)7s] %(message)s'
 logging.basicConfig(format=Format)
 handler = logging.handlers.RotatingFileHandler(os.path.join(root_path, 'log/pogom.log'),
                                                maxBytes=10000000, backupCount=5, )
