@@ -167,7 +167,7 @@ class Pogom(Flask):
         position = (lat, lon, 0)
 
         search(args, 0, position, 3)
-        d = {'result': 'receivedj'}
+        d = {'result': 'received'}
         return jsonify(d)
 
 
