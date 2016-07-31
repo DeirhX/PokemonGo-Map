@@ -73,7 +73,7 @@ class Pogom(Flask):
                                gmaps_key=config['GMAPS_KEY'],
                                lang=config['LOCALE'],
                                is_fixed=fixed_display,
-                               search_control=search_display
+                               search_control=search_display,
                                script_src=config['SCRIPT_SRC'] if not args.debug else '',
                                script_ext=config['SCRIPT_EXT'] if not args.debug else '',
                                )

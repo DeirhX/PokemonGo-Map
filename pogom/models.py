@@ -423,20 +423,6 @@ writer_thread.start()
 def bulk_upsert(cls, data):
     sqlQueue.put((cls, data))
 
-
-    while i < num_rows:
-        log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
-        try:
-            InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
-        except Exception as e:
-            log.warning("%s... Retrying", e)
-            continue
-
-        i+=step
-
-    flaskDb.close_db(None)
-
-
 def create_tables(db):
     db.connect()
     db.create_tables([Pokemon, Pokestop, Gym, ScannedLocation], safe=True)

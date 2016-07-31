@@ -170,22 +170,16 @@ def login(position):
 #
 # Search Threads Logic
 #
-def create_search_threads(thread_count, api_count, search_control):
+def create_search_threads(thread_count, search_control):
     search_threads = []
     for i in range(thread_count):
-        api_idx = i % api_count
-        t = Thread(target=search_thread, name='search_thread-{}'.format(i), args=(search_queue, api_idx, search_control,))
+        t = Thread(target=search_thread, name='search_thread-{}'.format(i), args=(search_queue, search_control,))
         t.daemon = True
         t.start()
         search_threads.append(t)
 
 
-def create_empty_apis(api_count):
-    for i in range(api_count):
-        apis.append(PGoApi())
-
-def search_thread(q, api_idx, search_control):
-    api = apis[api_idx]
+def search_thread(q, search_control):
     threadname = threading.currentThread().getName()
     log.debug("Search thread {}: started and waiting".format(threadname))
     instance_api = None
@@ -248,7 +242,8 @@ def search_loop(args, search_control):
     while search_control.wait():
         log.info("Search loop {} starting".format(i))
         try:
-            search(args, i)
+            position = (config['ORIGINAL_LATITUDE'], config['ORIGINAL_LONGITUDE'], 0)
+            search(args, i, position, args.step_limit)
             log.info("Search loop {} complete.".format(i))
             i += 1
         except Exception as e:
@@ -258,12 +253,9 @@ def search_loop(args, search_control):
                 log.info('Waiting {:g} seconds before beginning new scan.'.format(args.thread_delay))
                 time.sleep(args.thread_delay)
 
-
 #
 # Overseer main logic
 #
-def search(args, i):
-    num_steps = args.step_limit
 def search(args, i, position, num_steps):
 
     # Update the location if needed
@@ -279,24 +271,6 @@ def search(args, i, position, num_steps):
         search_args = (search_priority, args, i, num_steps, step_location, step)
         search_queue.put(search_args)
 
-def search_loop(args):
-    i = 0
-    try:
-        while True:
-            log.info("Map iteration: {}".format(i))
-            position = (config['ORIGINAL_LATITUDE'], config['ORIGINAL_LONGITUDE'], 0)
-            search(args, i, position, args.step_limit)
-            log.info("Scanning complete.")
-            if args.scan_delay > 1:
-                log.info('Waiting {:f} seconds before beginning new scan.'.format(args.scan_delay))
-                time.sleep(args.scan_delay)
-            i += 1
-
-    # This seems appropriate
-    except Exception as e:
-        log.info('{0.__class__.__name__}: {0} - waiting {1} sec(s) before restarting'.format(e, args.scan_delay))
-        time.sleep(args.scan_delay)
-        search_loop(args)
 # A fake search loop which does....nothing!
 #
 def fake_search_loop():

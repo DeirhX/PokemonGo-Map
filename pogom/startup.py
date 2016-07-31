@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import logging.handlers
+from threading import Event
 
 from pogom import config
 from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pokestop, Gym
@@ -10,6 +11,10 @@ from pogom.search import create_search_threads
 
 log = logging.getLogger()
 configured = False
+
+# Control the search status (running or not) across threads; set it "on"
+search_control = Event()
+search_control.set()
 
 def configure(app, args):
 
@@ -77,5 +82,6 @@ def configure(app, args):
     config['GMAPS_KEY'] = args.gmaps_key
     config['REQ_SLEEP'] = args.scan_delay
 
-    create_search_threads(args.num_threads)
+    app.set_search_control(search_control)
 
+    create_search_threads(args.num_threads, search_control)
