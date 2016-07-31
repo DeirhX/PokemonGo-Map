@@ -29,6 +29,9 @@ class PrefixMiddleware(object):
         self.prefix = prefix
 
     def __call__(self, environ, start_response):
+        if not self.prefix:
+            log.info('Called with null prefix')
+            return ["Bad Call.".encode()]
         if not environ or not environ['PATH_INFO']:
             log.info('Called with null info')
             return ["Bad URL.".encode()]
