@@ -7,6 +7,8 @@ from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pok
 from pogom.pgoapi.utilities import get_pos_by_name
 from pogom.search import create_search_threads
 
+Format = '%(asctime)-15s [%(threadName)16s] [%(funcName)15s] [%(levelname)7s] %(message)s'
+logging.basicConfig(format=Format)
 log = logging.getLogger()
 configured = False
 
@@ -16,6 +18,7 @@ def configure(app, args):
     if configured:
         return
     configured = True
+
 
     if args.debug_log:
         log.setLevel(logging.DEBUG);
@@ -28,6 +31,8 @@ def configure(app, args):
         if not os.path.exists(os.path.join(os.path.dirname(__file__)+'\\..', 'static/dist')):
             log.critical('Please run "grunt build" before starting the server.');
             sys.exit();
+
+
 
     # These are very noisey, let's shush them up a bit
     logging.getLogger("peewee").setLevel(logging.INFO)
