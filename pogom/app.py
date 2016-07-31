@@ -25,6 +25,7 @@ users = {}
 
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
+        config['ROOT_PATH'] = self.root_path
         configure(self, args)
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
@@ -37,8 +38,6 @@ class Pogom(Flask):
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
-
-        config['ROOT_PATH'] = self.root_path
 
     def fullmap(self):
         #args = get_args()
