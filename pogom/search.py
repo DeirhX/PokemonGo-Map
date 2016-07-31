@@ -155,11 +155,12 @@ def login(position):
                 logged_in = api.login(auth_service, login_info.username, login_info.password, *position)
             except Exception as ex:
                 log.error('Exception in api.login: ' + str(ex))
-            log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(config['LOGIN_DELAY']))
-            Login.set_failed(login_info)
-            loginLock.release()
-            time.sleep(config['LOGIN_DELAY'])
-            loginLock.acquire()
+            if not logged_in:
+                log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(config['LOGIN_DELAY']))
+                Login.set_failed(login_info)
+                loginLock.release()
+                time.sleep(config['LOGIN_DELAY'])
+                loginLock.acquire()
 
         log.info('Login to Pokemon Go successful.')
         Login.set_success(login_info)
@@ -184,9 +185,8 @@ def search_thread(q):
     instance_api = None
     while True:
         # Get the next item off the queue (this blocks till there is something)
-        priority, args, i, total_steps, step_location, step, sleep_time = q.get()
+        priority, args, i, total_steps, step_location, step = q.get()
         log.debug("Search queue depth is: " + str(q.qsize()))
-        time.sleep(sleep_time)
 
         # If a new location has been set, just mark done and continue
         if 'NEXT_LOCATION' in config:
@@ -264,13 +264,11 @@ def search(args, i, position, num_steps):
         config['ORIGINAL_LONGITUDE'] = config['NEXT_LOCATION']['lon']
         config.pop('NEXT_LOCATION', None)
 
-    sleep_time = 0
     for step, step_location in enumerate(generate_location_steps(position, num_steps), 1):
-        log.debug("Queue search itteration {}, step {}".format(i, step))
+        log.debug("Queue search iteration {}, step {}".format(i, step))
 
-        search_args = (search_priority, args, i, num_steps, step_location, step, sleep_time)
+        search_args = (search_priority, args, i, num_steps, step_location, step)
         search_queue.put(search_args)
-        sleep_time += 0.2  # Sleep tight
 
 def search_loop(args):
     i = 0
