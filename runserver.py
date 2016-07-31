@@ -29,8 +29,9 @@ class PrefixMiddleware(object):
         self.prefix = prefix
 
     def __call__(self, environ, start_response):
-        if not environ['PATH_INFO']:
+        if not environ or not environ['PATH_INFO']:
             log.info('Called with null info')
+            return ["Bad URL.".encode()]
         elif environ['PATH_INFO'].startswith(self.prefix):
             environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
             environ['SCRIPT_NAME'] = self.prefix
