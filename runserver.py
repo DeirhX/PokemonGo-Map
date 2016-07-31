@@ -24,7 +24,6 @@ from werkzeug.wsgi import DispatcherMiddleware
 
 
 class PrefixMiddleware(object):
-
     def __init__(self, app, prefix=''):
         self.app = app
         self.prefix = prefix
@@ -39,11 +38,17 @@ class PrefixMiddleware(object):
             start_response('404', [('Content-Type', 'text/plain')])
             return ["This url does not belong to the app.".encode()]
 
-logging.basicConfig(format='%(asctime)s [%(module)14s] [%(levelname)7s] %(message)s')
+root_path = os.path.dirname(os.path.abspath(__file__))
+Format = '%(asctime)-15s [%(threadName)16s] [%(funcName)15s] [%(levelname)7s] %(message)s'
+logging.basicConfig(format=Format)
+handler = logging.handlers.RotatingFileHandler(os.path.join(root_path, 'log/pogom.log'),
+                                               maxBytes=10000000, backupCount=5, )
+handler.setFormatter(logging.Formatter(Format))
 log = logging.getLogger()
+log.addHandler(handler)
+
 app = Pogom(__name__)
 args = get_args()
-#config['ROOT_PATH'] = args.virtual_path  # self.root_path
 app.config['APPLICATION_ROOT'] = args.virtual_path
 app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=args.virtual_path)
 

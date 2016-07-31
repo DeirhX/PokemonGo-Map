@@ -8,8 +8,6 @@ from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pok
 from pogom.pgoapi.utilities import get_pos_by_name
 from pogom.search import create_search_threads
 
-Format = '%(asctime)-15s [%(threadName)16s] [%(funcName)15s] [%(levelname)7s] %(message)s'
-logging.basicConfig(format=Format)
 log = logging.getLogger()
 configured = False
 
@@ -20,15 +18,10 @@ def configure(app, args):
         return
     configured = True
 
-
     if args.debug_log:
         log.setLevel(logging.DEBUG);
     else:
         log.setLevel(logging.INFO);
-    handler = logging.handlers.RotatingFileHandler(os.path.join(config['ROOT_PATH'], 'log/pogom.log'),
-                                                   maxBytes=10000000, backupCount=5, )
-    handler.setFormatter(logging.Formatter(Format))
-    log.addHandler(handler)
 
     # Let's not forget to run Grunt / Only needed when running with webserver
     if not args.no_server:
