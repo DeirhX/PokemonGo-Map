@@ -14,11 +14,26 @@
     font-weight: normal;
 }
 
+.home-map-scan strong
+{
+  display: block;
+  line-height: normal;
+  margin-top: -12px;
+}
+
+.home-map-scan div {
+  position: absolute;
+  top: 21px;
+  width: 210px;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .home-map-scan small
 {
-    display:block;
-    margin-top: -27px;
+    /*position: absolute;*/
     font-size: small;
+    text-align: center;
     color: #555;
 }
 
@@ -38,9 +53,76 @@
     box-shadow:0 6px 0 0 #952b2b
 }
 
-.home-map-scan.is-on-cooldown:after
+.home-map-scan.busy
 {
-    content:' ';display:block;position:absolute;bottom:-6px;left:0;right:0;height:6px;background:rgba(0,0,0,0.3);border-radius:0 0 2px 2px;-webkit-animation:scan-cooldown 30s linear;animation:scan-cooldown 30s linear
+    box-shadow:0 6px 0 0 #ad3231;
+    background-color: #FFBD90;
+    transition-duration: 0.2s;
+    transition-property: background-color;
+    transition-timing-function: ease-in-out;
+}
+.home-map-scan.busy:after
+{
+    /*content:'busy';*/
+}
+
+.home-map-scan.failed
+{
+    box-shadow:0 6px 0 0 #ad3231;
+    background-color: #FF8070;
+    transition-duration: 0.2s;
+    transition-property: background-color;
+    transition-timing-function: ease-in-out;
+}
+
+.home-map-scan div.fail
+{
+    visibility: collapse;
+}
+.home-map-scan div.status
+{
+    visibility: visible;
+}
+.home-map-scan div.busy
+{
+    visibility: collapse;
+}
+.home-map-scan div.in-progress
+{
+    visibility: collapse;
+}
+
+.home-map-scan.busy div.busy
+{
+    visibility: visible;
+}
+.home-map-scan.busy div.status
+{
+    visibility: collapse;
+}
+
+.home-map-scan.failed div.fail
+{
+    visibility: visible;
+}
+.home-map-scan.failed div.status
+{
+    visibility: collapse;
+}
+
+.home-map-scan.started:after
+{
+    content:' ';
+    display:block;
+    position:absolute;
+    bottom:-6px;
+    left:0;
+    right:0;
+    height:6px;
+    background:rgba(0,0,0,0.3);
+    border-radius:0 0 2px 2px;
+    -webkit-animation:scan-cooldown 30s linear;
+    animation:scan-cooldown 30s linear
 }
 
 .user-stats

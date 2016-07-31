@@ -1372,15 +1372,35 @@ function deirhExtensions(map) {
 
     map.addListener('click', function(e) {
          marker.setPosition(e.latLng);
+         $('button.home-map-scan div.status small')[0].innerHTML = 'Click to scan ['
+          + Math.round(marker.getPosition().lat()*10000) / 10000 + ','
+          + Math.round(marker.getPosition().lng()*10000) / 10000 + '] ';
+        if ($('.home-map-scan').hasClass('started').length) {
+          $('.home-map-scan').removeClass('started');
+        }
     });
+
+    // Restrict zoom
+    var minZoomLevel = 14;
+    google.maps.event.addListener(map, 'zoom_changed', function() {
+     var z = map.getZoom();
+     if (map.getZoom() < minZoomLevel) {
+        map.setZoom(minZoomLevel);
+     }
+   });
 
     $('.home-map-scan').click(function() {
         if (marker == null)
             return;
 
-        $('button.home-map-scan small')[0].innerHTML = 'Scanning of ['
+        $('.home-map-scan').addClass('busy');
+        $('.home-map-scan').removeClass('started');
+        $('.home-map-scan').removeClass('failed');
+
+        $('button.home-map-scan div.status small')[0].innerHTML = 'Scanning of ['
             + Math.round(marker.getPosition().lat()*10000) / 10000 + ','
             + Math.round(marker.getPosition().lng()*10000) / 10000 + '] started';
+
         $.ajax({
             url: "scan",
             type: 'GET',
@@ -1390,19 +1410,12 @@ function deirhExtensions(map) {
             },
             dataType: "json"
         }).done(function (result) {
-
-            $.each(result.pokemons, function (i, item) {
-                if (!localStorage.showPokemon) {
-                    return false; // in case the checkbox was unchecked in the meantime.
-                }
-                if (!(item.encounter_id in map_pokemons) &&
-                    excludedPokemon.indexOf(item.pokemon_id) < 0) {
-                    // add marker to map and item to dict
-                    if (item.marker) item.marker.setMap(null);
-                    item.marker = setupPokemonMarker(item);
-                    map_pokemons[item.encounter_id] = item;
-                }
-            });
+           $('.home-map-scan').removeClass('busy');
+           if (result.result == 'received') {
+               $('.home-map-scan').addClass('started');
+           } else {
+               $('.home-map-scan').addClass('failed');
+           }
         });
     });
 
