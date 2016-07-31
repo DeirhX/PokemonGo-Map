@@ -50,8 +50,8 @@ app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=args.virtual_path)
 if __name__ == '__main__':
     args = get_args()
 
-    configure(app, args)
     config['ROOT_PATH'] = app.root_path
+    configure(app, args)
 
     if not args.only_server:
         # Gather the pokemons!

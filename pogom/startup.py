@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import logging.handlers
 
 from pogom import config
 from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pokestop, Gym
@@ -24,14 +25,16 @@ def configure(app, args):
         log.setLevel(logging.DEBUG);
     else:
         log.setLevel(logging.INFO);
-
+    handler = logging.handlers.RotatingFileHandler(os.path.join(config['ROOT_PATH'], 'pogom.log'),
+                                                   maxBytes=10000000, backupCount=5, )
+    handler.setFormatter(logging.Formatter(Format))
+    log.addHandler(handler)
 
     # Let's not forget to run Grunt / Only needed when running with webserver
     if not args.no_server:
         if not os.path.exists(os.path.join(os.path.dirname(__file__)+'\\..', 'static/dist')):
             log.critical('Please run "grunt build" before starting the server.');
             sys.exit();
-
 
 
     # These are very noisey, let's shush them up a bit

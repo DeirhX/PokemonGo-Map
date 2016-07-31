@@ -37,16 +37,8 @@ class Pogom(Flask):
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
-        self.route('/<path:path>', methods=['GET'])(self.catch_all)
-        self.route("/hate", methods=['GET'])(self.hate)
 
         config['ROOT_PATH'] = self.root_path
-
-    def catch_all(self, path):
-        return 'You wants path: ' + str(path) + ' and virtual path is ' + args.virtual_path
-
-    def hate(self):
-        return config['ROOT_PATH'] +'-' + config['LOCALES_DIR']
 
     def fullmap(self):
         #args = get_args()
