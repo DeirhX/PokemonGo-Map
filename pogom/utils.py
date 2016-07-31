@@ -109,6 +109,7 @@ def get_args():
     parser.add_argument('-ssl', '--use-ssl', help='Server server over SSL', action='store_true', default=False)
     parser.add_argument('-authid', '--oauth2-id', help='Google OAuth2 ID')
     parser.add_argument('-domain', '--domain', help='Domain registered for authentication')
+    parser.add_argument('-vpath', '--virtual-path', help='Virtual path of server')
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()

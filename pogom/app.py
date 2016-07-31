@@ -37,8 +37,16 @@ class Pogom(Flask):
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
+        self.route('/<path:path>', methods=['GET'])(self.catch_all)
+        self.route("/hate", methods=['GET'])(self.hate)
 
         config['ROOT_PATH'] = self.root_path
+
+    def catch_all(self, path):
+        return 'You wants path: ' + str(path) + ' and virtual path is ' + args.virtual_path
+
+    def hate(self):
+        return config['ROOT_PATH'] +'-' + config['LOCALES_DIR']
 
     def fullmap(self):
         #args = get_args()
@@ -57,38 +65,41 @@ class Pogom(Flask):
                                )
 
     def raw_data(self):
-        d = {}
-        swLat = request.args.get('swLat')
-        swLng = request.args.get('swLng')
-        neLat = request.args.get('neLat')
-        neLng = request.args.get('neLng')
-        changed_since = request.args.get('changedSince')
-        now = datetime.utcnow();
-        d['request_time'] = time.mktime(now.timetuple()) * 1000  # + now.microsecond/1000
-        if not changed_since:
-            changed_since = datetime.min
-        else:
-            changed_since = datetime.fromtimestamp(float(changed_since) / 1000.0)
-        if request.args.get('pokemon', 'true') == 'true':
-            if request.args.get('ids'):
-                ids = [int(x) for x in request.args.get('ids').split(',')]
-                d['pokemons'] = Pokemon.get_active_by_id(ids, swLat, swLng,
-                                                         neLat, neLng, changed_since)
+        try :
+            d = {}
+            swLat = request.args.get('swLat')
+            swLng = request.args.get('swLng')
+            neLat = request.args.get('neLat')
+            neLng = request.args.get('neLng')
+            changed_since = request.args.get('changedSince')
+            now = datetime.utcnow();
+            d['request_time'] = time.mktime(now.timetuple()) * 1000  # + now.microsecond/1000
+            if not changed_since:
+                changed_since = datetime.min
             else:
-                d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng, changed_since)
+                changed_since = datetime.fromtimestamp(float(changed_since) / 1000.0)
+            if request.args.get('pokemon', 'true') == 'true':
+                if request.args.get('ids'):
+                    ids = [int(x) for x in request.args.get('ids').split(',')]
+                    d['pokemons'] = Pokemon.get_active_by_id(ids, swLat, swLng,
+                                                             neLat, neLng, changed_since)
+                else:
+                    d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng, changed_since)
 
-        if request.args.get('pokestops', 'false') == 'true':
-            d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng, changed_since)
+            if request.args.get('pokestops', 'false') == 'true':
+                d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng, changed_since)
 
-        if request.args.get('gyms', 'true') == 'true':
-            d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, changed_since)
+            if request.args.get('gyms', 'true') == 'true':
+                d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, changed_since)
 
-        if request.args.get('scanned', 'true') == 'true':
-            d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
-                                                      neLng, changed_since)
+            if request.args.get('scanned', 'true') == 'true':
+                d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
+                                                          neLng, changed_since)
 
-        users[request.remote_addr] = datetime.now();
-        return jsonify(d)
+            users[request.remote_addr] = datetime.now();
+            return jsonify(d)
+        except Exception as ex:
+            return jsonify(str(ex))
 
     def loc(self):
         d = {}

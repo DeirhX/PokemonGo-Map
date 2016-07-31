@@ -19,9 +19,33 @@ from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pok
 from pogom.pgoapi.utilities import get_pos_by_name
 from pogom.startup import configure
 
+from werkzeug.serving import run_simple
+from werkzeug.wsgi import DispatcherMiddleware
+
+
+class PrefixMiddleware(object):
+
+    def __init__(self, app, prefix=''):
+        self.app = app
+        self.prefix = prefix
+
+    def __call__(self, environ, start_response):
+
+        if environ['PATH_INFO'].startswith(self.prefix):
+            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+            environ['SCRIPT_NAME'] = self.prefix
+            return self.app(environ, start_response)
+        else:
+            start_response('404', [('Content-Type', 'text/plain')])
+            return ["This url does not belong to the app.".encode()]
+
 logging.basicConfig(format='%(asctime)s [%(module)14s] [%(levelname)7s] %(message)s')
 log = logging.getLogger()
 app = Pogom(__name__)
+args = get_args()
+#config['ROOT_PATH'] = args.virtual_path  # self.root_path
+app.config['APPLICATION_ROOT'] = args.virtual_path
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=args.virtual_path)
 
 if __name__ == '__main__':
     args = get_args()
