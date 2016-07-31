@@ -6,14 +6,14 @@ import sys
 import logging
 import time
 
-from threading import Thread
+from threading import Thread, Event
 from flask_cors import CORS
 
 from pogom import config
 from pogom.app import Pogom
 from pogom.utils import get_args, insert_mock_data
 
-from pogom.search import search_loop, create_search_threads, fake_search_loop
+from pogom.search import search_loop, create_empty_apis, create_search_threads, fake_search_loop
 from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pokestop, Gym
 
 from pogom.pgoapi.utilities import get_pos_by_name
@@ -63,11 +63,17 @@ if __name__ == '__main__':
     config['ROOT_PATH'] = app.root_path
     configure(app, args)
 
+    # Control the search status (running or not) across threads; set it "on"
+    search_control = Event()
+    search_control.set()
+
     if not args.only_server:
         # Gather the pokemons!
         if not args.mock:
             log.debug('Starting a real search thread and {} search runner thread(s)'.format(args.num_threads))
-            search_thread = Thread(target=search_loop, args=(args,))
+            create_empty_apis(len(args.username))
+            create_search_threads(args.num_threads, len(args.username), search_control)
+            search_thread = Thread(target=search_loop, args=(args,search_control,))
         else:
             log.debug('Starting a fake search thread')
             insert_mock_data()
@@ -79,6 +85,12 @@ if __name__ == '__main__':
 
     if args.cors:
         CORS(app);
+
+    app.set_search_control(search_control)
+
+    config['ROOT_PATH'] = app.root_path
+    config['GMAPS_KEY'] = args.gmaps_key
+    config['REQ_SLEEP'] = args.scan_delay
 
     if args.no_server:
         # This loop allows for ctrl-c interupts to work since flask won't be holding the program open

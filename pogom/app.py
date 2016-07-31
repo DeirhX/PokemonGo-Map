@@ -37,23 +37,45 @@ class Pogom(Flask):
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
+        self.route("/search_control", methods=['GET'])(self.get_search_control)
+        self.route("/search_control", methods=['POST'])(self.post_search_control)
 
         config['ROOT_PATH'] = self.root_path
+    def set_search_control(self, control):
+        self.search_control = control
+
+    def get_search_control(self):
+        return jsonify({'status': self.search_control.is_set()})
+
+    def post_search_control(self):
+        args = get_args()
+        if not args.search_control:
+            return 'Search control is disabled', 403
+        action = request.args.get('action','none')
+        if action == 'on':
+            self.search_control.set()
+            log.info('Search thread resumed')
+        elif action == 'off':
+            self.search_control.clear()
+            log.info('Search thread paused')
+        else:
+            return jsonify({'message':'invalid use of api'})
+        return self.get_search_control()
 
     def fullmap(self):
         #args = get_args()
-        display = "inline"
-        if args.fixed_location:
-            display = "none"
+        fixed_display = "none" if args.fixed_location else "inline"
+        search_display = "inline" if args.search_control else "none"
 
         return render_template('map.html',
                                lat=config['ORIGINAL_LATITUDE'],
                                lng=config['ORIGINAL_LONGITUDE'],
                                gmaps_key=config['GMAPS_KEY'],
                                lang=config['LOCALE'],
+                               is_fixed=fixed_display,
+                               search_control=search_display
                                script_src=config['SCRIPT_SRC'] if not args.debug else '',
                                script_ext=config['SCRIPT_EXT'] if not args.debug else '',
-                               is_fixed=display
                                )
 
     def raw_data(self):

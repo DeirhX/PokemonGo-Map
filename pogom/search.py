@@ -170,16 +170,22 @@ def login(position):
 #
 # Search Threads Logic
 #
-def create_search_threads(num):
+def create_search_threads(thread_count, api_count, search_control):
     search_threads = []
-    for i in range(num):
-        t = Thread(target=search_thread, name='search_thread-{}'.format(i), args=(search_queue,))
+    for i in range(thread_count):
+        api_idx = i % api_count
+        t = Thread(target=search_thread, name='search_thread-{}'.format(i), args=(search_queue, api_idx, search_control,))
         t.daemon = True
         t.start()
         search_threads.append(t)
 
 
-def search_thread(q):
+def create_empty_apis(api_count):
+    for i in range(api_count):
+        apis.append(PGoApi())
+
+def search_thread(q, api_idx, search_control):
+    api = apis[api_idx]
     threadname = threading.currentThread().getName()
     log.debug("Search thread {}: started and waiting".format(threadname))
     instance_api = None
@@ -187,6 +193,9 @@ def search_thread(q):
         # Get the next item off the queue (this blocks till there is something)
         priority, args, i, total_steps, step_location, step = q.get()
         log.debug("Search queue depth is: " + str(q.qsize()))
+
+        # Pause if searching is disabled
+        search_control.wait()
 
         # If a new location has been set, just mark done and continue
         if 'NEXT_LOCATION' in config:
@@ -234,9 +243,9 @@ def search_thread(q):
 #
 # Search Overseer
 #
-def search_loop(args):
+def search_loop(args, search_control):
     i = 0
-    while True:
+    while search_control.wait():
         log.info("Search loop {} starting".format(i))
         try:
             search(args, i)
