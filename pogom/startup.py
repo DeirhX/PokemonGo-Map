@@ -25,7 +25,7 @@ def configure(app, args):
         log.setLevel(logging.DEBUG);
     else:
         log.setLevel(logging.INFO);
-    handler = logging.handlers.RotatingFileHandler(os.path.join(config['ROOT_PATH'], 'pogom.log'),
+    handler = logging.handlers.RotatingFileHandler(os.path.join(config['ROOT_PATH'], 'log/pogom.log'),
                                                    maxBytes=10000000, backupCount=5, )
     handler.setFormatter(logging.Formatter(Format))
     log.addHandler(handler)
