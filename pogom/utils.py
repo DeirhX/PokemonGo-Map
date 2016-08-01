@@ -67,7 +67,8 @@ def get_args():
     parser.add_argument('-c', '--china',
                         help='Coordinates transformer for China',
                         action='store_true')
-    parser.add_argument('-d', '--debug', help='Debug Mode', action='store_true')
+    parser.add_argument('-d', '--debug', help='Debug Server Mode', action='store_true')
+    parser.add_argument('-dl', '--debug-log', help='Debug Logging', action='store_true')
     parser.add_argument('-m', '--mock',
                         help='Mock mode. Starts the web server but not the background thread.',
                         action='store_true', default=False)
@@ -111,7 +112,10 @@ def get_args():
     parser.add_argument('--db-host', help='IP or hostname for the database')
     parser.add_argument('-wh', '--webhook', help='Define URL(s) to POST webhook information to',
                         nargs='*', default=False, dest='webhooks')
-    parser.add_argument('-ssl', '--use_ssl', help='Server server over SSL', action='store_true', default=False)
+    parser.add_argument('-ssl', '--use-ssl', help='Server server over SSL', action='store_true', default=False)
+    parser.add_argument('-authid', '--oauth2-id', help='Google OAuth2 ID')
+    parser.add_argument('-domain', '--domain', help='Domain registered for authentication')
+    parser.add_argument('-vpath', '--virtual-path', help='Virtual path of server')
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()

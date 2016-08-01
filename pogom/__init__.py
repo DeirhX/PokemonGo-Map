@@ -14,5 +14,8 @@ config = {
     'REQ_MAX_FAILED': 5,
     'PASSWORD': None,
     'SEARCH_QUEUE_DEPTH' : 100,
-    'LOGIN_DELAY' : 5
+    'LOGIN_DELAY' : 5,
+    'SCRIPT_SRC' : 'dist/',
+    'SCRIPT_EXT' : 'min.',
+    'OAUTH2_ID' : None,
 }

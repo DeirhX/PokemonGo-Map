@@ -19,15 +19,49 @@ from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pok
 from pogom.pgoapi.utilities import get_pos_by_name
 from pogom.startup import configure
 
-logging.basicConfig(format='%(asctime)s [%(module)14s] [%(levelname)7s] %(message)s')
+from werkzeug.serving import run_simple
+from werkzeug.wsgi import DispatcherMiddleware
+
+
+class PrefixMiddleware(object):
+    def __init__(self, app, prefix):
+        self.app = app
+        self.prefix = prefix
+
+    def __call__(self, environ, start_response):
+        if not self.prefix:
+            log.info('Called with null prefix')
+            return ["Bad Call.".encode()]
+        if not environ or not environ['PATH_INFO']:
+            log.info('Called with null info')
+            return ["Bad URL.".encode()]
+        elif environ['PATH_INFO'].startswith(self.prefix):
+            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+            environ['SCRIPT_NAME'] = self.prefix
+            return self.app(environ, start_response)
+        else:
+            start_response('404', [('Content-Type', 'text/plain')])
+            return ["This url does not belong to the app.".encode()]
+
+root_path = os.path.dirname(os.path.abspath(__file__))
+Format = '%(asctime)-15s (%(process)6s) [%(threadName)16s] [%(funcName)15s] [%(levelname)7s] %(message)s'
+logging.basicConfig(format=Format)
+handler = logging.handlers.RotatingFileHandler(os.path.join(root_path, 'log/pogom.log'),
+                                               maxBytes=10000000, backupCount=5, )
+handler.setFormatter(logging.Formatter(Format))
 log = logging.getLogger()
+log.addHandler(handler)
+
 app = Pogom(__name__)
+args = get_args()
+app.config['APPLICATION_ROOT'] = args.virtual_path
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=args.virtual_path)
 
 if __name__ == '__main__':
     args = get_args()
 
-    configure(app, args)
     config['ROOT_PATH'] = app.root_path
+    configure(app, args)
 
     if not args.only_server:
         # Gather the pokemons!

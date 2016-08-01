@@ -39,7 +39,7 @@
       <!-- Header -->
       <header id="header">
         <a href="#nav">Options</a>
-        <h1><a href="#">Pokémon Go Map</a></h1>
+        <h1><a href="#">Pokémon Go Map Yellow</a></h1>
 		<a href="#stats" id="statsToggle" class="statsNav" style="float: right;">Stats</a>
       </header>
       <!-- NAV -->
@@ -192,7 +192,10 @@
     </div>
     <button href="javascript:;" class="home-map-scan btn btn-primary">
             <strong>Initiate Scan Near Marker</strong>
-			<small>- click on map and click here -</small>
+			<div class="status"><small>- click on map and click here -</small></div>
+            <div class="fail"><small>scan failed, try again later</small></div>
+            <div class="busy"><small>starting scan...</small></div>
+            <div class="in-progress"><small>scan initiated successfully</small></div>
     </button>
 
     <!-- Scripts -->
@@ -207,8 +210,8 @@
       var center_lng = {{lng}};
     </script>
 
-    <script src="static/dist/js/map.min.js"></script>
-    <script src="static/dist/js/stats.min.js"></script>
+    <script src="static/{{script_src}}js/map.{{script_ext}}js"></script>
+    <script src="static/{{script_src}}js/stats.{{script_ext}}js"></script>
     <script defer src="https://maps.googleapis.com/maps/api/js?key={{ gmaps_key }}&amp;callback=initMap&amp;libraries=places,geometry"></script>
     <script src="https://apis.google.com/js/platform.js" async defer></script>
   </body>

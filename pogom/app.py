@@ -3,6 +3,7 @@
 
 import calendar
 import logging
+import time
 
 from flask import Flask, jsonify, render_template, request
 from flask.json import JSONEncoder
@@ -15,6 +16,7 @@ from . import config
 from .models import Pokemon, Gym, Pokestop, ScannedLocation
 from .search import search
 from .startup import configure
+from .user import verify_token
 
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -31,6 +33,7 @@ class Pogom(Flask):
         self.route("/raw_data", methods=['GET'])(self.raw_data)
         self.route("/scan", methods=['GET'])(self.scan)
         self.route("/users", methods=['GET'])(self.users)
+        self.route("/auth", methods=['GET'])(self.auth)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
@@ -48,35 +51,47 @@ class Pogom(Flask):
                                lng=config['ORIGINAL_LONGITUDE'],
                                gmaps_key=config['GMAPS_KEY'],
                                lang=config['LOCALE'],
+                               script_src=config['SCRIPT_SRC'] if not args.debug else '',
+                               script_ext=config['SCRIPT_EXT'] if not args.debug else '',
                                is_fixed=display
                                )
 
     def raw_data(self):
-        d = {}
-        swLat = request.args.get('swLat')
-        swLng = request.args.get('swLng')
-        neLat = request.args.get('neLat')
-        neLng = request.args.get('neLng')
-        if request.args.get('pokemon', 'true') == 'true':
-            if request.args.get('ids'):
-                ids = [int(x) for x in request.args.get('ids').split(',')]
-                d['pokemons'] = Pokemon.get_active_by_id(ids, swLat, swLng,
-                                                         neLat, neLng)
+        try :
+            d = {}
+            swLat = request.args.get('swLat')
+            swLng = request.args.get('swLng')
+            neLat = request.args.get('neLat')
+            neLng = request.args.get('neLng')
+            changed_since = request.args.get('changedSince')
+            now = datetime.utcnow();
+            d['request_time'] = time.mktime(now.timetuple()) * 1000  # + now.microsecond/1000
+            if not changed_since:
+                changed_since = datetime.min
             else:
-                d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng)
+                changed_since = datetime.fromtimestamp(float(changed_since) / 1000.0)
+            if request.args.get('pokemon', 'true') == 'true':
+                if request.args.get('ids'):
+                    ids = [int(x) for x in request.args.get('ids').split(',')]
+                    d['pokemons'] = Pokemon.get_active_by_id(ids, swLat, swLng,
+                                                             neLat, neLng, changed_since)
+                else:
+                    d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng, changed_since)
 
-        if request.args.get('pokestops', 'false') == 'true':
-            d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng)
+            if request.args.get('pokestops', 'false') == 'true':
+                d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng, changed_since)
 
-        if request.args.get('gyms', 'true') == 'true':
-            d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng)
+            if request.args.get('gyms', 'true') == 'true':
+                d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, changed_since)
 
-        if request.args.get('scanned', 'true') == 'true':
-            d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
-                                                      neLng)
+            if request.args.get('scanned', 'true') == 'true':
+                d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
+                                                          neLng, changed_since)
 
-        users[request.remote_addr] = datetime.now();
-        return jsonify(d)
+            users[request.remote_addr] = datetime.now();
+            return jsonify(d)
+        except Exception as ex:
+            return jsonify(str(ex))
 
     def loc(self):
         d = {}
@@ -155,7 +170,7 @@ class Pogom(Flask):
         position = (lat, lon, 0)
 
         search(args, 0, position, 3)
-        d = {}
+        d = {'result': 'received'}
         return jsonify(d)
 
 
@@ -167,6 +182,10 @@ class Pogom(Flask):
                 num_active += 1
         return jsonify({'guests': num_active })
 
+    def auth(self):
+        id_token = request.args.get('idToken', type=str)
+        result = verify_token(id_token)
+        return jsonify({'result': result })
 
 
 class CustomJSONEncoder(JSONEncoder):

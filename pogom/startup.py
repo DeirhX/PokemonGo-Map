@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import logging.handlers
 
 from pogom import config
 from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pokestop, Gym
@@ -17,17 +18,17 @@ def configure(app, args):
         return
     configured = True
 
-    if args.debug:
+    if args.debug_log:
         log.setLevel(logging.DEBUG);
     else:
         log.setLevel(logging.INFO);
-
 
     # Let's not forget to run Grunt / Only needed when running with webserver
     if not args.no_server:
         if not os.path.exists(os.path.join(os.path.dirname(__file__)+'/..', 'static/dist')):
             log.critical('Please run "grunt build" before starting the server.');
             sys.exit();
+
 
     # These are very noisey, let's shush them up a bit
     logging.getLogger("peewee").setLevel(logging.INFO)

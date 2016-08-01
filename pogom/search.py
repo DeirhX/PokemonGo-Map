@@ -79,7 +79,7 @@ def generate_location_steps(initial_loc, step_count):
     SOUTH = 180
     WEST = 270
 
-    pulse_radius = 0.1                  # km - radius of players heartbeat is 100m
+    pulse_radius = 0.07                 # km - radius of players heartbeat is 70m
     xdist = math.sqrt(3)*pulse_radius   # dist between column centers
     ydist = 3*(pulse_radius/2)          # dist between row centers
 
@@ -149,12 +149,18 @@ def login(position):
     with loginLock:
         login_info = Login.get_least_used(1)
         auth_service = 'google' if not login_info.type else 'ptc'
-        while not api.login(auth_service, login_info.username, login_info.password, *position):
-            log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(config['LOGIN_DELAY']))
-            Login.set_failed(login_info)
-            loginLock.release()
-            time.sleep(config['LOGIN_DELAY'])
-            loginLock.acquire()
+        logged_in = False
+        while not logged_in:
+            try:
+                logged_in = api.login(auth_service, login_info.username, login_info.password, *position)
+            except Exception as ex:
+                log.error('Exception in api.login: ' + str(ex))
+            if not logged_in:
+                log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(config['LOGIN_DELAY']))
+                Login.set_failed(login_info)
+                loginLock.release()
+                time.sleep(config['LOGIN_DELAY'])
+                loginLock.acquire()
 
         log.info('Login to Pokemon Go successful.')
         Login.set_success(login_info)
@@ -192,29 +198,34 @@ def search_thread(q):
         response_dict = {}
         failed_consecutive = 0
         while not response_dict:
-            if instance_api:
-                log.info("Skipping Pokemon Go login process since already logged in")
-            else:
-                instance_api = login(step_location)
+            try:
+                if instance_api:
+                    log.info("Skipping Pokemon Go login process since already logged in")
+                else:
+                    instance_api = login(step_location)
 
-            response_dict = send_map_request(instance_api, step_location)
-            if response_dict:
-                try:
-                    parse_map(response_dict, i, step, step_location)
-                except KeyError:
-                    log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+                response_dict = send_map_request(instance_api, step_location)
+                if response_dict:
+                    try:
+                        parse_map(response_dict, i, step, step_location)
+                        break;
+                    except KeyError:
+                        log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+                        failed_consecutive += 1
+                        response_dict = {}
+                else:
+                    log.info('Map download failed, waiting and retrying')
+                    log.debug('{}: itteration {} step {} failed'.format(threadname, i, step))
                     failed_consecutive += 1
-                    response_dict = {}
-            else:
-                log.info('Map download failed, waiting and retrying')
-                log.debug('{}: itteration {} step {} failed'.format(threadname, i, step))
-                failed_consecutive += 1
 
-            if (failed_consecutive >= config['REQ_MAX_FAILED']):
-                instance_api = None
-                log.error('Niantic servers under heavy load. Waiting before trying again')
-                time.sleep(config['REQ_HEAVY_SLEEP'])
-                failed_consecutive = 0
+                if (failed_consecutive >= config['REQ_MAX_FAILED']):
+                    instance_api = None
+                    log.error('Niantic servers under heavy load. Waiting before trying again')
+                    time.sleep(config['REQ_HEAVY_SLEEP'])
+                    failed_consecutive = 0
+            except Exception as ex:
+                log.error('Uncaught exception in search_loop, trapped: ' + str(ex))
+                response_dict = {}
 
         time.sleep(config['REQ_SLEEP'])
         q.task_done()
@@ -253,13 +264,11 @@ def search(args, i, position, num_steps):
         config['ORIGINAL_LONGITUDE'] = config['NEXT_LOCATION']['lon']
         config.pop('NEXT_LOCATION', None)
 
-
     for step, step_location in enumerate(generate_location_steps(position, num_steps), 1):
-        log.debug("Queue search itteration {}, step {}".format(i, step))
+        log.debug("Queue search iteration {}, step {}".format(i, step))
 
         search_args = (search_priority, args, i, num_steps, step_location, step)
         search_queue.put(search_args)
-        time.sleep(0.2)  # Sleep tight
 
 def search_loop(args):
     i = 0
