@@ -19,6 +19,7 @@
     "grunt-html-validation": "^0.1.18",
     "grunt-include-file": "^0.1.1",
     "grunt-legacssy": "latest",
+    "grunt-minjson": "latest",
     "grunt-sass": "latest",
     "grunt-unused": "latest",
     "grunt-usemin": "latest",
@@ -42,5 +43,8 @@
   "bugs": {
     "url": "https://github.com/AHAAAAAAA/PokemonGo-Map/issues"
   },
-  "homepage": "https://github.com/AHAAAAAAA/PokemonGo-Map#readme"
+  "homepage": "https://github.com/AHAAAAAAA/PokemonGo-Map#readme",
+  "devDependencies": {
+    "grunt": "^0.4.5"
+  }
 }
