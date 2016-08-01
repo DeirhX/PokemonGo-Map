@@ -66,17 +66,20 @@ class RpcApi:
         
         request_proto_serialized = request_proto_plain.SerializeToString()
         try:
-            http_response = self._session.post(endpoint, data=request_proto_serialized)
+            http_response = self._session.post(endpoint, data=request_proto_serialized, timeout=30.00)
         except requests.exceptions.ConnectionError as e:
             raise ServerBusyOrOfflineException
-        
+
+        if (len(http_response.content) > 1024*1024) :
+            raise Exception('response too large')
+
         return http_response
     
     def request(self, endpoint, subrequests, player_position):
     
         if not self._auth_provider or self._auth_provider.is_login() is False:
             raise NotLoggedInException()
-    
+
         request_proto = self._build_main_request(subrequests, player_position)
         response = self._make_rpc(endpoint, request_proto)
         

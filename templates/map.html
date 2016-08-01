@@ -2,13 +2,16 @@
 <html lang="{{lang}}">
   <head>
     <meta charset="utf-8">
-    <title>Pokémon Go Map</title>
+    <title>Le Avast Pokémon Go Map</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="PokeMap">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#3b3b3b">
+   	<meta name="google-signin-client_id" content="1025081464444-8jrri89ukacqpevqsle7sv0v6lva7g5i.apps.googleusercontent.com">
+
+
     <!-- Fav- & Apple-Touch-Icons -->
     <!-- Favicon -->
     <link rel="shortcut icon" href="static/appicons/favicon.ico" type="image/x-icon">
@@ -57,17 +60,6 @@
 	    </label>
 	  </div>
 	</div>
-        <div class="form-control switch-container" >
-          <h3>Start at user's location</h3>
-          <div class="onoffswitch">
-            <input id="start-at-user-location-switch" type="checkbox" name="start-at-user-location-switch" class="onoffswitch-checkbox" checked/>
-            <label class="onoffswitch-label" for="start-at-user-location-switch">
-            <span class="switch-label" data-on="On" data-off="Off"></span>
-            <span class="switch-handle"></span>
-            </label>
-          </div>
-        </div>
-
         <div class="form-control switch-container" style="display:{{search_control}}">
           <h3>Search</h3>
           <div class="onoffswitch">
@@ -80,7 +72,6 @@
         </div>
 
 	<hr width="100%" style="display:{{is_fixed}}" >
-
         <p>Select markers to be visible on map.</p>
         <div class="form-control switch-container">
           <h3>Pokémon</h3>
@@ -194,6 +185,16 @@
 	  </nav>
       <div id="map"></div>
     </div>
+        <div class="g-signin2" data-onsuccess="onSignIn"></div>
+
+    <div id="user-stats" class="user-stats">
+
+    </div>
+    <button href="javascript:;" class="home-map-scan btn btn-primary">
+            <strong>Initiate Scan Near Marker</strong>
+			<small>- click on map and click here -</small>
+    </button>
+
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-polyfill/6.9.1/polyfill.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
@@ -206,8 +207,10 @@
       var center_lng = {{lng}};
     </script>
 
+    <script src="static/dist/js/stats.js"></script>
     <script src="static/dist/js/map.min.js"></script>
     <script src="static/dist/js/stats.min.js"></script>
     <script defer src="https://maps.googleapis.com/maps/api/js?key={{ gmaps_key }}&amp;callback=initMap&amp;libraries=places,geometry"></script>
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
   </body>
 </html>

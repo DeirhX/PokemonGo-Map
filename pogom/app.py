@@ -7,16 +7,18 @@ import logging
 from flask import Flask, jsonify, render_template, request
 from flask.json import JSONEncoder
 from flask_compress import Compress
-from datetime import datetime
+from datetime import datetime, timedelta
 from s2sphere import *
 from pogom.utils import get_args
 
 from . import config
 from .models import Pokemon, Gym, Pokestop, ScannedLocation
+from .search import search
 
 log = logging.getLogger(__name__)
 compress = Compress()
-
+args = get_args() # Performance reasons
+users = {}
 
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
@@ -25,45 +27,24 @@ class Pogom(Flask):
         self.json_encoder = CustomJSONEncoder
         self.route("/", methods=['GET'])(self.fullmap)
         self.route("/raw_data", methods=['GET'])(self.raw_data)
+        self.route("/scan", methods=['GET'])(self.scan)
+        self.route("/users", methods=['GET'])(self.users)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
-        self.route("/search_control", methods=['GET'])(self.get_search_control)
-        self.route("/search_control", methods=['POST'])(self.post_search_control)
-
-    def set_search_control(self, control):
-        self.search_control = control
-
-    def get_search_control(self):
-        return jsonify({'status': self.search_control.is_set()})
-
-    def post_search_control(self):
-        args = get_args()
-        if not args.search_control:
-            return 'Search control is disabled', 403
-        action = request.args.get('action','none')
-        if action == 'on':
-            self.search_control.set()
-            log.info('Search thread resumed')
-        elif action == 'off':
-            self.search_control.clear()
-            log.info('Search thread paused')
-        else:
-            return jsonify({'message':'invalid use of api'})
-        return self.get_search_control()
 
     def fullmap(self):
-        args = get_args()
-        fixed_display = "none" if args.fixed_location else "inline"
-        search_display = "inline" if args.search_control else "none"
+        #args = get_args()
+        display = "inline"
+        if args.fixed_location:
+            display = "none"
 
         return render_template('map.html',
                                lat=config['ORIGINAL_LATITUDE'],
                                lng=config['ORIGINAL_LONGITUDE'],
                                gmaps_key=config['GMAPS_KEY'],
                                lang=config['LOCALE'],
-                               is_fixed=fixed_display,
-                               search_control=search_display
+                               is_fixed=display
                                )
 
     def raw_data(self):
@@ -90,6 +71,7 @@ class Pogom(Flask):
             d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
                                                       neLng)
 
+        users[request.remote_addr] = datetime.now();
         return jsonify(d)
 
     def loc(self):
@@ -100,7 +82,7 @@ class Pogom(Flask):
         return jsonify(d)
 
     def next_loc(self):
-        args = get_args()
+        #args = get_args()
         if args.fixed_location:
             return 'Location searching is turned off', 403
         # part of query string
@@ -159,6 +141,28 @@ class Pogom(Flask):
                                pokemon_list=pokemon_list,
                                origin_lat=lat,
                                origin_lng=lon)
+
+    def scan(self):
+        lat = request.args.get('lat', type=float)
+        lon = request.args.get('lon', type=float)
+        if not (lat and lon):
+            print('[-] Invalid location: %s,%s' % (lat, lon))
+            return 'bad parameters', 400
+        position = (lat, lon, 0)
+
+        search(args, 0, position, 3)
+        d = {}
+        return jsonify(d)
+
+
+    def users(self):
+        num_active = 0
+        now = datetime.now()
+        for (ip, timestamp) in users.items():
+            if (now < timestamp + timedelta(seconds=5*60)):
+                num_active += 1
+        return jsonify({'guests': num_active })
+
 
 
 class CustomJSONEncoder(JSONEncoder):

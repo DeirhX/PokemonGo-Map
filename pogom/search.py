@@ -18,20 +18,23 @@ import math
 import threading
 
 from threading import Thread, Lock
-from queue import Queue
+from queue import PriorityQueue
 
 from pgoapi import PGoApi
 from pgoapi.utilities import f2i, get_cellid
 
 from . import config
-from .models import parse_map
+from .models import parse_map, Login
 
 log = logging.getLogger(__name__)
 
 TIMESTAMP = '\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000'
-apis = []
+shared_api = None
+shared_api_lock = Lock()
 
-search_queue = Queue()
+search_queue = PriorityQueue(config['SEARCH_QUEUE_DEPTH'])
+search_priority = 10
+scan_priority = 5
 
 
 def calculate_lng_degrees(lat):
@@ -41,13 +44,13 @@ def calculate_lng_degrees(lat):
 
 def send_map_request(api, position):
     try:
-        api_copy = api.copy()
-        api_copy.set_position(*position)
-        api_copy.get_map_objects(latitude=f2i(position[0]),
-                                 longitude=f2i(position[1]),
-                                 since_timestamp_ms=TIMESTAMP,
-                                 cell_id=get_cellid(position[0], position[1]))
-        return api_copy.call()
+        request = api.create_request()
+        request.set_position(*position)
+        request.get_map_objects(latitude=f2i(position[0]),
+                            longitude=f2i(position[1]),
+                            since_timestamp_ms=TIMESTAMP,
+                            cell_id=get_cellid(position[0], position[1]))
+        return request.call()
     except Exception as e:
         log.warning("Uncaught exception when downloading map " + str(e))
         return False
@@ -76,7 +79,7 @@ def generate_location_steps(initial_loc, step_count):
     SOUTH = 180
     WEST = 270
 
-    pulse_radius = 0.07                 # km - radius of players heartbeat is 70m
+    pulse_radius = 0.1                  # km - radius of players heartbeat is 100m
     xdist = math.sqrt(3)*pulse_radius   # dist between column centers
     ydist = 3*(pulse_radius/2)          # dist between row centers
 
@@ -109,53 +112,75 @@ def generate_location_steps(initial_loc, step_count):
                 yield (loc[0], loc[1], 0)
         ring += 1
 
+threads_waiting_for_login = 0
+lock_threads_waiting_for_login = Lock()
+def login_if_needed(args, position):
+    global shared_api
+    api = shared_api  # So we don't have to lock here, usually api exists
+    if api and api._auth_provider and api._auth_provider._ticket_expire:
+        remaining_time = api._auth_provider._ticket_expire / 1000 - time.time()
+        if remaining_time > 60:
+            log.info("Skipping Pokemon Go login process since already logged in for another {:.2f} seconds".format(remaining_time))
+            return api
+        else:
+            api = shared_api = None  # Discard connection
 
-def login(args, i, position):
+    if not api:
+        global threads_waiting_for_login
+        with lock_threads_waiting_for_login:
+            threads_waiting_for_login += 1
+            wait_time = (threads_waiting_for_login)
+        with shared_api_lock:
+            if not shared_api:  # Another thread might have logged in while waiting
+                api = shared_api = login(position)
+            else:
+                api = shared_api
+        log.info('sleep for: ' + str(wait_time))
+        time.sleep(wait_time)
+    else:
+        threads_waiting_for_login = 0
+    return api
+
+loginLock = Lock()
+def login(position):
     log.info('Attempting login to Pokemon Go.')
 
-    api = apis[i]
+    api = PGoApi()
+    with loginLock:
+        login_info = Login.get_least_used(1)
+        auth_service = 'google' if not login_info.type else 'ptc'
+        while not api.login(auth_service, login_info.username, login_info.password, *position):
+            log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(config['LOGIN_DELAY']))
+            Login.set_failed(login_info)
+            loginLock.release()
+            time.sleep(config['LOGIN_DELAY'])
+            loginLock.acquire()
 
-    api.set_position(*position)
-
-    auth_service = args.auth_service[i]
-    username = args.username[i]
-    password = args.password[i]
-
-    while not api.login(auth_service, username, password):
-        log.info('Failed to login to Pokemon Go. Trying again in {:g} seconds.'.format(args.login_delay))
-        time.sleep(args.login_delay)
-
-    log.info('Login to Pokemon Go successful.')
+        log.info('Login to Pokemon Go successful.')
+        Login.set_success(login_info)
+    return api
 
 
 #
 # Search Threads Logic
 #
-def create_search_threads(thread_count, api_count, search_control):
+def create_search_threads(num):
     search_threads = []
-    for i in range(thread_count):
-        api_idx = i % api_count
-        t = Thread(target=search_thread, name='search_thread-{}'.format(i), args=(search_queue, api_idx, search_control,))
+    for i in range(num):
+        t = Thread(target=search_thread, name='search_thread-{}'.format(i), args=(search_queue,))
         t.daemon = True
         t.start()
         search_threads.append(t)
 
 
-def create_empty_apis(api_count):
-    for i in range(api_count):
-        apis.append(PGoApi())
-
-def search_thread(q, api_idx, search_control):
-    api = apis[api_idx]
+def search_thread(q):
     threadname = threading.currentThread().getName()
     log.debug("Search thread {}: started and waiting".format(threadname))
+    instance_api = None
     while True:
-
         # Get the next item off the queue (this blocks till there is something)
-        i, step_location, step, lock = q.get()
-
-        # Pause if searching is disabled
-        search_control.wait()
+        priority, args, i, total_steps, step_location, step = q.get()
+        log.debug("Search queue depth is: " + str(q.qsize()))
 
         # If a new location has been set, just mark done and continue
         if 'NEXT_LOCATION' in config:
@@ -167,26 +192,29 @@ def search_thread(q, api_idx, search_control):
         response_dict = {}
         failed_consecutive = 0
         while not response_dict:
-            response_dict = send_map_request(api, step_location)
+            if instance_api:
+                log.info("Skipping Pokemon Go login process since already logged in")
+            else:
+                instance_api = login(step_location)
+
+            response_dict = send_map_request(instance_api, step_location)
             if response_dict:
-                with lock:
-                    try:
-                        parse_map(response_dict, i, step, step_location)
-                        log.debug("{}: itteration {} step {} complete".format(threadname, i, step))
-                    except KeyError:
-                        log.error('Search thread failed. Response dictionary key error')
-                        log.debug('{}: itteration {} step {} failed. Response dictionary\
-                            key error.'.format(threadname, i, step))
-                        failed_consecutive += 1
-                        if(failed_consecutive >= config['REQ_MAX_FAILED']):
-                            log.error('Niantic servers under heavy load. Waiting before trying again')
-                            time.sleep(config['REQ_HEAVY_SLEEP'])
-                            failed_consecutive = 0
-                        response_dict = {}
+                try:
+                    parse_map(response_dict, i, step, step_location)
+                except KeyError:
+                    log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
+                    failed_consecutive += 1
+                    response_dict = {}
             else:
                 log.info('Map download failed, waiting and retrying')
                 log.debug('{}: itteration {} step {} failed'.format(threadname, i, step))
-                time.sleep(config['REQ_SLEEP'])
+                failed_consecutive += 1
+
+            if (failed_consecutive >= config['REQ_MAX_FAILED']):
+                instance_api = None
+                log.error('Niantic servers under heavy load. Waiting before trying again')
+                time.sleep(config['REQ_HEAVY_SLEEP'])
+                failed_consecutive = 0
 
         time.sleep(config['REQ_SLEEP'])
         q.task_done()
@@ -195,9 +223,9 @@ def search_thread(q, api_idx, search_control):
 #
 # Search Overseer
 #
-def search_loop(args, search_control):
+def search_loop(args):
     i = 0
-    while search_control.wait():
+    while True:
         log.info("Search loop {} starting".format(i))
         try:
             search(args, i)
@@ -216,6 +244,7 @@ def search_loop(args, search_control):
 #
 def search(args, i):
     num_steps = args.step_limit
+def search(args, i, position, num_steps):
 
     # Update the location if needed
     if 'NEXT_LOCATION' in config:
@@ -224,37 +253,32 @@ def search(args, i):
         config['ORIGINAL_LONGITUDE'] = config['NEXT_LOCATION']['lon']
         config.pop('NEXT_LOCATION', None)
 
-    position = (config['ORIGINAL_LATITUDE'], config['ORIGINAL_LONGITUDE'], 0)
-
-    for i in range(len(args.username)):
-        api = apis[i]
-        if api._auth_provider and api._auth_provider._ticket_expire:
-            remaining_time = api._auth_provider._ticket_expire/1000 - time.time()
-
-            if remaining_time > 60:
-                log.info("Current login ({}) valid for {:.2f} seconds".format(args.username[i], remaining_time))
-            else:
-                login(args, i, position)
-        else:
-            login(args, i, position)
-
-    lock = Lock()
 
     for step, step_location in enumerate(generate_location_steps(position, num_steps), 1):
         log.debug("Queue search itteration {}, step {}".format(i, step))
-        search_args = (i, step_location, step, lock)
+
+        search_args = (search_priority, args, i, num_steps, step_location, step)
         search_queue.put(search_args)
+        time.sleep(0.2)  # Sleep tight
 
-    # Wait until this scan itteration queue is empty (not nessearily done)
-    while not search_queue.empty():
-        log.debug("Waiting for current search queue to complete (remaining: {})".format(search_queue.qsize()))
-        time.sleep(1)
+def search_loop(args):
+    i = 0
+    try:
+        while True:
+            log.info("Map iteration: {}".format(i))
+            position = (config['ORIGINAL_LATITUDE'], config['ORIGINAL_LONGITUDE'], 0)
+            search(args, i, position, args.step_limit)
+            log.info("Scanning complete.")
+            if args.scan_delay > 1:
+                log.info('Waiting {:f} seconds before beginning new scan.'.format(args.scan_delay))
+                time.sleep(args.scan_delay)
+            i += 1
 
-    # Don't let this method exit until the last item has ACTUALLY finished
-    search_queue.join()
-
-
-#
+    # This seems appropriate
+    except Exception as e:
+        log.info('{0.__class__.__name__}: {0} - waiting {1} sec(s) before restarting'.format(e, args.scan_delay))
+        time.sleep(args.scan_delay)
+        search_loop(args)
 # A fake search loop which does....nothing!
 #
 def fake_search_loop():
