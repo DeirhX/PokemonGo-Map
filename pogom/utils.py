@@ -241,7 +241,7 @@ def get_pokemon_data(pokemon_id):
             'pokemon.min.json')
 
         log.info('file path: ' + file_path)
-        with open(file_path, 'r') as fw:
+        with open('/static/dist/data/pokemon.min.json', 'r') as fw:
             log.info('conteont: ' + str(fw.read()))
         with open(file_path, 'r') as f:
             get_pokemon_data.pokemon = json.loads(f.read())
