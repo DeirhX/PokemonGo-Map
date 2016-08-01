@@ -30,7 +30,7 @@ def configure(app, args):
 
     # Let's not forget to run Grunt / Only needed when running with webserver
     if not args.no_server:
-        if not os.path.exists(os.path.join(os.path.dirname(__file__)+'\\..', 'static/dist')):
+        if not os.path.exists(os.path.join(os.path.dirname(__file__)+'/..', 'static/dist')):
             log.critical('Please run "grunt build" before starting the server.');
             sys.exit();
 
