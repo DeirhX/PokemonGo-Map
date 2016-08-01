@@ -241,6 +241,8 @@ def get_pokemon_data(pokemon_id):
             'pokemon.min.json')
 
         log.info('file path: ' + file_path)
+        with open(file_path, 'r') as fw:
+            log.info('conteont: ' + str(f.read())
         with open(file_path, 'r') as f:
             get_pokemon_data.pokemon = json.loads(f.read())
     return get_pokemon_data.pokemon[str(pokemon_id)]
