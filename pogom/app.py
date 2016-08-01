@@ -14,6 +14,7 @@ from pogom.utils import get_args
 from . import config
 from .models import Pokemon, Gym, Pokestop, ScannedLocation
 from .search import search
+from .startup import configure
 
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -22,6 +23,7 @@ users = {}
 
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
+        configure(self, args)
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
         self.json_encoder = CustomJSONEncoder
@@ -32,6 +34,8 @@ class Pogom(Flask):
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
+
+        config['ROOT_PATH'] = self.root_path
 
     def fullmap(self):
         #args = get_args()
