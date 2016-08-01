@@ -242,7 +242,7 @@ def get_pokemon_data(pokemon_id):
 
         log.info('file path: ' + file_path)
         with open(file_path, 'r') as fw:
-            log.info('conteont: ' + str(f.read()))
+            log.info('conteont: ' + str(fw.read()))
         with open(file_path, 'r') as f:
             get_pokemon_data.pokemon = json.loads(f.read())
     return get_pokemon_data.pokemon[str(pokemon_id)]
