@@ -53,9 +53,9 @@ log = logging.getLogger()
 log.addHandler(handler)
 
 app = Pogom(__name__)
-args = get_args()
-app.config['APPLICATION_ROOT'] = args.virtual_path
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=args.virtual_path)
+#args = get_args()
+#app.config['APPLICATION_ROOT'] = args.virtual_path
+#app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=args.virtual_path)
 
 if __name__ == '__main__':
     args = get_args()
