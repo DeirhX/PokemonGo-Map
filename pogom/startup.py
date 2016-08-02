@@ -80,7 +80,7 @@ def configure(app, args):
     config['LOCALE'] = args.locale
     config['CHINA'] = args.china
     config['GMAPS_KEY'] = args.gmaps_key
-    config['REQ_SLEEP'] = args.scan_delay
+    #config['REQ_SLEEP'] = args.scan_delay
 
     app.set_search_control(search_control)
 
