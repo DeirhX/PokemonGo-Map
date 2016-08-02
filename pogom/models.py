@@ -320,8 +320,7 @@ def parse_map(map_dict, iteration_num, step, step_location):
                     'longitude': p['longitude'],
                     'disappear_time': d_t,
                     'last_modified': datetime.utcfromtimestamp(
-                        p['last_modified_timestamp_ms'] / 1000.0),
-                    'last_update': datetime.utcnow(),
+                        p['last_modified_timestamp_ms'] / 1000.0)
                 }
 
                 webhook_data = {
@@ -353,7 +352,6 @@ def parse_map(map_dict, iteration_num, step, step_location):
                         'longitude': f['longitude'],
                         'last_modified': datetime.utcfromtimestamp(
                             f['last_modified_timestamp_ms'] / 1000.0),
-                        'last_update': datetime.utcnow(),
                         'lure_expiration': lure_expiration,
                         'active_pokemon_id': active_pokemon_id
                     }
@@ -368,8 +366,7 @@ def parse_map(map_dict, iteration_num, step, step_location):
                         'latitude': f['latitude'],
                         'longitude': f['longitude'],
                         'last_modified': datetime.utcfromtimestamp(
-                            f['last_modified_timestamp_ms'] / 1000.0),
-                        'last_update': datetime.utcnow()
+                            f['last_modified_timestamp_ms'] / 1000.0)
                     }
 
     pokemons_upserted = 0
@@ -400,7 +397,6 @@ def parse_map(map_dict, iteration_num, step, step_location):
         'scanned_id': str(step_location[0])+','+str(step_location[1]),
         'latitude': step_location[0],
         'longitude': step_location[1],
-        'last_update': datetime.utcnow()
     }
 
     bulk_upsert(ScannedLocation, scanned)
