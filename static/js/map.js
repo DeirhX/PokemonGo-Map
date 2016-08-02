@@ -794,7 +794,7 @@ function showInBoundsMarkers(markers) {
   });
 }
 
-var lastRawDataResponseTime;
+var lastReceivedObjects;
 function loadRawData(incremental) {
 
   var loadPokemon = Store.get('showPokemon');
@@ -810,7 +810,7 @@ function loadRawData(incremental) {
   var neLat = nePoint.lat();
   var neLng = nePoint.lng();
 
-  var requestDataSince = incremental ? lastRawDataResponseTime : null;
+  var incrementalTimestamps = incremental ? lastReceivedObjects : null;
 
   var response = $.ajax({
     url: "raw_data",
@@ -824,7 +824,7 @@ function loadRawData(incremental) {
       'swLng': swLng,
       'neLat': neLat,
       'neLng': neLng,
-      'changedSince' : requestDataSince
+      'lastTimestamps' : incrementalTimestamps
     },
     dataType: "json",
     cache: false,
@@ -837,7 +837,7 @@ function loadRawData(incremental) {
     },
     complete: function(data) {
       if (incremental && data.responseJSON)
-        lastRawDataResponseTime = data.responseJSON.request_time;
+        lastReceivedObjects = data.responseJSON.lastTimestamps;
       rawDataIsLoading = false;
     }
   })
@@ -1302,6 +1302,17 @@ $(function() {
     $selectExclude.val(Store.get('remember_select_exclude')).trigger("change");
     $selectNotify.val(Store.get('remember_select_notify')).trigger("change");
   });
+
+  function updateMessageOfTheDay() {
+    $.ajax({url: "message", type: 'GET', dataType: "json"})
+        .done(function (result) {
+          var messageDiv = $('#message-of-the-day')[0];
+          messageDiv.innerHTML = result.message;
+          $('#infobox').show();
+        });
+  };
+  window.setInterval(updateMessageOfTheDay, 60000);
+  updateMessageOfTheDay();
 
   // run interval timers to regularly update map and timediffs
   window.setInterval(updateLabelDiffTime, 1000);

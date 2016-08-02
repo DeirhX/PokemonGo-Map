@@ -81,7 +81,7 @@ class Pokemon(BaseModel):
         indexes = ((('latitude', 'longitude'), False),)
 
     @classmethod
-    def get_active(cls, swLat, swLng, neLat, neLng, since):
+    def get_active(cls, swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Pokemon
                      .select()
@@ -112,7 +112,15 @@ class Pokemon(BaseModel):
         return pokemons
 
     @classmethod
-    def get_active_by_id(cls, ids, swLat, swLng, neLat, neLng, since):
+    def get_latest(cls):
+        return (Pokemon
+            .select(Pokemon.last_update)
+            .order_by(-Pokemon.last_update)
+            .limit(1)
+            .get())
+
+    @classmethod
+    def get_active_by_id(cls, ids, swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Pokemon
                      .select()
@@ -159,7 +167,15 @@ class Pokestop(BaseModel):
         indexes = ((('latitude', 'longitude'), False),)
 
     @classmethod
-    def get_stops(cls, swLat, swLng, neLat, neLng, since):
+    def get_latest(cls):
+        return (Pokestop
+            .select(Pokestop.last_update)
+            .order_by(-Pokestop.last_update)
+            .limit(1)
+            .get())
+
+    @classmethod
+    def get_stops(cls, swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Pokestop
                      .select()
@@ -205,7 +221,15 @@ class Gym(BaseModel):
         indexes = ((('latitude', 'longitude'), False),)
 
     @classmethod
-    def get_gyms(cls, swLat, swLng, neLat, neLng, since):
+    def get_latest(cls):
+        return (Gym
+            .select(Gym.last_update)
+            .order_by(-Gym.last_update)
+            .limit(1)
+            .get())
+
+    @classmethod
+    def get_gyms(cls, swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Gym
                      .select()
@@ -238,7 +262,15 @@ class ScannedLocation(BaseModel):
         indexes = ((('latitude', 'longitude'), False),)
 
     @classmethod
-    def get_recent(cls, swLat, swLng, neLat, neLng, since):
+    def get_latest(cls):
+        return (ScannedLocation
+            .select(ScannedLocation.last_update)
+            .order_by(-ScannedLocation.last_update)
+            .limit(1)
+            .get())
+
+    @classmethod
+    def get_recent(cls, swLat, swLng, neLat, neLng, since=datetime.min):
         query = (ScannedLocation
                  .select()
                  .where((ScannedLocation.last_update >=

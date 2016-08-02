@@ -4,6 +4,7 @@
 import calendar
 import logging
 import time
+from Queue import Full
 
 from flask import Flask, jsonify, render_template, request
 from flask.json import JSONEncoder
@@ -14,7 +15,7 @@ from pogom.utils import get_args
 
 from . import config
 from .models import Pokemon, Gym, Pokestop, ScannedLocation
-from .search import search
+from .search import search, scan_enqueue
 from .startup import configure
 from .user import verify_token
 
@@ -33,6 +34,7 @@ class Pogom(Flask):
         self.route("/raw_data", methods=['GET'])(self.raw_data)
         self.route("/scan", methods=['GET'])(self.scan)
         self.route("/users", methods=['GET'])(self.users)
+        self.route("/message", methods=['GET'])(self.message)
         self.route("/auth", methods=['GET'])(self.auth)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
@@ -48,7 +50,6 @@ class Pogom(Flask):
         return jsonify({'status': self.search_control.is_set()})
 
     def post_search_control(self):
-        args = get_args()
         if not args.search_control:
             return 'Search control is disabled', 403
         action = request.args.get('action','none')
@@ -85,30 +86,38 @@ class Pogom(Flask):
             swLng = request.args.get('swLng')
             neLat = request.args.get('neLat')
             neLng = request.args.get('neLng')
-            changed_since = request.args.get('changedSince')
-            now = datetime.utcnow() - timedelta(minutes=1)
-            d['request_time'] = time.mktime(now.timetuple()) * 1000  # + now.microsecond/1000
-            if not changed_since:
-                changed_since = datetime.min
-            else:
-                changed_since = datetime.fromtimestamp(float(changed_since) / 1000.0)
+
+            last_pokemon = request.args.get('lastTimestamps[lastPokemon]')
+            last_pokemon = datetime.utcfromtimestamp(float(last_pokemon) / 1000.0) if last_pokemon else datetime.min
+            last_gym = request.args.get('lastTimestamps[lastGym]')
+            last_gym = datetime.utcfromtimestamp(float(last_gym) / 1000.0) if last_gym else datetime.min
+            last_pokestop = request.args.get('lastTimestamps[lastPokestop]')
+            last_pokestop = datetime.utcfromtimestamp(float(last_pokestop) / 1000.0) if last_pokestop else datetime.min
+            last_scannedloc = request.args.get('lastTimestamps[lastScannedLoc]')
+            last_scannedloc = datetime.utcfromtimestamp(float(last_scannedloc) / 1000.0) if last_scannedloc else datetime.min
+
+            d['lastTimestamps'] = {'lastPokemon': Pokemon.get_latest().last_update,
+                                   'lastGym': Gym.get_latest().last_update,
+                                   'lastPokestop': Pokestop.get_latest().last_update,
+                                   'lastScannedLoc': ScannedLocation.get_latest().last_update}
+
             if request.args.get('pokemon', 'true') == 'true':
                 if request.args.get('ids'):
                     ids = [int(x) for x in request.args.get('ids').split(',')]
                     d['pokemons'] = Pokemon.get_active_by_id(ids, swLat, swLng,
-                                                             neLat, neLng, changed_since)
+                                                             neLat, neLng, last_pokemon)
                 else:
-                    d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng, changed_since)
+                    d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng, last_pokemon)
 
             if request.args.get('pokestops', 'false') == 'true':
-                d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng, changed_since)
+                d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng, last_gym)
 
             if request.args.get('gyms', 'true') == 'true':
-                d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, changed_since)
+                d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, last_pokestop)
 
             if request.args.get('scanned', 'true') == 'true':
                 d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
-                                                          neLng, changed_since)
+                                                          neLng, last_scannedloc)
 
             users[request.remote_addr] = datetime.now();
             return jsonify(d)
@@ -191,8 +200,11 @@ class Pogom(Flask):
             return 'bad parameters', 400
         position = (lat, lon, 0)
 
-        search(args, 0, position, 3)
-        d = {'result': 'received'}
+        try:
+            scan_enqueue( position, 3)
+            d = {'result': 'received'}
+        except Full:
+            d = {'result': 'full'}
         return jsonify(d)
 
 
@@ -209,6 +221,8 @@ class Pogom(Flask):
         result = verify_token(id_token)
         return jsonify({'result': result })
 
+    def message(self):
+        return jsonify({'message' : 'Restoring scan functionality, scans might be unstable...'})
 
 class CustomJSONEncoder(JSONEncoder):
 

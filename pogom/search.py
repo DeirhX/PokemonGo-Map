@@ -18,13 +18,13 @@ import math
 import threading
 
 from threading import Thread, Lock
-from queue import PriorityQueue
+from queue import Queue, PriorityQueue
 
 from pgoapi import PGoApi
 from pgoapi.utilities import f2i, get_cellid
 
 from . import config
-from .models import parse_map, Login
+from .models import parse_map, Login, args
 
 log = logging.getLogger(__name__)
 
@@ -32,10 +32,10 @@ TIMESTAMP = '\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\00
 shared_api = None
 shared_api_lock = Lock()
 
-search_queue = PriorityQueue(config['SEARCH_QUEUE_DEPTH'])
+search_queue = Queue(config['SEARCH_QUEUE_DEPTH'])
 search_priority = 10
 scan_priority = 5
-
+scan_queue = Queue(config['SCAN_QUEUE_DEPTH'])
 
 def calculate_lng_degrees(lat):
     return float(lng_gap_meters) / \
@@ -178,6 +178,10 @@ def create_search_threads(thread_count, search_control):
         t.start()
         search_threads.append(t)
 
+def create_scan_queue():
+    scan_queue_thread = Thread(target=scan_consumer, name='Scan queue consumer', args=(args, scan_queue,))
+    scan_queue_thread.daemon = True
+    scan_queue_thread.start()
 
 def search_thread(q, search_control):
     threadname = threading.currentThread().getName()
@@ -272,6 +276,18 @@ def search(args, i, position, num_steps):
 
         search_args = (search_priority, args, i, num_steps, step_location, step)
         search_queue.put(search_args)
+#
+# Scan consumer - producer
+#
+def scan_consumer(args, queue ):
+    while True:
+        position, steps = queue.get()
+        log.info('Processing scan request...')
+        search(args, 0, position, steps)
+
+def scan_enqueue(position, steps):
+    log.info('Enqueuing scan request...')
+    scan_queue.put_nowait((position, steps))
 
 # A fake search loop which does....nothing!
 #
