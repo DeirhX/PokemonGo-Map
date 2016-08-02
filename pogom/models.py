@@ -74,7 +74,8 @@ class Pokemon(BaseModel):
     latitude = DoubleField()
     longitude = DoubleField()
     disappear_time = DateTimeField(index=True)
-    last_modified = DateTimeField(index=True)
+    last_modified = DateTimeField()
+    last_update = DateTimeField(index=True)
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
@@ -85,13 +86,13 @@ class Pokemon(BaseModel):
             query = (Pokemon
                      .select()
                      .where((Pokemon.disappear_time > datetime.utcnow()) &
-                            (Pokemon.last_modified >= since))
+                            (Pokemon.last_update >= since))
                      .dicts())
         else:
             query = (Pokemon
                      .select()
                      .where((Pokemon.disappear_time > datetime.utcnow()) &
-                            (Pokemon.last_modified >= since) &
+                            (Pokemon.last_update >= since) &
                             (Pokemon.latitude >= swLat) &
                             (Pokemon.longitude >= swLng) &
                             (Pokemon.latitude <= neLat) &
@@ -117,14 +118,14 @@ class Pokemon(BaseModel):
                      .select()
                      .where((Pokemon.pokemon_id << ids) &
                             (Pokemon.disappear_time > datetime.utcnow()) &
-                            (Pokemon.last_modified >= since))
+                            (Pokemon.last_update >= since))
                      .dicts())
         else:
             query = (Pokemon
                      .select()
                      .where((Pokemon.pokemon_id << ids) &
                             (Pokemon.disappear_time > datetime.utcnow()) &
-                            (Pokemon.last_modified >= since) &
+                            (Pokemon.last_update >= since) &
                             (Pokemon.latitude >= swLat) &
                             (Pokemon.longitude >= swLng) &
                             (Pokemon.latitude <= neLat) &
@@ -149,7 +150,8 @@ class Pokestop(BaseModel):
     enabled = BooleanField()
     latitude = DoubleField()
     longitude = DoubleField()
-    last_modified = DateTimeField(index=True)
+    last_modified = DateTimeField()
+    last_update = DateTimeField(index=True)
     lure_expiration = DateTimeField(null=True, index=True)
     active_pokemon_id = IntegerField(null=True)
 
@@ -161,7 +163,7 @@ class Pokestop(BaseModel):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Pokestop
                      .select()
-                     .where(Pokestop.last_modified >= since)
+                     .where(Pokestop.last_update >= since)
                      .dicts())
         else:
             query = (Pokestop
@@ -170,7 +172,7 @@ class Pokestop(BaseModel):
                             (Pokestop.longitude >= swLng) &
                             (Pokestop.latitude <= neLat) &
                             (Pokestop.longitude <= neLng) &
-                            (Pokestop.last_modified >= since))
+                            (Pokestop.last_update >= since))
                      .dicts())
 
         pokestops = []
@@ -196,7 +198,8 @@ class Gym(BaseModel):
     enabled = BooleanField()
     latitude = DoubleField()
     longitude = DoubleField()
-    last_modified = DateTimeField(index=True)
+    last_modified = DateTimeField()
+    last_update = DateTimeField(index=True)
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
@@ -206,7 +209,7 @@ class Gym(BaseModel):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Gym
                      .select()
-                     .where(Gym.last_modified >= since)
+                     .where(Gym.last_update >= since)
                      .dicts())
         else:
             query = (Gym
@@ -215,7 +218,7 @@ class Gym(BaseModel):
                             (Gym.longitude >= swLng) &
                             (Gym.latitude <= neLat) &
                             (Gym.longitude <= neLng) &
-                            (Gym.last_modified >= since))
+                            (Gym.last_update >= since))
                      .dicts())
 
         gyms = []
@@ -229,7 +232,7 @@ class ScannedLocation(BaseModel):
     scanned_id = CharField(primary_key=True, max_length=50)
     latitude = DoubleField()
     longitude = DoubleField()
-    last_modified = DateTimeField(index=True)
+    last_update = DateTimeField(index=True)
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
@@ -238,9 +241,9 @@ class ScannedLocation(BaseModel):
     def get_recent(cls, swLat, swLng, neLat, neLng, since):
         query = (ScannedLocation
                  .select()
-                 .where((ScannedLocation.last_modified >=
+                 .where((ScannedLocation.last_update >=
                         (datetime.utcnow() - timedelta(minutes=15))) &
-                        (ScannedLocation.last_modified >= since) &
+                        (ScannedLocation.last_update >= since) &
                         (ScannedLocation.latitude >= swLat) &
                         (ScannedLocation.longitude >= swLng) &
                         (ScannedLocation.latitude <= neLat) &
@@ -317,7 +320,8 @@ def parse_map(map_dict, iteration_num, step, step_location):
                     'longitude': p['longitude'],
                     'disappear_time': d_t,
                     'last_modified': datetime.utcfromtimestamp(
-                        p['last_modified_timestamp_ms'] / 1000.0)
+                        p['last_modified_timestamp_ms'] / 1000.0),
+                    'last_update': datetime.utcnow(),
                 }
 
                 webhook_data = {
@@ -349,6 +353,7 @@ def parse_map(map_dict, iteration_num, step, step_location):
                         'longitude': f['longitude'],
                         'last_modified': datetime.utcfromtimestamp(
                             f['last_modified_timestamp_ms'] / 1000.0),
+                        'last_update': datetime.utcnow(),
                         'lure_expiration': lure_expiration,
                         'active_pokemon_id': active_pokemon_id
                     }
@@ -364,6 +369,7 @@ def parse_map(map_dict, iteration_num, step, step_location):
                         'longitude': f['longitude'],
                         'last_modified': datetime.utcfromtimestamp(
                             f['last_modified_timestamp_ms'] / 1000.0),
+                        'last_update': datetime.utcnow()
                     }
 
     pokemons_upserted = 0
@@ -394,7 +400,7 @@ def parse_map(map_dict, iteration_num, step, step_location):
         'scanned_id': str(step_location[0])+','+str(step_location[1]),
         'latitude': step_location[0],
         'longitude': step_location[1],
-        'last_modified': datetime.utcnow(),
+        'last_update': datetime.utcnow()
     }
 
     bulk_upsert(ScannedLocation, scanned)
