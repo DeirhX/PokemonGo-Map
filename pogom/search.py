@@ -231,6 +231,8 @@ def search_thread(q, search_control):
                 response_dict = {}
 
             time.sleep(config['REQ_SLEEP'])
+
+        time.sleep(config['REQ_SLEEP'])
         q.task_done()
 
 
