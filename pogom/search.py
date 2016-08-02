@@ -204,7 +204,8 @@ def search_thread(q, search_control):
         log.debug("{}: processing itteration {} step {}".format(threadname, i, step))
         response_dict = {}
         failed_consecutive = 0
-        while not response_dict:
+        need_scans = 2
+        while need_scans:
             try:
                 if instance_api:
                     log.info("Skipping Pokemon Go login process since already logged in")
@@ -215,11 +216,10 @@ def search_thread(q, search_control):
                 if response_dict:
                     try:
                         parse_map(response_dict, i, step, step_location)
-                        break;
+                        need_scans -= 1
                     except KeyError:
                         log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
                         failed_consecutive += 1
-                        response_dict = {}
                 else:
                     log.info('Map download failed, waiting and retrying')
                     log.debug('{}: itteration {} step {} failed'.format(threadname, i, step))
@@ -232,7 +232,6 @@ def search_thread(q, search_control):
                     failed_consecutive = 0
             except Exception as ex:
                 log.error('Uncaught exception in search_loop, trapped: ' + str(ex))
-                response_dict = {}
 
             time.sleep(config['REQ_SLEEP'])
 
