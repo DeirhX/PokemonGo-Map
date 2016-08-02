@@ -414,6 +414,7 @@ def write_thread(in_q) :
             log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
             try:
                 InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
+
             except OperationalError as e:
                 log.warning("%s... Retrying", e)
                 continue
