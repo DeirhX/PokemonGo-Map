@@ -758,13 +758,13 @@ function clearStaleMarkers() {
 
   $.each(map_data.scanned, function(key, value) {
     //If older than 15mins remove
-    if (map_data.scanned[key]['last_modified'] < (new Date().getTime() - 15 * 60 * 1000)) {
+    if (map_data.scanned[key]['last_update'] < (new Date().getTime() - 15 * 60 * 1000)) {
       map_data.scanned[key].marker.setMap(null);
       delete map_data.scanned[key];
     } else {
       // Update color
       map_data.scanned[key].marker.setOptions({
-        fillColor: getColorByDate(map_data.scanned[key]['last_modified'])
+        fillColor: getColorByDate(map_data.scanned[key]['last_update'])
     });
     }
   });
