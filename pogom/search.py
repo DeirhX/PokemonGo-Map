@@ -230,7 +230,7 @@ def search_thread(q, search_control):
                 log.error('Uncaught exception in search_loop, trapped: ' + str(ex))
                 response_dict = {}
 
-        time.sleep(config['REQ_SLEEP'])
+            time.sleep(config['REQ_SLEEP'])
         q.task_done()
 
 
