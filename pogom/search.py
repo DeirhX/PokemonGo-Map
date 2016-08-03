@@ -291,6 +291,7 @@ def scan_queue_dispatcher(args, queue ):
         dict = {'timestamp': timestamp, 'expireTime' : expire_time, 'position': position, 'steps': steps}
         log.info('Dispatching scan request...')
         producer.publish(json.dumps(dict, default=json_serial))
+        log.info('Scan request sent.')
 
 def scan_enqueue(timestamp, expire_time, position, steps):
     log.info('Enqueuing scan request...')

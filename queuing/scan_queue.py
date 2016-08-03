@@ -59,11 +59,13 @@ class Producer:
                                            properties=pika.BasicProperties(delivery_mode=2))
                 break
             except pika.exceptions.ConnectionClosed:
-                log.warning('Rabbit connection closed, retrying in five')
-                time.sleep(5)
+                log.warning('Rabbit connection closed, retrying')
+                time.sleep(1)
+                self.connect()
             except Exception as ex:
-                log.warning('Unknown rabbit error ' + str(ex) + ', retrying in seven')
-                time.sleep(7)
+                log.warning('Unknown rabbit error ' + str(ex) + ', retrying in ten')
+                time.sleep(10)
+                self.connect()
 
 
     @classmethod
