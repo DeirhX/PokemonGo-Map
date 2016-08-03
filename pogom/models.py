@@ -4,6 +4,8 @@
 import logging
 import os
 import time
+from Queue import Queue
+
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
                    DateTimeField, OperationalError, SmallIntegerField,\
@@ -14,7 +16,6 @@ from playhouse.shortcuts import RetryOperationalError
 from datetime import datetime, timedelta
 from base64 import b64encode
 from threading import Thread
-from queue import Queue
 
 from . import config
 from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, get_args, send_to_webhook

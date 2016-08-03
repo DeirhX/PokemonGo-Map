@@ -7,7 +7,8 @@ from threading import Event
 from pogom import config
 from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pokestop, Gym
 from pogom.pgoapi.utilities import get_pos_by_name
-from pogom.search import create_search_threads, create_scan_queue
+from pogom.scan import begin_consume_queue
+from pogom.search import create_search_threads, create_scan_queue_dispatcher
 
 log = logging.getLogger()
 configured = False
@@ -85,4 +86,8 @@ def configure(app, args):
     app.set_search_control(search_control)
 
     create_search_threads(args.num_threads, search_control)
-    create_scan_queue()
+    create_scan_queue_dispatcher()
+
+    if args.scan_worker:
+        begin_consume_queue()
+

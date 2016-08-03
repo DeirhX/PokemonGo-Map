@@ -11,9 +11,10 @@ from flask_cors import CORS
 
 from pogom import config
 from pogom.app import Pogom
+from pogom.scan import begin_consume_queue
 from pogom.utils import get_args, insert_mock_data
 
-from pogom.search import search_loop,  create_search_threads, fake_search_loop
+from pogom.search import search_loop,  create_search_threads, fake_search_loop, scan_enqueue
 from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pokestop, Gym
 
 from pogom.pgoapi.utilities import get_pos_by_name
@@ -64,7 +65,7 @@ if __name__ == '__main__':
 
     configure(app, args)
 
-    if not args.only_server:
+    if (not args.only_server and not args.scan_worker) or args.robot_worker:
         # Gather the pokemons!
         if not args.mock:
             log.debug('Starting a real search thread and {} search runner thread(s)'.format(args.num_threads))
@@ -83,7 +84,7 @@ if __name__ == '__main__':
 
     if args.no_server:
         # This loop allows for ctrl-c interupts to work since flask won't be holding the program open
-        while search_thread.is_alive():
+        while True:
             time.sleep(60)
     else:
         if args.use_ssl:

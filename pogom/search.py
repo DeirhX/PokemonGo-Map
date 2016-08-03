@@ -16,12 +16,17 @@ import logging
 import time
 import math
 import threading
+import json
 
 from threading import Thread, Lock
-from queue import Queue, PriorityQueue
+from Queue import Queue, PriorityQueue
+
+from pickle import Pickler
 
 from pgoapi import PGoApi
 from pgoapi.utilities import f2i, get_cellid
+from pogom.utils import json_serial
+from queuing.scan_queue import Producer
 
 from . import config
 from .models import parse_map, Login, args
@@ -178,8 +183,8 @@ def create_search_threads(thread_count, search_control):
         t.start()
         search_threads.append(t)
 
-def create_scan_queue():
-    scan_queue_thread = Thread(target=scan_consumer, name='Scan queue consumer', args=(args, scan_queue,))
+def create_scan_queue_dispatcher():
+    scan_queue_thread = Thread(target=scan_queue_dispatcher, name='Scan queue thread', args=(args, scan_queue,))
     scan_queue_thread.daemon = True
     scan_queue_thread.start()
 
@@ -278,15 +283,18 @@ def search(args, i, position, num_steps):
 #
 # Scan consumer - producer
 #
-def scan_consumer(args, queue ):
+def scan_queue_dispatcher(args, queue ):
+    producer = Producer()
+    producer.connect()
     while True:
-        position, steps = queue.get()
-        log.info('Processing scan request...')
-        search(args, 0, position, steps)
+        timestamp, expire_time, position, steps = queue.get()
+        dict = {'timestamp': timestamp, 'expireTime' : expire_time, 'position': position, 'steps': steps}
+        log.info('Dispatching scan request...')
+        producer.publish(json.dumps(dict, default=json_serial))
 
-def scan_enqueue(position, steps):
+def scan_enqueue(timestamp, expire_time, position, steps):
     log.info('Enqueuing scan request...')
-    scan_queue.put_nowait((position, steps))
+    scan_queue.put_nowait((timestamp, expire_time, position, steps))
 
 # A fake search loop which does....nothing!
 #

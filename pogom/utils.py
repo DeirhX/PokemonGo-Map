@@ -116,6 +116,8 @@ def get_args():
     parser.add_argument('-authid', '--oauth2-id', help='Google OAuth2 ID')
     parser.add_argument('-domain', '--domain', help='Domain registered for authentication')
     parser.add_argument('-vpath', '--virtual-path', help='Virtual path of server')
+    parser.add_argument('-scan-worker', '--scan-worker', help='On-demand scan worker', action='store_true', default=False)
+    parser.add_argument('-robot-worker', '--robot-worker', help='Permanent walking worker', action='store_true', default=False)
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
@@ -276,3 +278,11 @@ def send_to_webhook(message_type, message):
                 log.debug('Could not receive response from webhook')
             except requests.exceptions.RequestException as e:
                 log.debug(e)
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, datetime):
+        serial = obj.isoformat()
+        return serial
+    raise TypeError ("Type not serializable")

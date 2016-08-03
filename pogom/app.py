@@ -18,6 +18,7 @@ from .models import Pokemon, Gym, Pokestop, ScannedLocation
 from .search import search, scan_enqueue
 from .startup import configure
 from .user import verify_token
+from queuing import scan_queue
 
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -201,7 +202,7 @@ class Pogom(Flask):
         position = (lat, lon, 0)
 
         try:
-            scan_enqueue( position, 3)
+            scan_enqueue(datetime.utcnow(), datetime.utcnow() + timedelta(minutes=5), position, 3)
             d = {'result': 'received'}
         except Full:
             d = {'result': 'full'}
