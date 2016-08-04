@@ -44,7 +44,7 @@ def refresh_thread_loop():
         refresh_thread_runs += 1
         now = datetime.utcnow()
         while not scans_done.empty():
-            if (scans_done.queue[0][0] - now > scans_time_kept):
+            if (now - scans_done.queue[0][0] > scans_time_kept):
                 scans_done.get()
             else:
                 break
@@ -62,7 +62,7 @@ def refresh_thread_loop():
                 else:
                     guests_found[refreshes_done.queue[0][1]] = refreshes_done.queue[0][0]
 
-            if (refreshes_done.queue[0][0] - now > refreshes_time_kept):
+            if (now - refreshes_done.queue[0][0] > refreshes_time_kept):
                 refreshes_done.get()
             else:
                 break
