@@ -14,7 +14,7 @@ from s2sphere import *
 from pogom.utils import get_args
 
 from . import config
-from .models import Pokemon, Gym, Pokestop, ScannedLocation
+from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, db
 from .search import search, scan_enqueue
 from .startup import configure
 from .user import verify_token
@@ -87,6 +87,9 @@ class Pogom(Flask):
             swLng = request.args.get('swLng')
             neLat = request.args.get('neLat')
             neLng = request.args.get('neLng')
+            key = request.args.get('key')
+            if (key != u'dontspam'):
+                return ""
 
             last_pokemon = request.args.get('lastTimestamps[lastPokemon]')
             last_pokemon = datetime.utcfromtimestamp(float(last_pokemon) / 1000.0) if last_pokemon else datetime.min
@@ -194,12 +197,31 @@ class Pogom(Flask):
                                origin_lng=lon)
 
     def scan(self):
+        key = request.args.get('key')
+        if (key != u'dontspam'):
+            return ""
         lat = request.args.get('lat', type=float)
         lon = request.args.get('lon', type=float)
         if not (lat and lon):
             print('[-] Invalid location: %s,%s' % (lat, lon))
             return 'bad parameters', 400
         position = (lat, lon, 0)
+
+
+        last_scan = Scan.get_last_scan_by_ip(request.remote_addr)
+        db_time = db.execute_sql('select current_timestamp();')
+        scan_offset = db_time.fetchone()[0] - last_scan.request_time
+
+        if (scan_offset < timedelta(seconds=10)):
+            return jsonify({'result': 'full'})
+
+        scan = {}
+        scan[0] = {
+            'latitude': lat,
+            'longitude': lon,
+            'ip': request.remote_addr,
+        }
+        bulk_upsert(Scan, scan)
 
         try:
             scan_enqueue(datetime.utcnow(), datetime.utcnow() + timedelta(minutes=5), position, 3)

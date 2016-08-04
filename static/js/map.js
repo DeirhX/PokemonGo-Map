@@ -824,6 +824,7 @@ function loadRawData(incremental) {
       'swLng': swLng,
       'neLat': neLat,
       'neLng': neLng,
+      'key' : 'dontspam',
       'lastTimestamps' : incrementalTimestamps
     },
     dataType: "json",
@@ -1447,7 +1448,8 @@ function deirhExtensions(map) {
             type: 'GET',
             data: {
                 'lat': marker.getPosition().lat(),
-                'lon': marker.getPosition().lng()
+                'lon': marker.getPosition().lng(),
+                'key' : 'dontspam'
             },
             dataType: "json"
         }).done(function (result) {

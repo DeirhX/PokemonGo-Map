@@ -329,12 +329,41 @@ class Login(BaseModel):
         login.success_count += 1
         login.save()
 
+class Scan(BaseModel):
+    id = IntegerField(primary_key=True)
+    latitude = DoubleField()
+    longitude = DoubleField()
+    request_time = DateTimeField()
+    complete_time = DateTimeField()
+    ip = CharField(max_length=45, index=True)
+    account = CharField(max_length=200, index=True)
+
+    @classmethod
+    def get_last_scan_by_ip(cls, ip):
+        query = (Scan
+                 .select()
+                 .where(Scan.ip == ip)
+                 .order_by(-Scan.request_time)
+                 .limit(1))
+        result = query.get()
+        return result
+
+    @classmethod
+    def get_last_scan_by_account(cls, account):
+        query = (Scan
+                 .select()
+                 .where(Scan.account == account)
+                 .order_by(-Scan.request_time)
+                 .limit(1))
+        result = query.get()
+        return result
 
 def parse_map(map_dict, iteration_num, step, step_location):
     pokemons = {}
     pokestops = {}
     gyms = {}
     scanned = {}
+    scan = {}
 
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     for cell in cells:
@@ -433,6 +462,8 @@ def parse_map(map_dict, iteration_num, step, step_location):
     }
 
     bulk_upsert(ScannedLocation, scanned)
+
+
 
 sqlQueue = Queue(1000)
 def write_thread(in_q) :
