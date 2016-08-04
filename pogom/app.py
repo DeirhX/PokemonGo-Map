@@ -18,12 +18,12 @@ from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, 
 from .search import search, scan_enqueue
 from .startup import configure
 from .user import verify_token
-from queuing import scan_queue
+from .stats import get_guests_seen, get_members_seen, get_requests_made, get_scans_made, mark_refresh, mark_scan
+
 
 log = logging.getLogger(__name__)
 compress = Compress()
 args = get_args() # Performance reasons
-users = {}
 
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
@@ -34,7 +34,7 @@ class Pogom(Flask):
         self.route("/", methods=['GET'])(self.fullmap)
         self.route("/raw_data", methods=['GET'])(self.raw_data)
         self.route("/scan", methods=['GET'])(self.scan)
-        self.route("/users", methods=['GET'])(self.users)
+        self.route("/stats", methods=['GET'])(self.stats)
         self.route("/message", methods=['GET'])(self.message)
         self.route("/auth", methods=['GET'])(self.auth)
         self.route("/loc", methods=['GET'])(self.loc)
@@ -44,6 +44,7 @@ class Pogom(Flask):
         self.route("/search_control", methods=['POST'])(self.post_search_control)
 
         config['ROOT_PATH'] = self.root_path
+
     def set_search_control(self, control):
         self.search_control = control
 
@@ -123,7 +124,7 @@ class Pogom(Flask):
                 d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
                                                           neLng, last_scannedloc)
 
-            users[request.remote_addr] = datetime.now();
+            mark_refresh(request, None)
             return jsonify(d)
         except Exception as ex:
             return jsonify(str(ex))
@@ -225,6 +226,7 @@ class Pogom(Flask):
             bulk_upsert(Scan, scan)
 
             scan_enqueue(datetime.utcnow(), datetime.utcnow() + timedelta(minutes=5), position, 3)
+            mark_scan(request, None)
             d = {'result': 'received'}
         except Full:
             d = {'result': 'full'}
@@ -233,13 +235,13 @@ class Pogom(Flask):
         return jsonify(d)
 
 
-    def users(self):
-        num_active = 0
-        now = datetime.now()
-        for (ip, timestamp) in users.items():
-            if (now < timestamp + timedelta(seconds=5*60)):
-                num_active += 1
-        return jsonify({'guests': num_active })
+    def stats(self):
+        return jsonify({
+            'guests': get_guests_seen(),
+            'members': get_members_seen(),
+            'scans': get_scans_made(),
+            'refreshes': get_requests_made()
+        })
 
     def auth(self):
         id_token = request.args.get('idToken', type=str)

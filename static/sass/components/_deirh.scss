@@ -2,11 +2,11 @@
 div#infobox {
     display: none;
     position: absolute;
-    top: 60px;
+    top: 9px;
     right: 0;
     left: 0;
     width: 410px;
-    z-index: 1000;
+    z-index: 1;
     text-align: center;
     font-size: smaller;
     box-shadow: rgba(0, 0, 0, 0.298039) 0px 1px 4px -1px;
@@ -26,7 +26,7 @@ div#infobox {
     width:260px;
     height:60px;
     margin:0 0 -2px -160px;
-    z-index:1002;
+    z-index:2;
     background-color: #deb887;
     font-family: sans-serif;
     font-size: medium;
@@ -144,12 +144,12 @@ div#infobox {
     animation:scan-cooldown 30s linear
 }
 
-.user-stats
+#server-stats
 {
     position: absolute;
-    top: 70px;
+    top: 9px;
     right: 50px;
-    z-index: 1000;
+    z-index: 1;
     text-align: left;
     font-size: smaller;
     box-shadow: rgba(0, 0, 0, 0.298039) 0px 1px 4px -1px;
@@ -159,10 +159,10 @@ div#infobox {
     background-clip: padding-box;
 }
 
-.g-signin2
+#user-info
 {
     position: absolute;
-    top: 60px;
+    top: 9px;
     left: 10px;
-    z-index: 1000;
+    z-index: 1;
 }

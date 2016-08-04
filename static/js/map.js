@@ -1464,17 +1464,20 @@ function deirhExtensions(map) {
 
     function getActiveUsers() {
           $.ajax({
-            url: "users",
+            url: "stats",
             type: 'GET',
             data: {},
             dataType: "json"
         }).done(function (result) {
-            $('#user-stats')[0].innerHTML = result.guests  + (result.guests != 1 ? ' guests' : ' guest');
+            $('#user-guest-stats')[0].innerHTML = result.guests  + (result.guests != 1 ? ' guests' : ' guest');
+            $('#user-member-stats')[0].innerHTML = result.members + (result.members != 1 ? ' members' : ' member');
+            $('#data-stats')[0].innerHTML = result.refreshes + " refreshes / min";
+            $('#scan-stats')[0].innerHTML = result.scans+ " scans / min";
           });
     }
 
     getActiveUsers();
-    window.setInterval(getActiveUsers, 15000);
+    window.setInterval(getActiveUsers, 10000);
 
     // var infoWindow = new google.maps.InfoWindow({map: map, content: 'Detected location'});
 

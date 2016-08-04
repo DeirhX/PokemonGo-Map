@@ -17,7 +17,7 @@ html, body {
   height: 100%;
 }
 
-#header, #map, #footer {
+#header, #map, #footer, #map-overlay {
 	position: absolute;
 }
 
@@ -26,8 +26,8 @@ html, body {
 	width: 100%;
 }
 
-#map {
+#map, #map-overlay {
 	top: 3.5em;
 	bottom: 0px;
-  width: 100%;
+    width: 100%;
 }

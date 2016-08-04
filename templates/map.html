@@ -42,6 +42,20 @@
         <h1><a href="#">Pokémon Go Map Yellow</a></h1>
 		<a href="#stats" id="statsToggle" class="statsNav" style="float: right;">Stats</a>
       </header>
+      <!-- Yourmom extensions -->
+      <div id="map-overlay">
+        <div id="user-info">
+          <div class="g-signin2" data-onsuccess="onSignIn"></div>
+
+        </div>
+        <div id="server-stats">
+          <div id="user-guest-stats"></div>
+          <div id="user-member-stats"></div>
+          <div id="data-stats"></div>
+          <div id="scan-stats"></div>
+        </div>
+        <div id="infobox"><span id="message-of-the-day"></span></div>
+      </div>
       <!-- NAV -->
       <nav id="nav">
         <div class="form-control switch-container" style="display:{{is_fixed}}" >
@@ -183,13 +197,10 @@
 		  <div id="pokestopList" style="color: black;"></div>
 		</div>
 	  </nav>
-      <div id="map"></div>
+      <div id="map">
+      </div>
     </div>
-        <div class="g-signin2" data-onsuccess="onSignIn"></div>
 
-    <div id="user-stats" class="user-stats">
-    </div>
-    <div id="infobox"><span id="message-of-the-day"></span></div>
 
     <button href="javascript:;" class="home-map-scan btn btn-primary">
             <strong>Initiate Scan Near Marker</strong>
