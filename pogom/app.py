@@ -223,7 +223,7 @@ class Pogom(Flask):
         return jsonify({'result': result })
 
     def message(self):
-        return jsonify({'message' : 'Restoring scan functionality, scans might be unstable...'})
+        return jsonify({'message' : 'Niantic just changed RPC API. Working on a fix.'})
 
 class CustomJSONEncoder(JSONEncoder):
 
