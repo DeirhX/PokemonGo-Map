@@ -345,8 +345,9 @@ class Scan(BaseModel):
                  .where(Scan.ip == ip)
                  .order_by(-Scan.request_time)
                  .limit(1))
-        result = query.get()
-        return result
+        if len(query):
+            return query.get()
+        return None
 
     @classmethod
     def get_last_scan_by_account(cls, account):

@@ -197,37 +197,39 @@ class Pogom(Flask):
                                origin_lng=lon)
 
     def scan(self):
-        key = request.args.get('key')
-        if (key != u'dontspam'):
-            return ""
-        lat = request.args.get('lat', type=float)
-        lon = request.args.get('lon', type=float)
-        if not (lat and lon):
-            print('[-] Invalid location: %s,%s' % (lat, lon))
-            return 'bad parameters', 400
-        position = (lat, lon, 0)
-
-
-        last_scan = Scan.get_last_scan_by_ip(request.remote_addr)
-        db_time = db.execute_sql('select current_timestamp();')
-        scan_offset = db_time.fetchone()[0] - last_scan.request_time
-
-        if (scan_offset < timedelta(seconds=10)):
-            return jsonify({'result': 'full'})
-
-        scan = {}
-        scan[0] = {
-            'latitude': lat,
-            'longitude': lon,
-            'ip': request.remote_addr,
-        }
-        bulk_upsert(Scan, scan)
-
         try:
+            key = request.args.get('key')
+            if (key != u'dontspam'):
+                return ""
+            lat = request.args.get('lat', type=float)
+            lon = request.args.get('lon', type=float)
+            if not (lat and lon):
+                print('[-] Invalid location: %s,%s' % (lat, lon))
+                return 'bad parameters', 400
+            position = (lat, lon, 0)
+
+
+            last_scan = Scan.get_last_scan_by_ip(request.remote_addr)
+            if (last_scan):
+                db_time = db.execute_sql('select current_timestamp();')
+                scan_offset = db_time.fetchone()[0] - last_scan.request_time
+                if (scan_offset < timedelta(seconds=10)):
+                    return jsonify({'result': 'full'})
+
+            scan = {}
+            scan[0] = {
+                'latitude': lat,
+                'longitude': lon,
+                'ip': request.remote_addr,
+            }
+            bulk_upsert(Scan, scan)
+
             scan_enqueue(datetime.utcnow(), datetime.utcnow() + timedelta(minutes=5), position, 3)
             d = {'result': 'received'}
         except Full:
             d = {'result': 'full'}
+        except Exception:
+            d = {'result': 'failed'}
         return jsonify(d)
 
 
