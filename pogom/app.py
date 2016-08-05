@@ -278,8 +278,13 @@ class Pogom(Flask):
             return jsonify({'result' : 'failed'})
 
         id = request.args.get('id')
-        Spawn.get_detail(id)
-        d = {}
+        total = 0
+        for entry in Spawn.get_detail(id):
+            total += entry.count
+        chances = []
+        d = {'rank': total, 'chances': chances}
+        for entry in Spawn.get_detail(id):
+            chances.append({'pokemon_id': entry.id.pokemon_id, 'chance': str(100 * round(entry.count / float(total))) + '%' })
         return jsonify(d)
 
     def auth(self):

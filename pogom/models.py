@@ -446,7 +446,7 @@ class Spawn(BaseModel):
     def get_detail(cls, id):
         query = (Spawn
                 .select(Spawn.id, Pokemon.pokemon_id, fn.Count(Pokemon.pokemon_id).alias('count'))
-                .join(Pokemon, on=(Spawn.id == Pokemon.spawnpoint_id))
+                .join(Pokemon, on=(Spawn.id == Pokemon.spawnpoint_id)).alias('pokemon')
                 .where(Spawn.id == id)
                 .group_by(Pokemon.pokemon_id))
 

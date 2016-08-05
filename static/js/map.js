@@ -20,6 +20,7 @@ var map;
 var rawDataIsLoading = false;
 var locationMarker;
 var marker;
+var infoWindowsOpen = [];
 
 var noLabelsStyle=[{featureType:"poi",elementType:"labels",stylers:[{visibility:"off"}]},{"featureType":"all","elementType":"labels.icon","stylers":[{"visibility":"off"}]}];
 var light2Style=[{"elementType":"geometry","stylers":[{"hue":"#ff4400"},{"saturation":-68},{"lightness":-4},{"gamma":0.72}]},{"featureType":"road","elementType":"labels.icon"},{"featureType":"landscape.man_made","elementType":"geometry","stylers":[{"hue":"#0077ff"},{"gamma":3.1}]},{"featureType":"water","stylers":[{"hue":"#00ccff"},{"gamma":0.44},{"saturation":-33}]},{"featureType":"poi.park","stylers":[{"hue":"#44ff00"},{"saturation":-23}]},{"featureType":"water","elementType":"labels.text.fill","stylers":[{"hue":"#007fff"},{"gamma":0.77},{"saturation":65},{"lightness":99}]},{"featureType":"water","elementType":"labels.text.stroke","stylers":[{"gamma":0.11},{"weight":5.6},{"saturation":99},{"hue":"#0091ff"},{"lightness":-86}]},{"featureType":"transit.line","elementType":"geometry","stylers":[{"lightness":-48},{"hue":"#ff5e00"},{"gamma":1.2},{"saturation":-23}]},{"featureType":"transit","elementType":"labels.text.stroke","stylers":[{"saturation":-64},{"hue":"#ff9100"},{"lightness":16},{"gamma":0.47},{"weight":2.7}]}];
@@ -446,7 +447,7 @@ function pokemonLabel(name, rarity, types, disappear_time, id, latitude, longitu
 function spawnLabel(id, latitude, longitude, spawn_time) {
   var str;
     str = `
-      <div>
+      <div id="spawn-content">
         <b>Loading...</b>
       </div>`;
 
@@ -647,7 +648,7 @@ function setupPokemonMarker(item, skipNotification, isBounceDisabled) {
 
 function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
 
-    var marker = new google.maps.Marker({
+  var marker = new google.maps.Marker({
     position: {
       lat: item.latitude,
       lng: item.longitude
@@ -658,49 +659,65 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
 
   marker.infoWindow = new google.maps.InfoWindow({
     content: spawnLabel(item.id, item.latitude, item.longitude),
-    disableAutoPan: true
+    disableAutoPan: true,
   });
+  marker.infoWindow.addListener('domready', function () {
+    $.ajax({
+      url: "spawn_detail",
+      type: 'GET',
+      data: {
+        'id': item.id
+      },
+      dataType: "json",
+      cache: false,
+      complete: function (data) {
+        if (data && data.responseJSON && data.responseJSON['rank'] && data.responseJSON['chances']) {
+          var rank = data.responseJSON['rank'];
+          var table;
+          for (i = 0; i < data.responseJSON['chances'].length; ++i) {
+            var entry = data.responseJSON['chances'];
+            table += "<tr><td>${entry.pokemon_id}</td><td>${entry.chance}</td></tr>";
+          }
 
-    var response = $.ajax({
-    url: "spawn_detail",
-    type: 'GET',
-    data: {
-      'id': item.id
-    },
-    dataType: "json",
-    cache: false,
-    complete: function(data) {
-      if (data && data.responseJSON) {
-        var active_pokemon_name = "Lorem";
-        var active_pokemon_id = "Ipsum";
-        var spawn_time = new Date();
-        str = `
-              <div>
-                <b>Spawn Location</b>
-              </div>
-              <div>
-                Lured Pokémon: ${active_pokemon_name}
-                <span> - </span>
-                <small>
-                  <a href='http://www.pokemon.com/us/pokedex/${active_pokemon_id}' target='_blank' title='View in Pokedex'>#${active_pokemon_id}</a>
-                </small>
-              </div>
-              <div>
-                Next spawn at ${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}
-                <span class='label-countdown' disappears-at='${spawn_time}'>(00m00s)</span>
-              </div>
-              <div>
-                Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
-              </div>
-              <div>
-                <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}' target='_blank' title='View in Maps'>Get directions</a>
-              </div>`;
+          var active_pokemon_name = "Lorem";
+          var active_pokemon_id = "Ipsum";
+          var spawn_time = new Date();
+          str = `
+            <div>
+              <b>Spawn Location</b>
+            </div>
+            <div>
+              <table>
+                ${table}
+              </table>
+              Lured Pokémon: ${active_pokemon_name}
+              <span> - </span>
+              <small>
+                <a href='http://www.pokemon.com/us/pokedex/${active_pokemon_id}' target='_blank' title='View in Pokedex'>#${active_pokemon_id}</a>
+              </small>
+            </div>
+            <div>
+              Next spawn at ${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}
+              <span class='label-countdown' disappears-at='${spawn_time}'>(00m00s)</span>
+            </div>
+            <div>
+              Location: ${item.latitude.toFixed(6)}, ${item.longitude.toFixed(7)}
+            </div>
+            <div>
+              <a href='https://www.google.com/maps/dir/Current+Location/${item.latitude},${item.longitude}' target='_blank' title='View in Maps'>Get directions</a>
+            </div>`;
+        }
+        else {
+          str = "Error retrieving data";
+        }
+        marker.infoWindow.close();
+        marker.infoWindow = new google.maps.InfoWindow({
+          content: str,
+          disableAutoPan: true
+        });
+        openMarkerWindow(marker);
       }
-      else {
-        str = "Error retrieving data";
-      }
-      marker.infoWindow.content = str;
-    }
+    });
   });
 
   addListeners(marker);
@@ -794,7 +811,7 @@ function clearSelection() {
 
 function addListeners(marker) {
   marker.addListener('click', function() {
-    marker.infoWindow.open(map, marker);
+    openMarkerWindow(marker);
     clearSelection();
     updateLabelDiffTime();
     marker.persist = true;
@@ -805,7 +822,7 @@ function addListeners(marker) {
   });
 
   marker.addListener('mouseover', function() {
-    marker.infoWindow.open(map, marker);
+    openMarkerWindow(marker);
     clearSelection();
     updateLabelDiffTime();
   });
@@ -1510,6 +1527,16 @@ $(function() {
   });
 
 });
+
+function openMarkerWindow(marker){
+  for (i = 0; i < infoWindowsOpen.length; ++i) {
+    infoWindowsOpen[i].close();
+  }
+  infoWindowsOpen = []
+  infoWindowsOpen.push(marker.infoWindow)
+  marker.infoWindow.open(map, marker);
+}
+
 function deirhExtensions(map) {
 
     map.addListener('click', function(e) {
