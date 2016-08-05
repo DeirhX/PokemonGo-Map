@@ -443,7 +443,10 @@ function pokemonLabel(name, rarity, types, disappear_time, id, latitude, longitu
   return contentstring;
 }
 
-function spawnLabel(id, latitude, longitude) {
+function spawnLabel(id, latitude, longitude, spawn_time) {
+  var active_pokemon_name = "Lorem";
+  var active_pokemon_id = "Ipsum";
+  var spawn_time = new Date();
 
   var str;
     str = `
@@ -458,8 +461,8 @@ function spawnLabel(id, latitude, longitude) {
         </small>
       </div>
       <div>
-        Next spawn at ${pad(expire_date.getHours())}:${pad(expire_date.getMinutes())}:${pad(expire_date.getSeconds())}
-        <span class='label-countdown' disappears-at='${expire_time}'>(00m00s)</span>
+        Next spawn at ${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}
+        <span class='label-countdown' disappears-at='${spawn_time}'>(00m00s)</span>
       </div>
       <div>
         Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}

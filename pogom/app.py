@@ -139,6 +139,7 @@ class Pogom(Flask):
             mark_refresh(request, user)
             return jsonify(d)
         except Exception as ex:
+            log.error('Error in raw_data: ' + ex)
             return jsonify(str(ex))
 
     def loc(self):
