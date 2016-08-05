@@ -66,16 +66,17 @@
             <input id="next-location" type="text" name="next-location" placeholder="Change your location">
           </label>
         </div>
+       <!--
         <div class="form-control switch-container" style="display:{{is_fixed}}" >
           <h3>Scan follows location</h3>
-	  <div class="onoffswitch">
-	    <input id="geoloc-switch" type="checkbox" name="geoloc-switch" class="onoffswitch-checkbox" checked/>
-	    <label class="onoffswitch-label" for="geoloc-switch">
-	    <span class="switch-label" data-on="On" data-off="Off"></span>
-	    <span class="switch-handle"></span>
-	    </label>
-	  </div>
-	</div>
+          <div class="onoffswitch">
+            <input id="geoloc-switch" type="checkbox" name="geoloc-switch" class="onoffswitch-checkbox" checked/>
+            <label class="onoffswitch-label" for="geoloc-switch">
+            <span class="switch-label" data-on="On" data-off="Off"></span>
+            <span class="switch-handle"></span>
+            </label>
+          </div>
+        </div>
         <div class="form-control switch-container" style="display:{{search_control}}">
           <h3>Search</h3>
           <div class="onoffswitch">
@@ -86,9 +87,19 @@
             </label>
           </div>
         </div>
-
+       -->
 	<hr width="100%" style="display:{{is_fixed}}" >
         <p>Select markers to be visible on map.</p>
+        <div class="form-control switch-container">
+          <h3>Pokémon Spawns</h3>
+          <div class="onoffswitch">
+            <input id="spawn-switch" type="checkbox" name="spawn-switch" class="onoffswitch-checkbox" checked>
+            <label class="onoffswitch-label" for="spawn-switch">
+            <span class="switch-label" data-on="On" data-off="Off"></span>
+            <span class="switch-handle"></span>
+            </label>
+          </div>
+        </div>
         <div class="form-control switch-container">
           <h3>Pokémon</h3>
           <div class="onoffswitch">

@@ -33,6 +33,7 @@ var selectedStyle = 'light';
 
 var map_data = {
   pokemons: {},
+  spawns: {},
   gyms: {},
   pokestops: {},
   lure_pokemons: {},
@@ -133,6 +134,10 @@ var StoreOptions = {
     type: StoreTypes.Boolean
   },
   showPokestops: {
+    default: true,
+    type: StoreTypes.Boolean
+  },
+  showSpawns: {
     default: true,
     type: StoreTypes.Boolean
   },
@@ -357,10 +362,12 @@ function updateSearchStatus() {
 function initSidebar() {
     if (localStorage.initialized !== 'true') {
         localStorage.showPokemon = 'true';
+        localStorage.showSpawns = 'true';
         localStorage.initialized = 'true';
     }
   $('#gyms-switch').prop('checked', Store.get('showGyms'));
   $('#pokemon-switch').prop('checked', Store.get('showPokemon'));
+  $('#spawn-switch').prop('checked', Store.get('showSpawns'));
   $('#pokestops-switch').prop('checked', Store.get('showPokestops'));
   $('#lured-pokestops-only-switch').val(Store.get('showLuredPokestopsOnly'));
   $('#lured-pokestops-only-wrapper').toggle(Store.get('showPokestops'));
@@ -434,6 +441,34 @@ function pokemonLabel(name, rarity, types, disappear_time, id, latitude, longitu
       <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}' target='_blank' title='View in Maps'>Get directions</a>
     </div>`;
   return contentstring;
+}
+
+function spawnLabel(id, latitude, longitude) {
+
+  var str;
+    str = `
+      <div>
+        <b>Spawn Location</b>
+      </div>
+      <div>
+        Lured Pokémon: ${active_pokemon_name}
+        <span> - </span>
+        <small>
+          <a href='http://www.pokemon.com/us/pokedex/${active_pokemon_id}' target='_blank' title='View in Pokedex'>#${active_pokemon_id}</a>
+        </small>
+      </div>
+      <div>
+        Next spawn at ${pad(expire_date.getHours())}:${pad(expire_date.getMinutes())}:${pad(expire_date.getSeconds())}
+        <span class='label-countdown' disappears-at='${expire_time}'>(00m00s)</span>
+      </div>
+      <div>
+        Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+      </div>
+      <div>
+        <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}' target='_blank' title='View in Maps'>Get directions</a>
+      </div>`;
+  }
+  return str;
 }
 
 function gymLabel(team_name, team_id, gym_points, latitude, longitude) {
@@ -628,6 +663,27 @@ function setupPokemonMarker(item, skipNotification, isBounceDisabled) {
   return marker;
 }
 
+function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
+
+    var marker = new google.maps.Marker({
+    position: {
+      lat: item.latitude,
+      lng: item.longitude
+    },
+    map: map,
+    icon: 'static/forts/Harmony.png'
+  });
+
+  marker.infoWindow = new google.maps.InfoWindow({
+    content: spawnLabel(item.id, item.latitude, item.longitude),
+    disableAutoPan: true
+  });
+
+  addListeners(marker);
+  return marker;
+}
+
+
 function setupGymMarker(item) {
   var marker = new google.maps.Marker({
     position: {
@@ -798,6 +854,7 @@ var lastReceivedObjects;
 function loadRawData(incremental) {
 
   var loadPokemon = Store.get('showPokemon');
+  var loadSpawns = Store.get('showSpawns');
   var loadGyms = Store.get('showGyms');
   var loadPokestops = Store.get('showPokestops');
   var loadScanned = Store.get('showScanned');
@@ -818,6 +875,7 @@ function loadRawData(incremental) {
     data: {
       'pokemon': loadPokemon,
       'pokestops': loadPokestops,
+      'spawns': loadSpawns,
       'gyms': loadGyms,
       'scanned': loadScanned,
       'swLat': swLat,
@@ -861,6 +919,22 @@ function processPokemons(i, item) {
     }
   }
 }
+
+function processSpawns(i, item) {
+  if (!Store.get('showSpawns')) {
+    return false; // in case the checkbox was unchecked in the meantime.
+  }
+
+  if (!(item.id in map_data.spawns)) {
+    // add marker to map and item to dict
+    if (item.marker) item.marker.setMap(null);
+    if (!item.hidden) {
+      item.marker = setupSpawnMarker(item);
+      map_data.spawns[item.id] = item;
+    }
+  }
+}
+
 
 function processPokestops(i, item) {
   if (!Store.get('showPokestops')) {
@@ -963,11 +1037,13 @@ function updateMap(incremental) {
   loadRawData(incremental)
       .done(function(result) {
         $.each(result.pokemons, processPokemons);
+        $.each(result.spawns, processSpawns);
         $.each(result.pokestops, processPokestops);
         $.each(result.pokestops, processLuredPokemon);
         $.each(result.gyms, processGyms);
         $.each(result.scanned, processScanned);
         showInBoundsMarkers(map_data.pokemons);
+        showInBoundsMarkers(map_data.spawns);
         showInBoundsMarkers(map_data.lure_pokemons);
         showInBoundsMarkers(map_data.gyms);
         showInBoundsMarkers(map_data.pokestops);
