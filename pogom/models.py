@@ -9,7 +9,7 @@ from Queue import Queue
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
                    DateTimeField, OperationalError, SmallIntegerField,\
-                   BigIntegerField, CompositeKey, create_model_tables
+                   BigIntegerField, CompositeKey, create_model_tables, fn
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError
@@ -358,6 +358,24 @@ class Scan(BaseModel):
                  .limit(1))
         result = query.get()
         return result
+
+    @classmethod
+    def get_scan_count_by_ip(cls, ip, since_datetime):
+        query = (Scan
+                 .select()
+                 .where(Scan.ip == ip)
+                 .where(Scan.request_time >= since_datetime)
+                 )
+        return query.count()
+
+    @classmethod
+    def get_scan_count_by_account(cls, account, since_datetime):
+        query = (Scan
+                 .select()
+                 .where(Scan.account == account)
+                 .where(Scan.request_time >= since_datetime)
+                 )
+        return query.count()
 
 def parse_map(map_dict, iteration_num, step, step_location):
     pokemons = {}

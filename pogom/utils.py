@@ -118,6 +118,7 @@ def get_args():
     parser.add_argument('-vpath', '--virtual-path', help='Virtual path of server')
     parser.add_argument('-scan-worker', '--scan-worker', help='On-demand scan worker', action='store_true', default=False)
     parser.add_argument('-robot-worker', '--robot-worker', help='Permanent walking worker', action='store_true', default=False)
+    parser.add_argument('-secret', '--app-secret-key', help='Flask secret session key')
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()

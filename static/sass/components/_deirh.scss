@@ -165,4 +165,22 @@ div#infobox {
     top: 9px;
     left: 10px;
     z-index: 1;
+
+    .g-signin2
+    {
+        text-align: center;
+        margin-bottom: 5px;
+    }
+
+    #member-stats
+    {
+        text-align: left;
+        font-size: smaller;
+        box-shadow: rgba(0, 0, 0, 0.298039) 0px 1px 4px -1px;
+        background-color: white;
+        padding: 3px 7px;
+        /* border: gray solid 1px; */
+        background-clip: padding-box;
+    }
 }
+

@@ -1473,6 +1473,11 @@ function deirhExtensions(map) {
             $('#user-member-stats')[0].innerHTML = result.members + (result.members != 1 ? ' members' : ' member');
             $('#data-stats')[0].innerHTML = result.refreshes + " refreshes / min";
             $('#scan-stats')[0].innerHTML = result.scans+ " scans / min";
+            if (result.memberScanPool) {
+              $('#member-scan-pool')[0].innerHTML = "Hourly scan pool: " +
+                  result.memberScanPoolLeft + " / " +
+                  result.memberScanPool;
+            }
           });
     }
 

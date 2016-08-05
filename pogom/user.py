@@ -16,4 +16,4 @@ def verify_token(token):
     except crypt.AppIdentityError:
         # Invalid token
         return None
-    return idinfo['sub']
+    return idinfo

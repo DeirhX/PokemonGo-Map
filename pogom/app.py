@@ -7,10 +7,14 @@ import time
 from Queue import Full
 
 from flask import Flask, jsonify, render_template, request
+from flask import session
 from flask.json import JSONEncoder
 from flask_compress import Compress
 from datetime import datetime, timedelta
 from s2sphere import *
+
+from pogom.member import member_scan_pool_max, member_scan_pool_remain_user, \
+    member_scan_pool_remain_ip
 from pogom.utils import get_args
 
 from . import config
@@ -44,6 +48,7 @@ class Pogom(Flask):
         self.route("/search_control", methods=['POST'])(self.post_search_control)
 
         config['ROOT_PATH'] = self.root_path
+        self.secret_key = args.app_secret_key
 
     def set_search_control(self, control):
         self.search_control = control
@@ -199,6 +204,7 @@ class Pogom(Flask):
 
     def scan(self):
         try:
+            user = session['email'] if 'email' in session else None
             key = request.args.get('key')
             if (key != u'dontspam'):
                 return ""
@@ -209,7 +215,15 @@ class Pogom(Flask):
                 return 'bad parameters', 400
             position = (lat, lon, 0)
 
+            # Check remaining pool
+            if (user):
+                remain = member_scan_pool_remain_user(user)
+            else:
+                remain = member_scan_pool_remain_ip(request.remote_addr)
+            if (remain <= 0):
+                d = {'result': 'full'}
 
+            # Check spam filter
             last_scan = Scan.get_last_scan_by_ip(request.remote_addr)
             if (last_scan):
                 db_time = db.execute_sql('select current_timestamp();')
@@ -217,16 +231,18 @@ class Pogom(Flask):
                 if (scan_offset < timedelta(seconds=10)):
                     return jsonify({'result': 'full'})
 
+
             scan = {}
             scan[0] = {
                 'latitude': lat,
                 'longitude': lon,
                 'ip': request.remote_addr,
+                'account': user
             }
             bulk_upsert(Scan, scan)
 
             scan_enqueue(datetime.utcnow(), datetime.utcnow() + timedelta(minutes=5), position, 3)
-            mark_scan(request, None)
+            mark_scan(request, user)
             d = {'result': 'received'}
         except Full:
             d = {'result': 'full'}
@@ -236,17 +252,29 @@ class Pogom(Flask):
 
 
     def stats(self):
+        user = session['email'] if 'email' in session else None
         return jsonify({
             'guests': get_guests_seen(),
             'members': get_members_seen(),
             'scans': get_scans_made(),
-            'refreshes': get_requests_made()
+            'refreshes': get_requests_made(),
+            'memberScanPoolLeft': member_scan_pool_remain_user (user) if user
+                                  else member_scan_pool_remain_ip(request.remote_addr),
+            'memberScanPool': member_scan_pool_max(user),
         })
 
     def auth(self):
-        id_token = request.args.get('idToken', type=str)
-        result = verify_token(id_token)
-        return jsonify({'result': result })
+        try:
+            id_token = request.args.get('idToken', type=str)
+            user_info = verify_token(id_token)
+            if user_info and user_info['email_verified']:
+                session['token'] = id_token
+                session['email'] = user_info['email']
+                session['sub'] = user_info['sub']
+                return jsonify({'result': 'authenticated' })
+            return jsonify({'result': 'denied'})
+        except Exception as ex:
+            return jsonify({'result': 'failed'})
 
     def message(self):
         return jsonify({'message' : 'Niantic just changed RPC API. Working on a fix.'})
