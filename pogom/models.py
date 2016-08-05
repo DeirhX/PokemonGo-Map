@@ -114,11 +114,16 @@ class Pokemon(BaseModel):
 
     @classmethod
     def get_latest(cls):
-        return (Pokemon
+        query = (Pokemon
             .select(Pokemon.last_update)
             .order_by(-Pokemon.last_update)
-            .limit(1)
-            .get())
+            .limit(1))
+
+        if query.count():
+            return query.get()
+        empty = Pokemon()
+        empty.last_update = datetime.min
+        return empty
 
     @classmethod
     def get_active_by_id(cls, ids, swLat, swLng, neLat, neLng, since=datetime.min):
@@ -169,11 +174,16 @@ class Pokestop(BaseModel):
 
     @classmethod
     def get_latest(cls):
-        return (Pokestop
+        query = (Pokestop
             .select(Pokestop.last_update)
             .order_by(-Pokestop.last_update)
-            .limit(1)
-            .get())
+            .limit(1))
+
+        if query.count():
+            return query.get()
+        empty = Pokestop()
+        empty.last_update = datetime.min
+        return empty
 
     @classmethod
     def get_stops(cls, swLat, swLng, neLat, neLng, since=datetime.min):
@@ -223,11 +233,17 @@ class Gym(BaseModel):
 
     @classmethod
     def get_latest(cls):
-        return (Gym
+        query = (Gym
             .select(Gym.last_update)
             .order_by(-Gym.last_update)
-            .limit(1)
-            .get())
+            .limit(1))
+
+        if query.count():
+            return query.get()
+        empty = Gym()
+        empty.last_update = datetime.min
+        return empty
+
 
     @classmethod
     def get_gyms(cls, swLat, swLng, neLat, neLng, since=datetime.min):
@@ -264,11 +280,17 @@ class ScannedLocation(BaseModel):
 
     @classmethod
     def get_latest(cls):
-        return (ScannedLocation
+        query = (ScannedLocation
             .select(ScannedLocation.last_update)
             .order_by(-ScannedLocation.last_update)
             .limit(1)
             .get())
+
+        if query.count():
+            return query.get()
+        empty = ScannedLocation()
+        empty.last_update = datetime.min
+        return empty
 
     @classmethod
     def get_recent(cls, swLat, swLng, neLat, neLng, since=datetime.min):
@@ -385,14 +407,18 @@ class Spawn(BaseModel):
 
     @classmethod
     def get_latest(cls):
-        return (Spawn
+        query = (Spawn
             .select(Spawn.last_update)
             .order_by(-Spawn.last_update)
-            .limit(1)
-            .get())
+            .limit(1))
+        if query.count():
+           return query.get()
+        empty = Spawn()
+        empty.last_update = datetime.min
+        return empty
 
     @classmethod
-    def get_visible(cls, swLat, swLng, neLat, neLng, since=None):
+    def get_spawns(cls, swLat, swLng, neLat, neLng, since=None):
         if (since):
             query = (Spawn
                  .select()

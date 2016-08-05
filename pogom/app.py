@@ -18,7 +18,7 @@ from pogom.member import member_scan_pool_max, member_scan_pool_remain_user, \
 from pogom.utils import get_args
 
 from . import config
-from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, db
+from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, db, Spawn
 from .search import search, scan_enqueue
 from .startup import configure
 from .user import verify_token
