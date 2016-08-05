@@ -377,6 +377,49 @@ class Scan(BaseModel):
                  )
         return query.count()
 
+class Spawn(BaseModel):
+    id = CharField(max_length=12, primary_key=True)
+    latitude = DoubleField(index=True)
+    longitude = DoubleField(index=True)
+    last_update = DateTimeField(index=True)
+
+    @classmethod
+    def get_latest(cls):
+        return (Spawn
+            .select(Spawn.last_update)
+            .order_by(-Spawn.last_update)
+            .limit(1)
+            .get())
+
+    @classmethod
+    def get_visible(cls, swLat, swLng, neLat, neLng, since=None):
+        if (since):
+            query = (Spawn
+                 .select()
+                 .where((Spawn.last_update >= since) &
+                        (Spawn.latitude >= swLat) &
+                        (Spawn.longitude >= swLng) &
+                        (Spawn.latitude <= neLat) &
+                        (Spawn.longitude <= neLng))
+                 .dicts())
+        else:
+            query = (Spawn
+                 .select(Spawn.id, Spawn.latitude, Spawn.longitude)
+                 .where((Spawn.latitude >= swLat) &
+                        (Spawn.longitude >= swLng) &
+                        (Spawn.latitude <= neLat) &
+                        (Spawn.longitude <= neLng))
+                 .dicts())
+
+        spawns = []
+        for s in query:
+            spawns.append(s)
+
+        return spawns
+
+
+
+
 def parse_map(map_dict, iteration_num, step, step_location):
     pokemons = {}
     pokestops = {}

@@ -467,7 +467,7 @@ function spawnLabel(id, latitude, longitude) {
       <div>
         <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}' target='_blank' title='View in Maps'>Get directions</a>
       </div>`;
-  }
+
   return str;
 }
 

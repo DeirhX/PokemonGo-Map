@@ -100,6 +100,8 @@ class Pogom(Flask):
 
             last_pokemon = request.args.get('lastTimestamps[lastPokemon]')
             last_pokemon = datetime.utcfromtimestamp(float(last_pokemon) / 1000.0) if last_pokemon else datetime.min
+            last_spawn = request.args.get('lastTimestamps[lastSpawn]')
+            last_spawn = datetime.utcfromtimestamp(float(last_spawn) / 1000.0) if last_spawn else datetime.min
             last_gym = request.args.get('lastTimestamps[lastGym]')
             last_gym = datetime.utcfromtimestamp(float(last_gym) / 1000.0) if last_gym else datetime.min
             last_pokestop = request.args.get('lastTimestamps[lastPokestop]')
@@ -108,6 +110,7 @@ class Pogom(Flask):
             last_scannedloc = datetime.utcfromtimestamp(float(last_scannedloc) / 1000.0) if last_scannedloc else datetime.min
 
             d['lastTimestamps'] = {'lastPokemon': Pokemon.get_latest().last_update,
+                                   'lastSpawn': Spawn.get_latest().last_update,
                                    'lastGym': Gym.get_latest().last_update,
                                    'lastPokestop': Pokestop.get_latest().last_update,
                                    'lastScannedLoc': ScannedLocation.get_latest().last_update}
@@ -120,6 +123,9 @@ class Pogom(Flask):
                 else:
                     d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng, last_pokemon)
 
+            if request.args.get('spawns', 'false') == 'true':
+                d['spawns'] = Spawn.get_spawns(swLat, swLng, neLat, neLng, last_spawn)
+                
             if request.args.get('pokestops', 'false') == 'true':
                 d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng, last_gym)
 
