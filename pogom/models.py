@@ -283,8 +283,7 @@ class ScannedLocation(BaseModel):
         query = (ScannedLocation
             .select(ScannedLocation.last_update)
             .order_by(-ScannedLocation.last_update)
-            .limit(1)
-            .get())
+            .limit(1))
 
         if query.count():
             return query.get()
