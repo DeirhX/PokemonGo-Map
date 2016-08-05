@@ -444,31 +444,10 @@ function pokemonLabel(name, rarity, types, disappear_time, id, latitude, longitu
 }
 
 function spawnLabel(id, latitude, longitude, spawn_time) {
-  var active_pokemon_name = "Lorem";
-  var active_pokemon_id = "Ipsum";
-  var spawn_time = new Date();
-
   var str;
     str = `
       <div>
-        <b>Spawn Location</b>
-      </div>
-      <div>
-        Lured Pokémon: ${active_pokemon_name}
-        <span> - </span>
-        <small>
-          <a href='http://www.pokemon.com/us/pokedex/${active_pokemon_id}' target='_blank' title='View in Pokedex'>#${active_pokemon_id}</a>
-        </small>
-      </div>
-      <div>
-        Next spawn at ${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}
-        <span class='label-countdown' disappears-at='${spawn_time}'>(00m00s)</span>
-      </div>
-      <div>
-        Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
-      </div>
-      <div>
-        <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}' target='_blank' title='View in Maps'>Get directions</a>
+        <b>Loading...</b>
       </div>`;
 
   return str;
@@ -680,6 +659,48 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
   marker.infoWindow = new google.maps.InfoWindow({
     content: spawnLabel(item.id, item.latitude, item.longitude),
     disableAutoPan: true
+  });
+
+    var response = $.ajax({
+    url: "spawn_detail",
+    type: 'GET',
+    data: {
+      'id': item.id
+    },
+    dataType: "json",
+    cache: false,
+    complete: function(data) {
+      if (data && data.responseJSON) {
+        var active_pokemon_name = "Lorem";
+        var active_pokemon_id = "Ipsum";
+        var spawn_time = new Date();
+        str = `
+              <div>
+                <b>Spawn Location</b>
+              </div>
+              <div>
+                Lured Pokémon: ${active_pokemon_name}
+                <span> - </span>
+                <small>
+                  <a href='http://www.pokemon.com/us/pokedex/${active_pokemon_id}' target='_blank' title='View in Pokedex'>#${active_pokemon_id}</a>
+                </small>
+              </div>
+              <div>
+                Next spawn at ${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}
+                <span class='label-countdown' disappears-at='${spawn_time}'>(00m00s)</span>
+              </div>
+              <div>
+                Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+              </div>
+              <div>
+                <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}' target='_blank' title='View in Maps'>Get directions</a>
+              </div>`;
+      }
+      else {
+        str = "Error retrieving data";
+      }
+      marker.infoWindow.content = str;
+    }
   });
 
   addListeners(marker);

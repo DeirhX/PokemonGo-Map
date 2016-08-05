@@ -9,7 +9,7 @@ from Queue import Queue
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
                    DateTimeField, OperationalError, SmallIntegerField,\
-                   BigIntegerField, CompositeKey, create_model_tables, fn
+                   BigIntegerField, CompositeKey, create_model_tables, fn, SelectQuery
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError
@@ -441,6 +441,21 @@ class Spawn(BaseModel):
             spawns.append(s)
 
         return spawns
+
+    @classmethod
+    def get_detail(cls, id):
+        query = (Spawn
+                .select(Spawn.id, Pokemon.pokemon_id, fn.Count(Pokemon.pokemon_id).alias('count'))
+                .join(Pokemon, on=(Spawn.id == Pokemon.spawnpoint_id))
+                .where(Spawn.id == id)
+                .group_by(Pokemon.pokemon_id))
+
+
+        pokestats = []
+        for s in query:
+            pokestats.append(s)
+
+        return pokestats
 
 
 

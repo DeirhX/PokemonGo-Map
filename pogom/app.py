@@ -41,6 +41,7 @@ class Pogom(Flask):
         self.route("/stats", methods=['GET'])(self.stats)
         self.route("/message", methods=['GET'])(self.message)
         self.route("/auth", methods=['GET'])(self.auth)
+        self.route("/spawn_detail", methods=['GET'])(self.spawn_detail)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
@@ -270,6 +271,16 @@ class Pogom(Flask):
                                   else member_scan_pool_remain_ip(request.remote_addr),
             'memberScanPool': member_scan_pool_max(user),
         })
+
+    def spawn_detail(self):
+        user = session['email'] if 'email' in session else None
+        if not request.args:
+            return jsonify({'result' : 'failed'})
+
+        id = request.args.get('id')
+        Spawn.get_detail(id)
+        d = {}
+        return jsonify(d)
 
     def auth(self):
         try:
