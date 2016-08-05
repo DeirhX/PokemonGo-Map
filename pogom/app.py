@@ -88,6 +88,7 @@ class Pogom(Flask):
 
     def raw_data(self):
         try :
+            user = session['email'] if 'email' in session else None
             d = {}
             swLat = request.args.get('swLat')
             swLng = request.args.get('swLng')
@@ -129,7 +130,7 @@ class Pogom(Flask):
                 d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
                                                           neLng, last_scannedloc)
 
-            mark_refresh(request, None)
+            mark_refresh(request, user)
             return jsonify(d)
         except Exception as ex:
             return jsonify(str(ex))
