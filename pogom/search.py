@@ -152,11 +152,11 @@ def login(position):
 
     api = PGoApi()
     with loginLock:
-        login_info = Login.get_least_used(1)
-        auth_service = 'google' if not login_info.type else 'ptc'
         logged_in = False
         while not logged_in:
             try:
+                login_info = Login.get_least_used(1)
+                auth_service = 'google' if not login_info.type else 'ptc'
                 logged_in = api.login(auth_service, login_info.username, login_info.password, *position)
             except Exception as ex:
                 log.error('Exception in api.login: ' + str(ex))
