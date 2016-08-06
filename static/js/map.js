@@ -678,7 +678,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
             return ((a.chance < b.chance) ? +1 : ((a.chance > b.chance) ? -1 : 0));
           });
           var max_entries = 3
-          for (i = 0; i < Math.min(data.responseJSON['chances'].length, max_entries); ++i) {
+          for (var i = 0; i < Math.min(data.responseJSON['chances'].length, max_entries); ++i) {
             var entry = data.responseJSON['chances'][i];
             var pokemon_index = entry.pokemon_id - 1;
             var sprite = pokemon_sprites[Store.get('pokemonIcons')] || pokemon_sprites['highres']
@@ -1543,7 +1543,7 @@ $(function() {
 });
 
 function openMarkerWindow(marker){
-  for (i = 0; i < infoWindowsOpen.length; ++i) {
+  for (var i = 0; i < infoWindowsOpen.length; ++i) {
     infoWindowsOpen[i].close();
   }
   infoWindowsOpen = []
