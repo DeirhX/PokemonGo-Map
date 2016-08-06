@@ -1164,9 +1164,9 @@ function redrawPokemon(pokemon_list) {
 };
 
 function updateSpawnCycle(element, first) {
-    marker = $(element).data('marker');
-    inactiveContent = $(element).find('.spawn-inactive');
-    activeContent = $(element).find('.spawn-active');
+    var marker = $(element).data('marker');
+    var inactiveContent = $(element).find('.spawn-inactive');
+    var activeContent = $(element).find('.spawn-active');
     var spawnTimes = {appearsAt: new Date(parseInt(inactiveContent.attr("spawns-at"))),
                       disappearsAt: new Date(parseInt(activeContent.attr("despawns-at")))};
     var now = new Date();
