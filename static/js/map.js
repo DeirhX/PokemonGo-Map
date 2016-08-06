@@ -687,15 +687,13 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
             table += `
 <tr>
     <td>
-        <small>
-            <a href='http://www.pokemon.com/us/pokedex/${entry.pokemon_id}' target='_blank' title='View in Pokedex'>
-                <img style='width: ${icon.size.width}px; height: ${icon.size.height}px; background-image: url("${icon.url}"); 
-                background-size: ${icon.scaledSize.width}px ${icon.scaledSize.height}px; background-position: -${icon.origin.x}px -${icon.origin.y}px; background-repeat: no-repeat;' /> 
-            </a>
-        </small>
+        <a href='http://www.pokemon.com/us/pokedex/${entry.pokemon_id}' target='_blank' title='View in Pokedex'>
+            <img style='width: ${icon.size.width}px; height: ${icon.size.height}px; background-image: url("${icon.url}"); 
+            background-size: ${icon.scaledSize.width}px ${icon.scaledSize.height}px; background-position: -${icon.origin.x}px -${icon.origin.y}px; background-repeat: no-repeat;' /> 
+        </a>
     </td>
     <td>
-        ${entry.chance}%
+        <span>${entry.chance}%</span>
     </td>
 </tr>`;
           }
@@ -705,14 +703,17 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
               <b>Spawn Location</b>
             </div>
             <div>
-              <span>Most likely to appear:</span><table>
+              <span>Most likely to appear:</span>
+              <table class="spawn-table">
                 ${table}
               </table>
             </div>
+            <!--
             <div>
               Next spawn at ${pad(despawn_time.getHours())}:${pad(despawn_time.getMinutes())}:${pad(despawn_time.getSeconds())}
               <span class='label-countdown' disappears-at='${despawn_time}'>(00m00s)</span>
             </div>
+            -->
             <div>
               Location: ${item.latitude.toFixed(6)}, ${item.longitude.toFixed(7)}
             </div>
