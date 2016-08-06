@@ -287,8 +287,9 @@ class Pogom(Flask):
             next_despawn = datetime.utcnow()
             next_despawn = datetime(next_despawn.year, next_despawn.month, next_despawn.day,
                                     next_despawn.hour, last_despawn.minute, last_despawn.second)
+            next_spawn = next_despawn - timedelta(minutes=15)
             chances = []
-            d = {'rank': total, 'spawn': next_despawn,'chances': chances}
+            d = {'rank': total, 'spawn': next_spawn, 'despawn': next_despawn,'chances': chances}
             for entry in details:
                 chances.append({'pokemon_id': entry.id.pokemon_id, 'chance': round(100 * entry.count / float(total)) })
         else: d = {}

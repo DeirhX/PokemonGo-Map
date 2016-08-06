@@ -697,7 +697,8 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
     </td>
 </tr>`;
           }
-          var despawn_time = new Date(data.responseJSON['spawn']);
+          var despawn_time = new Date(data.responseJSON['despawn']);
+            var spawn_time = new Date(data.responseJSON['spawn']);
           var str = `
             <div>
               <b>Spawn Location</b>
@@ -708,12 +709,12 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
                 ${table}
               </table>
             </div>
-            <!--
+            
             <div>
-              Next spawn at ${pad(despawn_time.getHours())}:${pad(despawn_time.getMinutes())}:${pad(despawn_time.getSeconds())}
+              Possible spawn at ${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}
               <span class='label-countdown' disappears-at='${despawn_time}'>(00m00s)</span>
             </div>
-            -->
+            
             <div>
               Location: ${item.latitude.toFixed(6)}, ${item.longitude.toFixed(7)}
             </div>
