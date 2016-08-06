@@ -403,6 +403,7 @@ class Spawn(BaseModel):
     latitude = DoubleField(index=True)
     longitude = DoubleField(index=True)
     last_update = DateTimeField(index=True)
+    last_disappear = DateTimeField()
 
     @classmethod
     def get_latest(cls):
@@ -429,7 +430,7 @@ class Spawn(BaseModel):
                  .dicts())
         else:
             query = (Spawn
-                 .select(Spawn.id, Spawn.latitude, Spawn.longitude)
+                 .select(Spawn.id, Spawn.latitude, Spawn.longitude, Spawn.last_disappear)
                  .where((Spawn.latitude >= swLat) &
                         (Spawn.longitude >= swLng) &
                         (Spawn.latitude <= neLat) &

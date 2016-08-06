@@ -126,6 +126,8 @@ class Pogom(Flask):
 
             if request.args.get('spawns', 'false') == 'true':
                 d['spawns'] = Spawn.get_spawns(swLat, swLng, neLat, neLng, last_spawn)
+            for spawn in d['spawns']:
+                spawn['last_appear'] = spawn['last_disappear'] - timedelta(minutes=15)
                 
             if request.args.get('pokestops', 'false') == 'true':
                 d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng, last_gym)

@@ -646,6 +646,15 @@ function setupPokemonMarker(item, skipNotification, isBounceDisabled) {
   return marker;
 }
 
+function fastForwardSpawnTimes(spawnTemplate) {
+    var now = new Date();
+    if (now > spawnTemplate.disappearsAt) {
+        var hourDiff = Math.floor(Math.abs(now - spawnTemplate.disappearsAt) / 36e5) + 1;
+        spawnTemplate.appearsAt.setHours(spawnTemplate.appearsAt.getHours() + hourDiff);
+        spawnTemplate.disappearsAt.setHours(spawnTemplate.disappearsAt.getHours() + hourDiff);
+    }
+}
+
 function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
 
   var marker = new google.maps.Marker({
@@ -656,6 +665,14 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
     map: map,
     icon: 'static/forts/Harmony.png'
   });
+
+    var spawnTimes = {appearsAt: new Date(item.last_appear), disappearsAt: new Date(item.last_disappear)};
+    fastForwardSpawnTimes(spawnTimes);
+    if (new Date() >= spawnTimes.appearsAt && new Date() <= spawnTimes.disappearsAt) {
+        marker.setOpacity(1.0);
+    } else {
+        marker.setOpacity(0.3);
+    }
 
   marker.infoWindow = new google.maps.InfoWindow({
     content: spawnLabel(item.id, item.latitude, item.longitude),
@@ -700,6 +717,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
             var despawn_time = new Date(data.responseJSON['despawn']);
             var spawn_time = new Date(data.responseJSON['spawn']);
           var str = `
+           <div>
             <div>
               <b>Spawn Location</b>
             </div>
@@ -727,19 +745,27 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
             </div>
             <div>
               <a href='https://www.google.com/maps/dir/Current+Location/${item.latitude},${item.longitude}' target='_blank' title='View in Maps'>Get directions</a>
-            </div>`;
+            </div>
+           </div>`;
         }
         else {
           var str = "Error retrieving data";
         }
+
+          $dom = $(str);
+          $dom.data('marker', marker);
+          updateSpawnCycle($dom, true);
+          var html = $dom.html();
+
         marker.infoWindow.close();
         marker.infoWindow = new google.maps.InfoWindow({
-          content: str,
+          content: html,
           disableAutoPan: true
         });
           marker.infoWindow.addListener('domready', function(element) {
               var iwOuter = $('.gm-style-iw').find('.spawn-timing').each(function(index, element) {
-                  updateSpawnCycle(element, true);
+                  $(element).data('marker', marker);
+                  updateSpawnCycle(element);
               });
           });
         openMarkerWindow(marker);
@@ -840,7 +866,7 @@ function addListeners(marker) {
   marker.addListener('click', function() {
     openMarkerWindow(marker);
     clearSelection();
-    updateLabelDiffTime();
+    updateAllLabelsDiffTime();
     marker.persist = true;
   });
 
@@ -851,7 +877,7 @@ function addListeners(marker) {
   marker.addListener('mouseover', function() {
     openMarkerWindow(marker);
     clearSelection();
-    updateLabelDiffTime();
+    updateAllLabelsDiffTime();
   });
 
   marker.addListener('mouseout', function() {
@@ -1137,32 +1163,34 @@ function redrawPokemon(pokemon_list) {
   });
 };
 
-function updateSpawnCycle(element, initialUpdate) {
-    inactiveContent = $(element).children('.spawn-inactive');
-    activeContent = $(element).children('.spawn-active');
-    var appearsAt = new Date(parseInt(inactiveContent.attr("spawns-at")));
-    var disappearsAt = new Date(parseInt(activeContent.attr("despawns-at")));
+function updateSpawnCycle(element, first) {
+    marker = $(element).data('marker');
+    inactiveContent = $(element).find('.spawn-inactive');
+    activeContent = $(element).find('.spawn-active');
+    var spawnTimes = {appearsAt: new Date(parseInt(inactiveContent.attr("spawns-at"))),
+                      disappearsAt: new Date(parseInt(activeContent.attr("despawns-at")))};
     var now = new Date();
     var justAppeared, justDisappeared;
 
-    if (now > appearsAt) {
-        var hourDiff = Math.round(Math.abs(now - appearsAt) / 36e5) + 1;
-        appearsAt.setHours(appearsAt.getHours() + hourDiff);
-        inactiveContent.attr("spawns-at", appearsAt.getTime());
-        inactiveContent.find('appear-countdown').attr('disappears-at', appearsAt.getTime());
+    if (now > spawnTimes.appearsAt) {
         justAppeared = true;
     }
-    if (now > disappearsAt) {
-        var hourDiff = Math.round(Math.abs(now - disappearsAt) / 36e5) + 1;
-        disappearsAt.setHours(disappearsAt.getHours() + hourDiff);
-        activeContent.attr("despawns-at", appearsAt.getTime());
-        activeContent.find('disappear-countdown').attr('disappears-at', disappearsAt.getTime());
+    if (now > spawnTimes.disappearsAt) {
         justAppeared = false;
         justDisappeared = true;
+
+        fastForwardSpawnTimes();
+        activeContent.attr("despawns-at", spawnTimes.disappearsAt.getTime());
+        activeContent.find('.disappear-countdown').attr('disappears-at', spawnTimes.disappearsAt.getTime());
+        updateLabelDiffTime(activeContent.find('.disappear-countdown')[0]);
+        inactiveContent.attr("spawns-at", spawnTimes.appearsAt.getTime());
+        inactiveContent.find('.appear-countdown').attr('disappears-at', spawnTimes.appearsAt.getTime());
+        updateLabelDiffTime(inactiveContent.find('.appear-countdown')[0]);
     }
 
-    if (initialUpdate) {
-        if (now <= disappearsAt) {
+    if (first) { // Initial update
+        justAppeared = justDisappeared = false;
+        if (now >= spawnTimes.appearsAt && now <= spawnTimes.disappearsAt) {
             justAppeared = true;
         } else {
             justDisappeared = true;
@@ -1172,16 +1200,20 @@ function updateSpawnCycle(element, initialUpdate) {
     if (justAppeared) { // Switch to 'active' state
         inactiveContent.hide();
         activeContent.show();
-        activeContent.find("disappear-countdown").removeClass("disabled");
-        inactiveContent.find("appear-countdown").addClass("disabled");
+        activeContent.find(".disappear-countdown").removeClass("disabled");
+        inactiveContent.find(".appear-countdown").addClass("disabled");
+        if (marker)
+            marker.setOpacity(1.0);
     } else if (justDisappeared) {
         activeContent.hide();
         inactiveContent.show();
-        inactiveContent.find("disappear-countdown").removeClass("disabled");
-        activeContent.find("disappear-countdown").addClass("disabled");
+        inactiveContent.find(".appear-countdown").removeClass("disabled");
+        activeContent.find(".disappear-countdown").addClass("disabled");
 
-        inactiveContent.find(".label-nextspawn")[0].innerHTML = pad(appearsAt.getHours())
-            + ':' + pad(appearsAt.getMinutes()) +':' + pad(appearsAt.getSeconds());
+        inactiveContent.find(".label-nextspawn")[0].innerHTML = pad(spawnTimes.appearsAt.getHours())
+            + ':' + pad(spawnTimes.appearsAt.getMinutes()) +':' + pad(spawnTimes.appearsAt.getSeconds());
+        if (marker)
+            marker.setOpacity(0.3);
     }
 }
 
@@ -1191,31 +1223,35 @@ var updateAllSpawnCycles = function() {
     });
 };
 
-var updateLabelDiffTime = function() {
+var updateLabelDiffTime = function(element) {
+    var disappearsAt = new Date(parseInt(element.getAttribute("disappears-at")));
+    var now = new Date();
+
+    var difference = Math.abs(disappearsAt - now);
+    var hours = Math.floor(difference / 36e5);
+    var minutes = Math.floor((difference - (hours * 36e5)) / 6e4);
+    var seconds = Math.floor((difference - (hours * 36e5) - (minutes * 6e4)) / 1e3);
+    var timestring = "";
+
+    if (disappearsAt < now) {
+      timestring = "(expired)";
+    } else {
+      timestring = "(";
+      if (hours > 0)
+          timestring = hours + "h";
+
+      timestring += ("0" + minutes).slice(-2) + "m";
+      timestring += ("0" + seconds).slice(-2) + "s";
+      timestring += ")";
+    }
+
+    $(element).text(timestring)
+};
+
+var updateAllLabelsDiffTime = function() {
   $('.label-countdown').each(function(index, element) {
       if (!$(element).hasClass('disabled')) {
-          var disappearsAt = new Date(parseInt(element.getAttribute("disappears-at")));
-          var now = new Date();
-
-          var difference = Math.abs(disappearsAt - now);
-          var hours = Math.floor(difference / 36e5);
-          var minutes = Math.floor((difference - (hours * 36e5)) / 6e4);
-          var seconds = Math.floor((difference - (hours * 36e5) - (minutes * 6e4)) / 1e3);
-          var timestring = "";
-
-          if (disappearsAt < now) {
-              timestring = "(expired)";
-          } else {
-              timestring = "(";
-              if (hours > 0)
-                  timestring = hours + "h";
-
-              timestring += ("0" + minutes).slice(-2) + "m";
-              timestring += ("0" + seconds).slice(-2) + "s";
-              timestring += ")";
-          }
-
-          $(element).text(timestring)
+        updateLabelDiffTime(element);
       }
   });
 };
@@ -1516,7 +1552,7 @@ $(function() {
   updateMessageOfTheDay();
 
   // run interval timers to regularly update map and timediffs
-  window.setInterval(updateLabelDiffTime, 1000);
+  window.setInterval(updateAllLabelsDiffTime, 1000);
   window.setInterval(updateAllSpawnCycles, 1000);
   window.setInterval(function() {
     if (navigator.geolocation && Store.get('geoLocate')) {
