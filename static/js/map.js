@@ -698,7 +698,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
 </tr>`;
           }
           var despawn_time = new Date(data.responseJSON['spawn']);
-          str = `
+          var str = `
             <div>
               <b>Spawn Location</b>
             </div>
@@ -722,7 +722,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
             </div>`;
         }
         else {
-          str = "Error retrieving data";
+          var str = "Error retrieving data";
         }
         marker.infoWindow.close();
         marker.infoWindow = new google.maps.InfoWindow({
