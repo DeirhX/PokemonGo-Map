@@ -697,7 +697,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
     </td>
 </tr>`;
           }
-          var despawn_time = new Date(data.responseJSON['despawn']);
+            var despawn_time = new Date(data.responseJSON['despawn']);
             var spawn_time = new Date(data.responseJSON['spawn']);
           var str = `
             <div>
@@ -710,9 +710,16 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
               </table>
             </div>
             
-            <div>
-              Possible spawn at ${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}
-              <span class='label-countdown' disappears-at='${despawn_time}'>(00m00s)</span>
+            <div class="spawn-timing">
+                <div class="spawn-inactive" spawns-at='${spawn_time.getTime()}'>
+                    Next spawn at: 
+                    <span class='label-nextspawn'>${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}</span> 
+					<span class='label-countdown appear-countdown' disappears-at='${spawn_time.getTime()}'>(00m00s)</span>
+                </div>
+                <div class="spawn-active" despawns-at='${despawn_time.getTime()}'>
+					Disappears at: 
+					<span class='label-countdown disappear-countdown' disappears-at='${despawn_time.getTime()}'>(00m00s)</span>
+                </div>
             </div>
             
             <div>
@@ -730,6 +737,11 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
           content: str,
           disableAutoPan: true
         });
+          marker.infoWindow.addListener('domready', function(element) {
+              var iwOuter = $('.gm-style-iw').find('.spawn-timing').each(function(index, element) {
+                  updateSpawnCycle(element, true);
+              });
+          });
         openMarkerWindow(marker);
       }
     });
@@ -1125,30 +1137,86 @@ function redrawPokemon(pokemon_list) {
   });
 };
 
-var updateLabelDiffTime = function() {
-  $('.label-countdown').each(function(index, element) {
-    var disappearsAt = new Date(parseInt(element.getAttribute("disappears-at")));
+function updateSpawnCycle(element, initialUpdate) {
+    inactiveContent = $(element).children('.spawn-inactive');
+    activeContent = $(element).children('.spawn-active');
+    var appearsAt = new Date(parseInt(inactiveContent.attr("spawns-at")));
+    var disappearsAt = new Date(parseInt(activeContent.attr("despawns-at")));
     var now = new Date();
+    var justAppeared, justDisappeared;
 
-    var difference = Math.abs(disappearsAt - now);
-    var hours = Math.floor(difference / 36e5);
-    var minutes = Math.floor((difference - (hours * 36e5)) / 6e4);
-    var seconds = Math.floor((difference - (hours * 36e5) - (minutes * 6e4)) / 1e3);
-    var timestring = "";
-
-    if (disappearsAt < now) {
-      timestring = "(expired)";
-    } else {
-      timestring = "(";
-      if (hours > 0)
-        timestring = hours + "h";
-
-      timestring += ("0" + minutes).slice(-2) + "m";
-      timestring += ("0" + seconds).slice(-2) + "s";
-      timestring += ")";
+    if (now > appearsAt) {
+        var hourDiff = Math.round(Math.abs(now - appearsAt) / 36e5) + 1;
+        appearsAt.setHours(appearsAt.getHours() + hourDiff);
+        inactiveContent.attr("spawns-at", appearsAt.getTime());
+        inactiveContent.find('appear-countdown').attr('disappears-at', appearsAt.getTime());
+        justAppeared = true;
+    }
+    if (now > disappearsAt) {
+        var hourDiff = Math.round(Math.abs(now - disappearsAt) / 36e5) + 1;
+        disappearsAt.setHours(disappearsAt.getHours() + hourDiff);
+        activeContent.attr("despawns-at", appearsAt.getTime());
+        activeContent.find('disappear-countdown').attr('disappears-at', disappearsAt.getTime());
+        justAppeared = false;
+        justDisappeared = true;
     }
 
-    $(element).text(timestring)
+    if (initialUpdate) {
+        if (now <= disappearsAt) {
+            justAppeared = true;
+        } else {
+            justDisappeared = true;
+        }
+    }
+
+    if (justAppeared) { // Switch to 'active' state
+        inactiveContent.hide();
+        activeContent.show();
+        activeContent.find("disappear-countdown").removeClass("disabled");
+        inactiveContent.find("appear-countdown").addClass("disabled");
+    } else if (justDisappeared) {
+        activeContent.hide();
+        inactiveContent.show();
+        inactiveContent.find("disappear-countdown").removeClass("disabled");
+        activeContent.find("disappear-countdown").addClass("disabled");
+
+        inactiveContent.find(".label-nextspawn")[0].innerHTML = pad(appearsAt.getHours())
+            + ':' + pad(appearsAt.getMinutes()) +':' + pad(appearsAt.getSeconds());
+    }
+}
+
+var updateAllSpawnCycles = function() {
+    $('.spawn-timing').each(function(index, element) {
+        updateSpawnCycle($(element));
+    });
+};
+
+var updateLabelDiffTime = function() {
+  $('.label-countdown').each(function(index, element) {
+      if (!$(element).hasClass('disabled')) {
+          var disappearsAt = new Date(parseInt(element.getAttribute("disappears-at")));
+          var now = new Date();
+
+          var difference = Math.abs(disappearsAt - now);
+          var hours = Math.floor(difference / 36e5);
+          var minutes = Math.floor((difference - (hours * 36e5)) / 6e4);
+          var seconds = Math.floor((difference - (hours * 36e5) - (minutes * 6e4)) / 1e3);
+          var timestring = "";
+
+          if (disappearsAt < now) {
+              timestring = "(expired)";
+          } else {
+              timestring = "(";
+              if (hours > 0)
+                  timestring = hours + "h";
+
+              timestring += ("0" + minutes).slice(-2) + "m";
+              timestring += ("0" + seconds).slice(-2) + "s";
+              timestring += ")";
+          }
+
+          $(element).text(timestring)
+      }
   });
 };
 
@@ -1449,6 +1517,7 @@ $(function() {
 
   // run interval timers to regularly update map and timediffs
   window.setInterval(updateLabelDiffTime, 1000);
+  window.setInterval(updateAllSpawnCycles, 1000);
   window.setInterval(function() {
     if (navigator.geolocation && Store.get('geoLocate')) {
       navigator.geolocation.getCurrentPosition(function(position) {
