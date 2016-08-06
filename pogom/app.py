@@ -279,12 +279,19 @@ class Pogom(Flask):
 
         id = request.args.get('id')
         total = 0
-        for entry in Spawn.get_detail(id):
-            total += entry.count
-        chances = []
-        d = {'rank': total, 'chances': chances}
-        for entry in Spawn.get_detail(id):
-            chances.append({'pokemon_id': entry.id.pokemon_id, 'chance': str(100 * round(entry.count / float(total))) + '%' })
+        details = Spawn.get_detail(id)
+        if (len(details)):
+            for entry in details:
+                total += entry.count
+            last_despawn = details[0].max_disappear.time()
+            next_despawn = datetime.utcnow()
+            next_despawn = datetime(next_despawn.year, next_despawn.month, next_despawn.day,
+                                    next_despawn.hour, last_despawn.minute, last_despawn.second)
+            chances = []
+            d = {'rank': total, 'spawn': next_despawn,'chances': chances}
+            for entry in details:
+                chances.append({'pokemon_id': entry.id.pokemon_id, 'chance': round(100 * entry.count / float(total)) })
+        else: d = {}
         return jsonify(d)
 
     def auth(self):

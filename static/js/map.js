@@ -674,31 +674,44 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
         if (data && data.responseJSON && data.responseJSON['rank'] && data.responseJSON['chances']) {
           var rank = data.responseJSON['rank'];
           var table;
-          for (i = 0; i < data.responseJSON['chances'].length; ++i) {
-            var entry = data.responseJSON['chances'];
-            table += "<tr><td>${entry.pokemon_id}</td><td>${entry.chance}</td></tr>";
+          data.responseJSON['chances'].sort(function(a, b){
+            return ((a.chance < b.chance) ? +1 : ((a.chance > b.chance) ? -1 : 0));
+          });
+          var max_entries = 3
+          for (i = 0; i < Math.min(data.responseJSON['chances'].length, max_entries); ++i) {
+            var entry = data.responseJSON['chances'][i];
+            var pokemon_index = entry.pokemon_id - 1;
+            var sprite = pokemon_sprites[Store.get('pokemonIcons')] || pokemon_sprites['highres']
+            var icon_size = 2 + (map.getZoom() - 3) * (map.getZoom() - 3) * .2 + Store.get('iconSizeModifier');
+            var icon = getGoogleSprite(pokemon_index, sprite, icon_size);
+            table += `
+<tr>
+    <td>
+        <small>
+            <a href='http://www.pokemon.com/us/pokedex/${entry.pokemon_id}' target='_blank' title='View in Pokedex'>
+                <img style='width: ${icon.size.width}px; height: ${icon.size.height}px; background-image: url("${icon.url}"); 
+                background-size: ${icon.scaledSize.width}px ${icon.scaledSize.height}px; background-position: -${icon.origin.x}px -${icon.origin.y}px; background-repeat: no-repeat;' /> 
+            </a>
+        </small>
+    </td>
+    <td>
+        ${entry.chance}%
+    </td>
+</tr>`;
           }
-
-          var active_pokemon_name = "Lorem";
-          var active_pokemon_id = "Ipsum";
-          var spawn_time = new Date();
+          var despawn_time = new Date(data.responseJSON['spawn']);
           str = `
             <div>
               <b>Spawn Location</b>
             </div>
             <div>
-              <table>
+              <span>Most likely to appear:</span><table>
                 ${table}
               </table>
-              Lured Pokémon: ${active_pokemon_name}
-              <span> - </span>
-              <small>
-                <a href='http://www.pokemon.com/us/pokedex/${active_pokemon_id}' target='_blank' title='View in Pokedex'>#${active_pokemon_id}</a>
-              </small>
             </div>
             <div>
-              Next spawn at ${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}
-              <span class='label-countdown' disappears-at='${spawn_time}'>(00m00s)</span>
+              Next spawn at ${pad(despawn_time.getHours())}:${pad(despawn_time.getMinutes())}:${pad(despawn_time.getSeconds())}
+              <span class='label-countdown' disappears-at='${despawn_time}'>(00m00s)</span>
             </div>
             <div>
               Location: ${item.latitude.toFixed(6)}, ${item.longitude.toFixed(7)}

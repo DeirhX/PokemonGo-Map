@@ -445,7 +445,8 @@ class Spawn(BaseModel):
     @classmethod
     def get_detail(cls, id):
         query = (Spawn
-                .select(Spawn.id, Pokemon.pokemon_id, fn.Count(Pokemon.pokemon_id).alias('count'))
+                .select(Spawn.id, Pokemon.pokemon_id, fn.Count(Pokemon.pokemon_id).alias('count'),
+                        fn.MAX(Pokemon.disappear_time).alias('max_disappear'))
                 .join(Pokemon, on=(Spawn.id == Pokemon.spawnpoint_id)).alias('pokemon')
                 .where(Spawn.id == id)
                 .group_by(Pokemon.pokemon_id))
