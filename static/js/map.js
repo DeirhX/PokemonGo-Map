@@ -752,7 +752,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
           var str = "Error retrieving data";
         }
 
-          $dom = $(str);
+          var $dom = $(str);
           $dom.data('marker', marker);
           updateSpawnCycle($dom, true);
           var html = $dom.html();
@@ -1179,13 +1179,9 @@ function updateSpawnCycle(element, first) {
         justAppeared = false;
         justDisappeared = true;
 
-        fastForwardSpawnTimes();
+        fastForwardSpawnTimes(spawnTimes);
         activeContent.attr("despawns-at", spawnTimes.disappearsAt.getTime());
-        activeContent.find('.disappear-countdown').attr('disappears-at', spawnTimes.disappearsAt.getTime());
-        updateLabelDiffTime(activeContent.find('.disappear-countdown')[0]);
         inactiveContent.attr("spawns-at", spawnTimes.appearsAt.getTime());
-        inactiveContent.find('.appear-countdown').attr('disappears-at', spawnTimes.appearsAt.getTime());
-        updateLabelDiffTime(inactiveContent.find('.appear-countdown')[0]);
     }
 
     if (first) { // Initial update
@@ -1215,6 +1211,13 @@ function updateSpawnCycle(element, first) {
         if (marker)
             marker.setOpacity(0.3);
     }
+
+    if (justAppeared || justDisappeared) { // Immediately update countdowns if state has changed
+        activeContent.find('.disappear-countdown').attr('disappears-at', spawnTimes.disappearsAt.getTime());
+        inactiveContent.find('.appear-countdown').attr('disappears-at', spawnTimes.appearsAt.getTime());
+        updateLabelDiffTime(activeContent.find('.disappear-countdown')[0]);
+        updateLabelDiffTime(inactiveContent.find('.appear-countdown')[0]);
+    }
 }
 
 var updateAllSpawnCycles = function() {
@@ -1222,6 +1225,14 @@ var updateAllSpawnCycles = function() {
         updateSpawnCycle($(element));
     });
 };
+
+var updateSpawnIcon = function() {
+
+}
+
+var updateAllSpawnIcons = function() {
+
+}
 
 var updateLabelDiffTime = function(element) {
     var disappearsAt = new Date(parseInt(element.getAttribute("disappears-at")));
