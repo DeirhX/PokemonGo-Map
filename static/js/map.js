@@ -687,43 +687,38 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
       cache: false,
       complete: function (data) {
         if (data && data.responseJSON && data.responseJSON['rank'] && data.responseJSON['chances']) {
-          var rank = data.responseJSON['rank'];
+          item.rank = data.responseJSON['rank'];
+          var rankChanceMod = 1 - (0.75 / item.rank);
+          var percentHtml = "";
+          var iconHtml = "";
           var table = "";
           data.responseJSON['chances'].sort(function(a, b){
             return ((a.chance < b.chance) ? +1 : ((a.chance > b.chance) ? -1 : 0));
           });
-          var max_entries = 3
+          var max_entries = 5
           for (var i = 0; i < Math.min(data.responseJSON['chances'].length, max_entries); ++i) {
             var entry = data.responseJSON['chances'][i];
             var pokemon_index = entry.pokemon_id - 1;
             var sprite = pokemon_sprites[Store.get('pokemonIcons')] || pokemon_sprites['highres']
-            var icon_size = 2 + (map.getZoom() - 3) * (map.getZoom() - 3) * .2 + Store.get('iconSizeModifier');
+            var icon_size = 32;
             var icon = getGoogleSprite(pokemon_index, sprite, icon_size);
             table += `
-<tr>
-    <td>
-        <a href='http://www.pokemon.com/us/pokedex/${entry.pokemon_id}' target='_blank' title='View in Pokedex'>
-            <img style='width: ${icon.size.width}px; height: ${icon.size.height}px; background-image: url("${icon.url}"); 
-            background-size: ${icon.scaledSize.width}px ${icon.scaledSize.height}px; background-position: -${icon.origin.x}px -${icon.origin.y}px; background-repeat: no-repeat;' /> 
-        </a>
-    </td>
-    <td>
-        <span>${entry.chance}%</span>
-    </td>
-</tr>`;
+        <span class="spawn-entry"><div><a href='http://www.pokemon.com/us/pokedex/${entry.pokemon_id}' target='_blank' title='View in Pokedex'>
+            <icon style='width: ${icon.size.width}px; height: ${icon.size.height}px; background-image: url("${icon.url}"); 
+            background-size: ${icon.scaledSize.width}px ${icon.scaledSize.height}px; background-position: -${icon.origin.x}px -${icon.origin.y}px; background-repeat: no-repeat;'></icon></a>
+        </div><div class="chance">${Math.round(entry.chance*rankChanceMod)}%</div></span>`;
+            //<span>${entry.chance}%</span>
           }
             var despawn_time = new Date(data.responseJSON['despawn']);
             var spawn_time = new Date(data.responseJSON['spawn']);
           var str = `
-           <div>
+         <div>
+           <div class="spawn-window">
             <div>
-              <b>Spawn Location</b>
-            </div>
-            <div>
-              <span>Most likely to appear:</span>
-              <table class="spawn-table">
+              <div class="header">Most likely to appear:</div>
+              <div class="spawn-table">
                 ${table}
-              </table>
+              </div>
             </div>
             
             <div class="spawn-timing">
@@ -733,18 +728,15 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
 					<span class='label-countdown appear-countdown' disappears-at='${spawn_time.getTime()}'>(00m00s)</span>
                 </div>
                 <div class="spawn-active" despawns-at='${despawn_time.getTime()}'>
-					Disappears at: 
+					Disappears in: 
 					<span class='label-countdown disappear-countdown' disappears-at='${despawn_time.getTime()}'>(00m00s)</span>
                 </div>
-            </div>
-            
-            <div>
-              Location: ${item.latitude.toFixed(6)}, ${item.longitude.toFixed(7)}
             </div>
             <div>
               <a href='https://www.google.com/maps/dir/Current+Location/${item.latitude},${item.longitude}' target='_blank' title='View in Maps'>Get directions</a>
             </div>
-           </div>`;
+           </div>
+          </div>`;
         }
         else {
           var str = "Error retrieving data";

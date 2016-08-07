@@ -185,15 +185,22 @@ div#infobox {
     }
 }
 
-.spawn-table
-{
-    tr
-    {
-        padding: 0;
-        td
-        {
-            padding: 0;
-            vertical-align: middle;
+.spawn-window {
+    .header  {
+      padding-bottom: 3px;
+    }
+    .spawn-table {
+        margin-left: -2px;
+        .spawn-entry {
+            display: inline-block;
+
+            icon {
+                display: block;
+            }
+
+            .chance {
+                text-align: center;
+            }
         }
     }
 }
