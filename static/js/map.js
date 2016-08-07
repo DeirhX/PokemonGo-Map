@@ -688,7 +688,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
       complete: function (data) {
         if (data && data.responseJSON && data.responseJSON['rank'] && data.responseJSON['chances']) {
           var rank = data.responseJSON['rank'];
-          var table;
+          var table = "";
           data.responseJSON['chances'].sort(function(a, b){
             return ((a.chance < b.chance) ? +1 : ((a.chance > b.chance) ? -1 : 0));
           });
@@ -756,7 +756,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
           updateSpawnCycle($dom, true);
           var html = $dom.html();
 
-        marker.infoWindow.close();
+        closeMarkerWindow(marker.infoWindow);
         marker.infoWindow = new google.maps.InfoWindow({
           content: html,
           disableAutoPan: true
@@ -864,10 +864,18 @@ function clearSelection() {
 
 function addListeners(marker) {
   marker.addListener('click', function() {
-    openMarkerWindow(marker);
+
+    if (!marker.persist) {
+      openMarkerWindow(marker);
+      marker.persist = true;
+    } else {
+      closeMarkerWindow(marker);
+      marker.persist = false;
+    }
+
     clearSelection();
     updateAllLabelsDiffTime();
-    marker.persist = true;
+
   });
 
   google.maps.event.addListener(marker.infoWindow, 'closeclick', function() {
@@ -882,7 +890,7 @@ function addListeners(marker) {
 
   marker.addListener('mouseout', function() {
     if (!marker.persist) {
-      marker.infoWindow.close();
+      closeMarkerWindow(marker.infoWindow);
     }
   });
 
@@ -1165,6 +1173,9 @@ function redrawPokemon(pokemon_list) {
 
 function updateSpawnCycle(element, first) {
     var spawn = $(element).data('spawn');
+    if (!spawn) {
+      return;
+    }
     var marker = $(element).data('marker');
     var inactiveContent = $(element).find('.spawn-inactive');
     var activeContent = $(element).find('.spawn-active');
@@ -1666,13 +1677,29 @@ $(function() {
 
 });
 
-function openMarkerWindow(marker){
+function toggleMarkerWindow(marker, newState){
+  var wasOpen = false;
   for (var i = 0; i < infoWindowsOpen.length; ++i) {
     infoWindowsOpen[i].close();
+    if (infoWindowsOpen[i] == marker.infoWindow)
+      wasOpen = true;
   }
-  infoWindowsOpen = []
-  infoWindowsOpen.push(marker.infoWindow)
-  marker.infoWindow.open(map, marker);
+
+  infoWindowsOpen = [];
+  if (newState) {
+    marker.infoWindow.open(map, marker);
+    infoWindowsOpen.push(marker.infoWindow);
+  } else if (marker.infoWindow) {
+    marker.infoWindow.close();
+  }
+}
+
+function openMarkerWindow(marker){
+  toggleMarkerWindow(marker, true);
+}
+
+function closeMarkerWindow(marker) {
+  toggleMarkerWindow(marker, false);
 }
 
 function deirhExtensions(map) {
