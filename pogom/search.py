@@ -184,6 +184,12 @@ def do_search(location, steps):
 
 def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_path):
 
+    # If we have more than one account, stagger the logins such that they occur evenly over scan_delay
+    if len(args.accounts) > 1:
+        delay = (args.scan_delay / len(args.accounts)) * args.accounts.index(account)
+        log.debug('Delaying thread startup for %.2f seconds', delay)
+        time.sleep(delay)
+
     log.debug('Search worker thread starting')
 
     # The forever loop for the thread
@@ -246,7 +252,7 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
                             search_items_queue.task_done()
                             break # All done, get out of the request-retry loop
                         except KeyError:
-                            log.error('Search step %s map parsing failed, retrying request in %g seconds', step, sleep_time)
+                            log.exception('Search step %s map parsing failed, retrying request in %g seconds', step, sleep_time)
                             failed_total += 1
                             time.sleep(sleep_time)
 

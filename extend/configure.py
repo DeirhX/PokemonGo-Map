@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import re
+import requests
 
 from Queue import Queue
 from threading import Thread, Event
@@ -32,7 +33,7 @@ def configure(app):
     # Let's not forget to run Grunt / Only needed when running with webserver
     if not args.no_server:
         if not os.path.exists(os.path.join(os.path.dirname(__file__)+'/..', 'static/dist')):
-            log.critical('Please run "grunt build" before starting the server.')
+            log.critical('Missing front-end assets (static/dist) -- please run "npm install && npm run build" before starting the server');
             sys.exit()
 
 
@@ -63,6 +64,17 @@ def configure(app):
         log.debug('Looking up coords in API')
         position = get_pos_by_name(args.location)
 
+	# Use the latitude and longitude to get the local altitude from Google
+    try:
+        url = 'https://maps.googleapis.com/maps/api/elevation/json?locations={},{}'.format(
+            str(position[0]), str(position[1]))
+        altitude = requests.get(url).json()[u'results'][0][u'elevation']
+        log.debug('Local altitude is: %sm', altitude)
+        position = (position[0], position[1], altitude)
+    except requests.exceptions.RequestException:
+        log.error('Unable to retrieve altitude from Google APIs; setting to 0')
+
+		
     if not any(position):
         log.error('Could not get a position by name, aborting')
         sys.exit()
