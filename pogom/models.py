@@ -637,25 +637,32 @@ def clean_database():
     flaskDb.close_db(None)
 
 
+sqlQueue = Queue(1000)
+def write_thread(in_q) :
+    while True:
+        cls, data = in_q.get()
+        log.info("Update queue size: " + str(in_q.qsize()))
+
+        num_rows = len(data.values())
+        i = 0
+        step = 120
+        flaskDb.connect_db()
+        while i < num_rows:
+            log.debug('Inserting items %d to %d', i, min(i + step, num_rows))
+            try:
+                InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
+
+            except Exception as e:
+                log.warning("%s... Retrying", e)
+                continue
+            i += step
+        flaskDb.close_db(None)
+
+writer_thread = Thread(target=write_thread, args=(sqlQueue,))
+writer_thread.start()
+
 def bulk_upsert(cls, data):
-    num_rows = len(data.values())
-    i = 0
-    step = 120
-
-    flaskDb.connect_db()
-
-    while i < num_rows:
-        log.debug('Inserting items %d to %d', i, min(i+step, num_rows))
-        try:
-            InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
-        except Exception as e:
-            log.warning('%s... Retrying', e)
-            continue
-
-        i+=step
-
-    flaskDb.close_db(None)
-
+    sqlQueue.put((cls, data))
 
 def create_tables(db):
     db.connect()

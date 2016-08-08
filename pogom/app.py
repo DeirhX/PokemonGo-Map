@@ -297,7 +297,7 @@ class Pogom(Flask):
             # Check spam filter
             last_scan = Scan.get_last_scan_by_ip(request.remote_addr)
             if (last_scan):
-                db_time = db.execute_sql('select current_timestamp();')
+                db_time = self.config['DATABASE'].execute_sql('select current_timestamp();')
                 scan_offset = db_time.fetchone()[0] - last_scan.request_time
                 if (scan_offset < timedelta(seconds=10)):
                     return jsonify({'result': 'full'})
@@ -317,7 +317,7 @@ class Pogom(Flask):
             d = {'result': 'received'}
         except Full:
             d = {'result': 'full'}
-        except Exception:
+        except Exception as ex:
             d = {'result': 'failed'}
         return jsonify(d)
 

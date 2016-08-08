@@ -272,21 +272,21 @@ def check_login(args, api, position):
     i = 0
     api.set_position(position[0], position[1], position[2])
     with loginLock:
-        while i < args.login_retries:
+        while True: # i < args.login_retries:
             login_info = Login.get_least_used(1)
             try:
                 auth_service = 'google' if not login_info.type else 'ptc'
-                api.set_authentication(provider = auth_service, username = login_info.username, password = login_info.password)
-                log.debug('Login for account %s successful', login_info.username)
-                Login.set_success(login_info)
-                break
+                if api.set_authentication(provider = auth_service, username = login_info.username, password = login_info.password):
+                    log.debug('Login for account %s successful', login_info.username)
+                    Login.set_success(login_info)
             except AuthException:
-                i += 1
-                log.error('Failed to login to Pokemon Go with account %s. Trying again in %g seconds', login_info.username, args.login_delay)
-                Login.set_failed(login_info)
-                loginLock.release()
-                time.sleep(args.login_delay)
-                loginLock.acquire()
+                pass
+            i += 1
+            log.error('Failed to login to Pokemon Go with account %s. Trying again in %g seconds', login_info.username, args.login_delay)
+            Login.set_failed(login_info)
+            loginLock.release()
+            time.sleep(args.login_delay)
+            loginLock.acquire()
 
 
 
