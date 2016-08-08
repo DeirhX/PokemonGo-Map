@@ -1,3 +1,5 @@
+import peewee
+
 from pogom import config
 from pogom.utils import get_args
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery, \
@@ -17,6 +19,9 @@ with open('accounts.txt', 'r') as f :
     for line in alist:
         user, password = line.split(' ')
         sql = "INSERT INTO login (type, username, password, `use`) VALUES (1, '{0}', '{1}', '{2}')".format(user, password, 1)
-        db.execute_sql(sql)
+        try:
+            db.execute_sql(sql)
+        except peewee.IntegrityError:
+            pass
 
 
