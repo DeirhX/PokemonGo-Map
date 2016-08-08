@@ -51,13 +51,16 @@ from pogom.search import search_overseer_thread, fake_search_loop, scan_enqueue,
 from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pokestop, Gym
 
 from pgoapi import utilities as util
-from extend.logging import enableFileLogging
+from extend.log import enableFileLogging
+
 
 enableFileLogging('log/pogom.log')
 args = get_args()
 app = Pogom(__name__)
 
 if __name__ == '__main__':
+
+    config['ROOT_PATH'] = app.root_path
 
     #app.config['APPLICATION_ROOT'] = args.virtual_path
     #app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=args.virtual_path)

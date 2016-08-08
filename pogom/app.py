@@ -33,8 +33,8 @@ args = get_args() # Performance reasons
 
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
-        configure(self)
         super(Pogom, self).__init__(import_name, **kwargs)
+        configure(self)
         compress.init_app(self)
         self.json_encoder = CustomJSONEncoder
         self.route("/", methods=['GET'])(self.fullmap)

@@ -79,10 +79,9 @@ def configure(app):
 
     config['LOCALE'] = args.locale
     config['CHINA'] = args.china
-    config['ROOT_PATH'] = app.root_path
     config['GMAPS_KEY'] = args.gmaps_key
 
-    db = init_database()
+    db = init_database(app)
     if args.clear_db:
         # if args.db_type == 'mysql':
         #     drop_tables(db)

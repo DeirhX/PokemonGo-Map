@@ -622,7 +622,7 @@ def parse_map(map_dict, step_location):
 
     bulk_upsert(ScannedLocation, scanned)
 
-    clean_database()
+    # clean_database()
 
     return True
 
@@ -631,7 +631,7 @@ def clean_database():
     flaskDb.connect_db()
     query = (ScannedLocation
             .delete()
-            .where((ScannedLocation.last_modified <
+            .where((ScannedLocation.last_update <
                 (datetime.utcnow() - timedelta(minutes=30)))))
     query.execute()
     flaskDb.close_db(None)
