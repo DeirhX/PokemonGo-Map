@@ -19,3 +19,4 @@ with open('accounts.txt', 'r') as f :
         sql = "INSERT INTO login (type, username, password, `use`) VALUES (1, '{0}', '{1}', '{2}')".format(user, password, 1)
         db.execute_sql(sql)
 
+
