@@ -1261,7 +1261,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
           for (var i = 0; i < Math.min(data.responseJSON['chances'].length, max_entries); ++i) {
             var entry = data.responseJSON['chances'][i];
             var pokemon_index = entry.pokemon_id - 1;
-            var sprite = pokemon_sprites[Store.get('pokemonIcons')] || pokemon_sprites['highres']
+            var sprite = pokemonSprites[Store.get('pokemonIcons')] || pokemonSprites['highres']
             var icon_size = 32;
             var icon = getGoogleSprite(pokemon_index, sprite, icon_size);
             table += `
@@ -1475,8 +1475,8 @@ function clearStaleMarkers () {
       delete mapData.scanned[key]
     } else {
       // Update color
-      map_data.scanned[key].marker.setOptions({
-        fillColor: getColorByDate(map_data.scanned[key]['last_update'])
+      mapData.scanned[key].marker.setOptions({
+        fillColor: getColorByDate(mapData.scanned[key]['last_update'])
     });
     }
   })
@@ -1591,12 +1591,12 @@ function processSpawns(i, item) {
     return false; // in case the checkbox was unchecked in the meantime.
   }
 
-  if (!(item.id in map_data.spawns)) {
+  if (!(item.id in mapData.spawns)) {
     // add marker to map and item to dict
     if (item.marker) item.marker.setMap(null);
     if (!item.hidden) {
       item.marker = setupSpawnMarker(item);
-      map_data.spawns[item.id] = item;
+      mapData.spawns[item.id] = item;
     }
   }
 }
@@ -1686,8 +1686,8 @@ function processScanned (i, item) {
     return false
   }
 
-  if (item.scanned_id in map_data.scanned) {
-    item.marker = map_data.scanned[item.scanned_id].marker;
+  if (item.scanned_id in mapData.scanned) {
+    item.marker = mapData.scanned[item.scanned_id].marker;
     item.marker.setOptions({
       fillColor: getColorByDate(item.last_modified)
     });
@@ -1695,7 +1695,7 @@ function processScanned (i, item) {
     if (item.marker) item.marker.setMap(null);
     item.marker = setupScannedMarker(item);
   }
-  map_data.scanned[item.scanned_id] = item;
+  mapData.scanned[item.scanned_id] = item;
 }
 
 function updateMap(incremental) {
@@ -1707,12 +1707,12 @@ function updateMap(incremental) {
         $.each(result.pokestops, processLuredPokemon);
         $.each(result.gyms, processGyms);
         $.each(result.scanned, processScanned);
-        showInBoundsMarkers(map_data.pokemons);
-        showInBoundsMarkers(map_data.spawns);
-        showInBoundsMarkers(map_data.lure_pokemons);
-        showInBoundsMarkers(map_data.gyms);
-        showInBoundsMarkers(map_data.pokestops);
-        showInBoundsMarkers(map_data.scanned);
+        showInBoundsMarkers(mapData.pokemons);
+        showInBoundsMarkers(mapData.spawns);
+        showInBoundsMarkers(mapData.lure_pokemons);
+        showInBoundsMarkers(mapData.gyms);
+        showInBoundsMarkers(mapData.pokestops);
+        showInBoundsMarkers(mapData.scanned);
         clearStaleMarkers();
         if ($("#stats").hasClass("visible")) {
           countMarkers();
@@ -1807,8 +1807,8 @@ var updateSpawnIcon = function(spawn) {
 };
 
 var updateAllSpawnIcons = function() {
-  for (var spawnId in map_data.spawns) {
-    updateSpawnIcon(map_data.spawns[spawnId]);
+  for (var spawnId in mapData.spawns) {
+    updateSpawnIcon(mapData.spawns[spawnId]);
   }
 };
 
@@ -2227,7 +2227,7 @@ $(function () {
   $('#gyms-switch').change(buildSwitchChangeListener(mapData, ['gyms'], 'showGyms'))
   $('#pokemon-switch').change(buildSwitchChangeListener(mapData, ['pokemons', 'lure_pokemons'], 'showPokemon'))
   $('#scanned-switch').change(buildSwitchChangeListener(mapData, ['scanned'], 'showScanned'))
-  $('#spawn-switch').change(buildSwitchChangeListener(map_data, ["spawns"], "showSpawns"));
+  $('#spawn-switch').change(buildSwitchChangeListener(mapData, ["spawns"], "showSpawns"));
 
   $('#pokestops-switch').change(function () {
     var options = {
