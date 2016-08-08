@@ -1648,6 +1648,7 @@ $(function() {
   $('#gyms-switch').change(buildSwitchChangeListener(map_data, ["gyms"], "showGyms"));
   $('#pokemon-switch').change(buildSwitchChangeListener(map_data, ["pokemons", "lure_pokemons"], "showPokemon"));
   $('#scanned-switch').change(buildSwitchChangeListener(map_data, ["scanned"], "showScanned"));
+  $('#spawn-switch').change(buildSwitchChangeListener(map_data, ["spawns"], "showSpawns"));
 
   $('#pokestops-switch').change(function() {
     var options = {
