@@ -39,7 +39,7 @@ from pgoapi import utilities as util
 from pgoapi.exceptions import AuthException
 
 from . import config
-from .models import parse_map, Login, args
+from .models import parse_map, Login, args, flaskDb
 
 log = logging.getLogger(__name__)
 
@@ -169,7 +169,8 @@ def search_overseer_thread(args, thread_count, new_location_queue, pause_bit, en
         # Feed as many as you can
         # if search_items_queue.empty():
         # log.debug('Search queue empty, restarting loop')
-        do_search(current_location, args.step_limit)
+        if current_location:
+            do_search(current_location, args.step_limit)
         # else:
         #     log.info('Search queue processing, %d items left', search_items_queue.qsize())
 
@@ -184,23 +185,31 @@ def do_search(location, steps):
 
 def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_path):
 
-    log.debug('Search worker thread starting')
+    log.info('Search worker thread starting')
+
+    # We will attempt new login every this api is None
+    api = None
 
     # The forever loop for the thread
     while True:
-        try:
-            log.debug('Entering search loop')
 
-            # Create the API instance this will use
-            api = PGoApi()
+        log.info('Search step beginning (queue size is %d)', search_items_queue.qsize())
 
-            # The forever loop for the searches
-            while True:
+        # Grab the next thing to search (when available)
+        step, step_location = search_items_queue.get()
 
-                # Grab the next thing to search (when available)
-                step, step_location = search_items_queue.get()
+        # Was the scan successful at last?
+        success = False
+        fail = False
 
-                log.info('Search step %d beginning (queue size is %d)', step, search_items_queue.qsize())
+        # Will not stop unless...we succeed or fail really, really hard
+        while not success and not fail:
+            try:
+                log.info('Entering search loop')
+
+                # Create the API instance this will use if not already connected
+                if not api:
+                    api = PGoApi()
 
                 # Let the api know where we intend to be for this loop
                 api.set_position(*step_location)
@@ -216,6 +225,7 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
                         # on this overall loop forever. Better to lose one cell
                         # than have the scanner, essentially, halt.
                         log.error('Search step %d went over max scan_retires; abandoning', step)
+                        fail = True
                         break
 
                     # Increase sleep delay between each failed scan
@@ -243,19 +253,28 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
                     try:
                         parse_map(response_dict, step_location)
                         log.debug('Search step %s completed', step)
-                        search_items_queue.task_done()
-                        break # All done, get out of the request-retry loop
+                        success = True
+                        break  # All done, get out of the request-retry loop
                     except KeyError:
-                        log.exception('Search step %s map parsing failed, retrying request in %g seconds', step, sleep_time)
+                        log.exception('Search step %s map parsing failed, will relog in %g seconds', step, sleep_time)
                         failed_total += 1
                         time.sleep(sleep_time)
+                        raise # This could be serious and likely need to relog
 
                 time.sleep(args.scan_delay)
 
-        # catch any process exceptions, log them, and continue the thread
-        except Exception as e:
-            log.exception('Exception in search_worker: %s', e)
+            # catch any process exceptions, log them, and continue the until_success loop
+            except KeyError: # Received empty response probably, this login might be rotten already
+                log.warn('About to relogin with a different account')
+                Login.set_failed(api.login_info)
+                api = None
+            except Exception as e:
+                log.exception('Exception in search_worker: %s', e)
+                Login.set_failed(api.login_info)
+                api = None
 
+        # We got over until_success loop so that means we're successful, yay! Get the next one
+        search_items_queue.task_done()
 
 
 loginLock = Lock()
@@ -272,6 +291,7 @@ def check_login(args, api, position):
     i = 0
     api.set_position(position[0], position[1], position[2])
     with loginLock:
+        flaskDb.connect_db()
         while True: # i < args.login_retries:
             login_info = Login.get_least_used(1)
             try:
@@ -280,6 +300,7 @@ def check_login(args, api, position):
                 if api._auth_provider._access_token:
                     log.debug('Login for account %s successful', login_info.username)
                     Login.set_success(login_info)
+                    api.login_info = login_info
                     break
             except AuthException:
                 pass
@@ -289,6 +310,8 @@ def check_login(args, api, position):
             loginLock.release()
             time.sleep(args.login_delay)
             loginLock.acquire()
+        flaskDb.close_db(None)
+
 
 
 
