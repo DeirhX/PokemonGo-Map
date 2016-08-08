@@ -24,6 +24,11 @@ def configure(app, args):
         return
     configured = True
 
+    # Check if we have the proper encryption library file and get its path
+    encryption_lib_path = get_encryption_lib_path()
+    if encryption_lib_path is "":
+        sys.exit(1)
+
     if args.debug_log:
         log.setLevel(logging.DEBUG);
     else:
@@ -37,11 +42,10 @@ def configure(app, args):
 
 
     # These are very noisey, let's shush them up a bit
-    logging.getLogger("peewee").setLevel(logging.INFO)
-    logging.getLogger("requests").setLevel(logging.WARNING)
-    logging.getLogger("pogom.pgoapi.pgoapi").setLevel(logging.WARNING)
-    logging.getLogger("pogom.pgoapi.rpc_api").setLevel(logging.INFO)
-    logging.getLogger("pogom.models").setLevel(logging.INFO)
+    logging.getLogger('peewee').setLevel(logging.INFO)
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('pgoapi.pgoapi').setLevel(logging.WARNING)
+    logging.getLogger('pgoapi.rpc_api').setLevel(logging.INFO)
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
     config['parse_pokemon'] = not args.no_pokemon

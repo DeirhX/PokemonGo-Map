@@ -6,6 +6,9 @@
 var $selectExclude;
 var $selectNotify;
 var $selectStyle;
+var $selectIconResolution;
+var $selectIconSize;
+var $selectLuredPokestopsOnly;
 
 var language = document.documentElement.lang == "" ? "en" : document.documentElement.lang;
 var idToPokemon = {};
@@ -326,7 +329,8 @@ function createSearchMarker() {
     },
     map: map,
     animation: google.maps.Animation.DROP,
-    draggable: true
+    draggable: true,
+    zIndex: google.maps.Marker.MAX_ZINDEX + 1
   });
 
   var oldLocation = null;
@@ -564,17 +568,6 @@ function pokestopLabel(lured, last_modified, active_pokemon_id, latitude, longit
   return str;
 }
 
-function scannedLabel(last_modified) {
-  scanned_date = new Date(last_modified)
-
-  var contentstring = `
-    <div>
-      Scanned at ${pad(scanned_date.getHours())}:${pad(scanned_date.getMinutes())}:${pad(scanned_date.getSeconds())}
-    </div>`;
-
-  return contentstring;
-}
-
 
 function getGoogleSprite(index, sprite, display_height) {
   display_height = Math.max(display_height, 3);
@@ -809,7 +802,7 @@ function setupPokestopMarker(item) {
   });
 
   marker.infoWindow = new google.maps.InfoWindow({
-    content: pokestopLabel(!!item.lure_expiration, item.last_modified, item.active_pokemon_id, item.latitude + .003, item.longitude + .003),
+    content: pokestopLabel(!!item.lure_expiration, item.last_modified, item.active_pokemon_id, item.latitude, item.longitude),
     disableAutoPan: true
   });
 
@@ -1470,7 +1463,8 @@ $(function() {
   // setup the stylelist
   $selectStyle.select2({
     placeholder: "Select Style",
-    data: styleList
+    data: styleList,
+    minimumResultsForSearch: Infinity,
   });
 
   // setup the list change behavior
@@ -1484,6 +1478,45 @@ $(function() {
   // recall saved mapstyle
   $selectStyle.val(Store.get('map_style')).trigger("change");
 
+  });
+
+  $selectIconResolution =  $('#pokemon-icons');
+
+  $selectIconResolution.select2({
+    placeholder: "Select Icon Resolution",
+    minimumResultsForSearch: Infinity,
+  });
+
+  $selectIconResolution.on("change", function() {
+    Store.set('pokemonIcons', this.value);
+    redrawPokemon(map_data.pokemons);
+    redrawPokemon(map_data.lure_pokemons);
+  });
+
+
+  $selectIconSize = $('#pokemon-icon-size');
+
+  $selectIconSize.select2({
+    placeholder: "Select Icon Size",
+    minimumResultsForSearch: Infinity,
+  });
+
+  $selectIconSize.on("change", function() {
+    Store.set('iconSizeModifier', this.value);
+    redrawPokemon(map_data.pokemons);
+    redrawPokemon(map_data.lure_pokemons);
+  });
+
+  $selectLuredPokestopsOnly = $('#lured-pokestops-only-switch');
+
+  $selectLuredPokestopsOnly.select2({
+    placeholder: "Only Show Lured Pokestops",
+    minimumResultsForSearch: Infinity,
+  });
+
+  $selectLuredPokestopsOnly.on("change", function() {
+    Store.set("showLuredPokestopsOnly", this.value);
+    updateMap();
   });
 
 });
@@ -1629,25 +1662,8 @@ $(function() {
     return buildSwitchChangeListener(map_data, ["pokestops"], "showPokestops").bind(this)();
   });
 
-  $('#lured-pokestops-only-switch').change(function() {
-    Store.set("showLuredPokestopsOnly", this.value);
-    updateMap();
-  });
-
   $('#sound-switch').change(function() {
     Store.set("playSound", this.checked);
-  });
-
-  $('#pokemon-icons').change(function() {
-    Store.set('pokemonIcons', this.value);
-    redrawPokemon(map_data.pokemons);
-    redrawPokemon(map_data.lure_pokemons);
-  });
-
-  $('#pokemon-icon-size').change(function() {
-    Store.set('iconSizeModifier', this.value);
-    redrawPokemon(map_data.pokemons);
-    redrawPokemon(map_data.lure_pokemons);
   });
 
   $('#geoloc-switch').change(function() {
@@ -1665,6 +1681,11 @@ $(function() {
 
   $('#start-at-user-location-switch').change(function() {
     Store.set("startAtUserLocation", this.checked);
+  });
+
+  $("#nav-accordion").accordion({
+    active: false,
+    collapsible: true,
   });
 
 });

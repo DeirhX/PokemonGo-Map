@@ -3,7 +3,7 @@
 
 import logging
 import os
-import time
+import calendar
 from Queue import Queue
 
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
@@ -25,35 +25,35 @@ from .customLog import printPokemon
 log = logging.getLogger(__name__)
 
 args = get_args()
-db = None
+flaskDb = FlaskDB()
 
 
-class MyRetryDB(RetryOperationalError, MySQLDatabase):
+class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
     pass
 
 
-def init_database():
-    global db
-    if db is not None:
-        return db
-
+def init_database(app):
     if args.db_type == 'mysql':
+        log.info('Connecting to MySQL database on %s:%i', args.db_host, args.db_port)
         db = MyRetryDB(
             args.db_name,
             user=args.db_user,
             password=args.db_pass,
-            host=args.db_host)
-        log.info('Connecting to MySQL database on {}.'.format(args.db_host))
+            host=args.db_host,
+            port=args.db_port,
+            max_connections=args.db_max_connections,
+            stale_timeout=300)
     else:
+        log.info('Connecting to local SQLite database')
         db = SqliteDatabase(args.db)
-        log.info('Connecting to local SQLLite database.')
+
+    app.config['DATABASE'] = db
+    flaskDb.init_app(app)
 
     return db
 
 
-class BaseModel(Model):
-    class Meta:
-        database = init_database()
+class BaseModel(flaskDb.Model):
 
     @classmethod
     def get_all(cls):
@@ -81,8 +81,8 @@ class Pokemon(BaseModel):
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
 
-    @classmethod
-    def get_active(cls, swLat, swLng, neLat, neLng, since=datetime.min):
+    @staticmethod
+    def get_active(swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Pokemon
                      .select()
@@ -112,8 +112,8 @@ class Pokemon(BaseModel):
 
         return pokemons
 
-    @classmethod
-    def get_latest(cls):
+    @staticmethod
+    def get_latest():
         query = (Pokemon
             .select(Pokemon.last_update)
             .order_by(-Pokemon.last_update)
@@ -125,8 +125,8 @@ class Pokemon(BaseModel):
         empty.last_update = datetime.min
         return empty
 
-    @classmethod
-    def get_active_by_id(cls, ids, swLat, swLng, neLat, neLng, since=datetime.min):
+    @staticmethod
+    def get_active_by_id(ids, swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Pokemon
                      .select()
@@ -158,6 +158,52 @@ class Pokemon(BaseModel):
 
         return pokemons
 
+    @classmethod
+    def get_seen(cls, timediff):
+        if timediff:
+            timediff = datetime.utcnow() - timediff
+        pokemon_count_query = (Pokemon
+                               .select(Pokemon.pokemon_id,
+                                       fn.COUNT(Pokemon.pokemon_id).alias('count'),
+                                       fn.MAX(Pokemon.disappear_time).alias('lastappeared')
+                                       )
+                               .where(Pokemon.disappear_time > timediff)
+                               .group_by(Pokemon.pokemon_id)
+                               .alias('counttable')
+                               )
+        query = (Pokemon
+                 .select(Pokemon.pokemon_id,
+                         Pokemon.disappear_time,
+                         Pokemon.latitude,
+                         Pokemon.longitude,
+                         pokemon_count_query.c.count)
+                 .join(pokemon_count_query, on=(Pokemon.pokemon_id == pokemon_count_query.c.pokemon_id))
+                 .where(Pokemon.disappear_time == pokemon_count_query.c.lastappeared)
+                 .dicts()
+                 )
+        pokemons = []
+        total = 0
+        for p in query:
+            p['pokemon_name'] = get_pokemon_name(p['pokemon_id'])
+            pokemons.append(p)
+            total += p['count']
+
+        return {'pokemon': pokemons, 'total': total}
+
+    @classmethod
+    def get_appearances(cls, pokemon_id, last_appearance):
+        query = (Pokemon
+                 .select()
+                 .where((Pokemon.pokemon_id == pokemon_id) &
+                        (Pokemon.disappear_time > datetime.utcfromtimestamp(last_appearance/1000.0))
+                        )
+                 .order_by(Pokemon.disappear_time.asc())
+                 .dicts()
+                 )
+        appearances = []
+        for a in query:
+            appearances.append(a)
+        return appearances
 
 class Pokestop(BaseModel):
     pokestop_id = CharField(primary_key=True, max_length=50)
@@ -172,8 +218,8 @@ class Pokestop(BaseModel):
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
 
-    @classmethod
-    def get_latest(cls):
+    @staticmethod
+    def get_latest():
         query = (Pokestop
             .select(Pokestop.last_update)
             .order_by(-Pokestop.last_update)
@@ -185,8 +231,8 @@ class Pokestop(BaseModel):
         empty.last_update = datetime.min
         return empty
 
-    @classmethod
-    def get_stops(cls, swLat, swLng, neLat, neLng, since=datetime.min):
+    @staticmethod
+    def get_stops(swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Pokestop
                      .select()
@@ -245,8 +291,8 @@ class Gym(BaseModel):
         return empty
 
 
-    @classmethod
-    def get_gyms(cls, swLat, swLng, neLat, neLng, since=datetime.min):
+    @staticmethod
+    def get_gyms(swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Gym
                      .select()
@@ -291,8 +337,8 @@ class ScannedLocation(BaseModel):
         empty.last_update = datetime.min
         return empty
 
-    @classmethod
-    def get_recent(cls, swLat, swLng, neLat, neLng, since=datetime.min):
+    @staticmethod
+    def get_recent( swLat, swLng, neLat, neLng, since=datetime.min):
         query = (ScannedLocation
                  .select()
                  .where((ScannedLocation.last_update >=
@@ -462,7 +508,7 @@ class Spawn(BaseModel):
 
 
 
-def parse_map(map_dict, iteration_num, step, step_location):
+def parse_map(map_dict, step_location):
     pokemons = {}
     pokestops = {}
     gyms = {}
@@ -480,7 +526,7 @@ def parse_map(map_dict, iteration_num, step, step_location):
                              p['longitude'], d_t)
                 pokemons[p['encounter_id']] = {
                     'encounter_id': b64encode(str(p['encounter_id'])),
-                    'spawnpoint_id': p['spawnpoint_id'],
+                    'spawnpoint_id': p['spawn_point_id'],
                     'pokemon_id': p['pokemon_data']['pokemon_id'],
                     'latitude': p['latitude'],
                     'longitude': p['longitude'],
@@ -491,49 +537,61 @@ def parse_map(map_dict, iteration_num, step, step_location):
 
                 webhook_data = {
                     'encounter_id': b64encode(str(p['encounter_id'])),
-                    'spawnpoint_id': p['spawnpoint_id'],
+                    'spawnpoint_id': p['spawn_point_id'],
                     'pokemon_id': p['pokemon_data']['pokemon_id'],
                     'latitude': p['latitude'],
                     'longitude': p['longitude'],
-                    'disappear_time': time.mktime(d_t.timetuple()),
+                    'disappear_time': calendar.timegm(d_t.timetuple()),
                     'last_modified_time': p['last_modified_timestamp_ms'],
-                    'time_until_hidden_ms': p['time_till_hidden_ms']
+                    'time_until_hidden_ms': p['time_till_hidden_ms'],
+                    'is_lured': False
                 }
 
                 send_to_webhook('pokemon', webhook_data)
 
         for f in cell.get('forts', []):
             if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops
-                    if 'lure_info' in f:
-                        lure_expiration = datetime.utcfromtimestamp(
-                            f['lure_info']['lure_expires_timestamp_ms'] / 1000.0)
-                        active_pokemon_id = f['lure_info']['active_pokemon_id']
-                    else:
-                        lure_expiration, active_pokemon_id = None, None
-
-                    pokestops[f['id']] = {
-                        'pokestop_id': f['id'],
-                        'enabled': f['enabled'],
+                if 'lure_info' in f:
+                    lure_expiration = datetime.utcfromtimestamp(
+                        f['lure_info']['lure_expires_timestamp_ms'] / 1000.0)
+                    active_pokemon_id = f['lure_info']['active_pokemon_id']
+                    encounter_id = f['lure_info']['encounter_id']
+                    webhook_data = {
+                        'encounter_id': b64encode(str(encounter_id)),
+                        'pokemon_id': active_pokemon_id,
                         'latitude': f['latitude'],
                         'longitude': f['longitude'],
-                        'last_modified': datetime.utcfromtimestamp(
-                            f['last_modified_timestamp_ms'] / 1000.0),
-                        'lure_expiration': lure_expiration,
-                        'active_pokemon_id': active_pokemon_id
+                        'disappear_time': calendar.timegm(lure_expiration.timetuple()),
+                        'last_modified_time': f['last_modified_timestamp_ms'],
+                        'is_lured': True
                     }
+                    send_to_webhook('pokemon', webhook_data)
+                else:
+                    lure_expiration, active_pokemon_id = None, None
+
+                pokestops[f['id']] = {
+                    'pokestop_id': f['id'],
+                    'enabled': f['enabled'],
+                    'latitude': f['latitude'],
+                    'longitude': f['longitude'],
+                    'last_modified': datetime.utcfromtimestamp(
+                        f['last_modified_timestamp_ms'] / 1000.0),
+                    'lure_expiration': lure_expiration,
+                    'active_pokemon_id': active_pokemon_id
+                }
 
             elif config['parse_gyms'] and f.get('type') is None:  # Currently, there are only stops and gyms
-                    gyms[f['id']] = {
-                        'gym_id': f['id'],
-                        'team_id': f.get('owned_by_team', 0),
-                        'guard_pokemon_id': f.get('guard_pokemon_id', 0),
-                        'gym_points': f.get('gym_points', 0),
-                        'enabled': f['enabled'],
-                        'latitude': f['latitude'],
-                        'longitude': f['longitude'],
-                        'last_modified': datetime.utcfromtimestamp(
-                            f['last_modified_timestamp_ms'] / 1000.0)
-                    }
+                gyms[f['id']] = {
+                    'gym_id': f['id'],
+                    'team_id': f.get('owned_by_team', 0),
+                    'guard_pokemon_id': f.get('guard_pokemon_id', 0),
+                    'gym_points': f.get('gym_points', 0),
+                    'enabled': f['enabled'],
+                    'latitude': f['latitude'],
+                    'longitude': f['longitude'],
+                    'last_modified': datetime.utcfromtimestamp(
+                        f['last_modified_timestamp_ms'] / 1000.0),
+                }
 
     pokemons_upserted = 0
     pokestops_upserted = 0
@@ -541,23 +599,20 @@ def parse_map(map_dict, iteration_num, step, step_location):
 
     if pokemons and config['parse_pokemon']:
         pokemons_upserted = len(pokemons)
-        log.debug("Upserting {} pokemon".format(len(pokemons)))
         bulk_upsert(Pokemon, pokemons)
 
     if pokestops and config['parse_pokestops']:
         pokestops_upserted = len(pokestops)
-        log.debug("Upserting {} pokestops".format(len(pokestops)))
         bulk_upsert(Pokestop, pokestops)
 
     if gyms and config['parse_gyms']:
         gyms_upserted = len(gyms)
-        log.debug("Upserting {} gyms".format(len(gyms)))
         bulk_upsert(Gym, gyms)
 
-    log.info("Upserted {} pokemon, {} pokestops, and {} gyms".format(
-      pokemons_upserted,
-      pokestops_upserted,
-      gyms_upserted))
+    log.info('Upserted %d pokemon, %d pokestops, and %d gyms',
+        pokemons_upserted,
+        pokestops_upserted,
+        gyms_upserted)
 
     scanned[0] = {
         'scanned_id': str(step_location[0])+','+str(step_location[1]),
@@ -567,32 +622,40 @@ def parse_map(map_dict, iteration_num, step, step_location):
 
     bulk_upsert(ScannedLocation, scanned)
 
+    clean_database()
+
+    return True
 
 
-sqlQueue = Queue(1000)
-def write_thread(in_q) :
-    while True:
-        cls, data = in_q.get()
-        log.info("Update queue size: " + str(in_q.qsize()))
+def clean_database():
+    flaskDb.connect_db()
+    query = (ScannedLocation
+            .delete()
+            .where((ScannedLocation.last_modified <
+                (datetime.utcnow() - timedelta(minutes=30)))))
+    query.execute()
+    flaskDb.close_db(None)
 
-        num_rows = len(data.values())
-        i = 0
-        step = 120
-        while i < num_rows:
-            log.debug("Inserting items {} to {}".format(i, min(i+step, num_rows)))
-            try:
-                InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
-
-            except Exception as e:
-                log.warning("%s... Retrying", e)
-                continue
-            i += step
-
-writer_thread = Thread(target=write_thread, args=(sqlQueue,))
-writer_thread.start()
 
 def bulk_upsert(cls, data):
-    sqlQueue.put((cls, data))
+    num_rows = len(data.values())
+    i = 0
+    step = 120
+
+    flaskDb.connect_db()
+
+    while i < num_rows:
+        log.debug('Inserting items %d to %d', i, min(i+step, num_rows))
+        try:
+            InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
+        except Exception as e:
+            log.warning('%s... Retrying', e)
+            continue
+
+        i+=step
+
+    flaskDb.close_db(None)
+
 
 def create_tables(db):
     db.connect()
