@@ -106,7 +106,7 @@ def configure(app):
         begin_consume_queue()
 
     # Gather the pokemons!
-    if (not args.only_server and not args.scan_worker) or args.robot_worker:
+    if (not args.only_server):
         if not args.mock:
             log.debug('Starting a real search thread')
             # search_thread = Thread(target=search_loop, args=(args,search_control,))
