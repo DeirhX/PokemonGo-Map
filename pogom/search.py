@@ -276,7 +276,8 @@ def check_login(args, api, position):
             login_info = Login.get_least_used(1)
             try:
                 auth_service = 'google' if not login_info.type else 'ptc'
-                if not api.set_authentication(provider = auth_service, username = login_info.username, password = login_info.password) == False:
+                api.set_authentication(provider = auth_service, username = login_info.username, password = login_info.password)
+                if api._auth_provider._access_token:
                     log.debug('Login for account %s successful', login_info.username)
                     Login.set_success(login_info)
                     break
