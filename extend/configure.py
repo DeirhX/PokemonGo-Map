@@ -107,7 +107,8 @@ def configure(app):
 
     # Setup the location tracking queue and push the first location on
     new_location_queue = Queue()
-    new_location_queue.put(position)
+    if not args.scan_worker and not args.only_server:
+        new_location_queue.put(position)
 
     app.set_current_location(position)
     app.set_search_control(pause_bit)
