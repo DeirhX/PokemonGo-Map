@@ -13,6 +13,7 @@ from flask_compress import Compress
 from datetime import datetime, timedelta
 from s2sphere import *
 
+from extend.configure import configure
 from pogom.member import member_scan_pool_max, member_scan_pool_remain_user, \
     member_scan_pool_remain_ip
 from pogom.utils import get_args
@@ -20,9 +21,8 @@ from datetime import timedelta
 from collections import OrderedDict
 
 from . import config
-from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, db, Spawn
-from .search import search, scan_enqueue
-from .startup import configure
+from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn
+from .search import scan_enqueue
 from .user import verify_token
 from .stats import get_guests_seen, get_members_seen, get_requests_made, get_scans_made, mark_refresh, mark_scan
 
@@ -33,7 +33,7 @@ args = get_args() # Performance reasons
 
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
-        configure(self, args)
+        configure(self)
         super(Pogom, self).__init__(import_name, **kwargs)
         compress.init_app(self)
         self.json_encoder = CustomJSONEncoder

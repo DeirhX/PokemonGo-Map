@@ -44,6 +44,8 @@ from .models import parse_map, Login, args
 log = logging.getLogger(__name__)
 
 TIMESTAMP = '\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000'
+search_items_queue = Queue(config['SEARCH_QUEUE_DEPTH'])
+scan_queue = Queue(config['SCAN_QUEUE_DEPTH'])
 
 def get_new_coords(init_loc, distance, bearing):
     """ Given an initial lat/lng, a distance(in kms), and a bearing (degrees),
@@ -115,7 +117,6 @@ def search_overseer_thread(args, thread_count, new_location_queue, pause_bit, en
 
     log.info('Search overseer starting')
 
-    search_items_queue = Queue(config['SEARCH_QUEUE_DEPTH'])
     parse_lock = Lock()
 
     # Create a search_worker_thread per account
@@ -168,16 +169,18 @@ def search_overseer_thread(args, thread_count, new_location_queue, pause_bit, en
         # Feed as many as you can
         # if search_items_queue.empty():
         # log.debug('Search queue empty, restarting loop')
-        for step, step_location in enumerate(generate_location_steps(current_location, args.step_limit), 1):
-            log.debug('Queueing step %d @ %f/%f/%f', step, step_location[0], step_location[1], step_location[2])
-            search_args = (step, step_location)
-            search_items_queue.put(search_args)
+        do_search(current_location, args.step_limit)
         # else:
         #     log.info('Search queue processing, %d items left', search_items_queue.qsize())
 
         # Now we just give a little pause here
         time.sleep(1)
 
+def do_search(location, steps):
+    for step, step_location in enumerate(generate_location_steps(location, steps), 1):
+        log.debug('Queueing step %d @ %f/%f/%f', step, step_location[0], step_location[1], step_location[2])
+        search_args = (step, step_location)
+        search_items_queue.put(search_args)
 
 def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_path):
 
@@ -253,6 +256,8 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
         except Exception as e:
             log.exception('Exception in search_worker: %s', e)
 
+
+
 loginLock = Lock()
 def check_login(args, api, position):
 
@@ -304,7 +309,6 @@ class TooManyLoginAttempts(Exception):
 #
 # Scan consumer - producer
 #
-scan_queue = Queue(config['SCAN_QUEUE_DEPTH'])
 def create_scan_queue_dispatcher():
     scan_queue_thread = Thread(target=scan_queue_dispatcher, name='Scan queue thread', args=(args, scan_queue,))
     scan_queue_thread.daemon = True

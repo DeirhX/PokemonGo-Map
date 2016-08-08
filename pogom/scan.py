@@ -8,9 +8,9 @@ from threading import Thread
 
 from flask import logging
 
+from pogom.search import do_search
 from pogom.utils import get_args
 from queuing import scan_queue
-from search import search
 
 consumer = None
 args = get_args()
@@ -23,7 +23,7 @@ def begin_consume_queue():
         while True:
             timestamp, expire_time, position, steps = queue.get()
             log.info('Processing scan request...')
-            search(args, 0, position, steps)
+            do_search(position, steps)
     scan_enqueue_thread = Thread(target=scan_dispatcher, name='Scan queue thread', args=(queue,))
     scan_enqueue_thread.daemon = True
     scan_enqueue_thread.start()
