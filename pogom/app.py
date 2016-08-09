@@ -3,29 +3,26 @@
 
 import calendar
 import logging
-import time
 from Queue import Full
+from collections import OrderedDict
+from datetime import datetime
+from datetime import timedelta
 
 from flask import Flask, jsonify, render_template, request
 from flask import session
 from flask.json import JSONEncoder
 from flask_compress import Compress
-from datetime import datetime, timedelta
 from s2sphere import *
 
 from extend.configure import configure
-from pogom.member import member_scan_pool_max, member_scan_pool_remain_user, \
+from extend.member import member_scan_pool_max, member_scan_pool_remain_user, \
     member_scan_pool_remain_ip
+from extend.stats import get_guests_seen, get_members_seen, get_requests_made, get_scans_made, mark_refresh, mark_scan
+from extend.user import verify_token
 from pogom.utils import get_args
-from datetime import timedelta
-from collections import OrderedDict
-
 from . import config
 from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn
 from .search import scan_enqueue
-from .user import verify_token
-from .stats import get_guests_seen, get_members_seen, get_requests_made, get_scans_made, mark_refresh, mark_scan
-
 
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -371,7 +368,7 @@ class Pogom(Flask):
             return jsonify({'result': 'failed'})
 
     def message(self):
-        return jsonify({'message' : 'Niantic just changed RPC API. Working on a fix.'})
+        return jsonify({'message' : 'New crypto is defeated. Scans will be coming back slowly.'})
 
 class CustomJSONEncoder(JSONEncoder):
 

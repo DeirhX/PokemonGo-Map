@@ -1,17 +1,17 @@
-import os
-import sys
 import logging
+import os
 import re
-import requests
-
+import sys
 from Queue import Queue
 from threading import Thread, Event
+
+import requests
 from flask.ext.cors import CORS
 from pgoapi.utilities import get_pos_by_name
 
+from extend.scan import begin_consume_queue
 from pogom import config
 from pogom.models import init_database, create_tables
-from pogom.scan import begin_consume_queue
 from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop
 from pogom.utils import get_encryption_lib_path, insert_mock_data, get_args
 

@@ -1,4 +1,4 @@
-from . import config
+from pogom import config
 from oauth2client import client, crypt
 
 # (Receive token by HTTPS POST)

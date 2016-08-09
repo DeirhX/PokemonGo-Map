@@ -1,12 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-import shutil
 import logging
+import os
+import shutil
+import sys
 import time
-import re
 
 # Currently supported pgoapi
 pgoapi_version = "1.1.6"
@@ -37,20 +36,10 @@ if not hasattr(pgoapi, "__version__") or StrictVersion(pgoapi.__version__) < Str
     log.critical("It seems `pgoapi` is not up-to-date. You must run pip install -r requirements.txt again")
     sys.exit(1)
 
-from threading import Thread, Event
-from queue import Queue
-from flask_cors import CORS
-
 from pogom import config
 from pogom.app import Pogom
-from pogom.scan import begin_consume_queue
-from pogom.utils import get_args, insert_mock_data, get_encryption_lib_path
+from pogom.utils import get_args
 
-from pogom.search import search_overseer_thread, fake_search_loop, scan_enqueue, \
-    create_scan_queue_dispatcher
-from pogom.models import init_database, create_tables, drop_tables, Pokemon, Pokestop, Gym
-
-from pgoapi import utilities as util
 from extend.log import enableFileLogging
 
 
