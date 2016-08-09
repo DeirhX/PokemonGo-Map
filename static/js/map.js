@@ -1221,7 +1221,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
       lng: item.longitude
     },
     map: map,
-    icon: 'static/images/green-leaf-icon-10.png'
+    icon: 'static/images/spawn.png'
   });
 
     marker.spawnData = item;
