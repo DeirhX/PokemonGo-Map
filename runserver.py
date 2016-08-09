@@ -43,7 +43,7 @@ from pogom.utils import get_args
 from extend.log import enableFileLogging
 
 
-enableFileLogging('log/pogom.log')
+enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
 args = get_args()
 app = Pogom(__name__)
 
