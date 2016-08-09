@@ -717,7 +717,7 @@ var StoreOptions = {
     type: StoreTypes.Boolean
   },
   showSpawns: {
-    default: true,
+    default: false,
     type: StoreTypes.Boolean
   },
   'showLuredPokestopsOnly': {
@@ -936,11 +936,6 @@ function updateSearchStatus () {
 }
 
 function initSidebar () {
-    if (localStorage.initialized !== 'true') {
-        localStorage.showPokemon = 'true';
-        localStorage.showSpawns = 'true';
-        localStorage.initialized = 'true';
-    }
   $('#gyms-switch').prop('checked', Store.get('showGyms'))
   $('#pokemon-switch').prop('checked', Store.get('showPokemon'))
   $('#pokestops-switch').prop('checked', Store.get('showPokestops'))
