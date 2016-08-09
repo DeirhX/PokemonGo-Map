@@ -39,7 +39,6 @@ if not hasattr(pgoapi, "__version__") or StrictVersion(pgoapi.__version__) < Str
 from threading import Thread, Event
 from queue import Queue
 from flask_cors import CORS
-from flask_cache_bust import init_cache_busting
 
 from pogom import config
 from pogom.app import Pogom

@@ -8,6 +8,7 @@ from threading import Thread, Event
 import requests
 from flask.ext.cors import CORS
 from pgoapi.utilities import get_pos_by_name
+from flask_cache_bust import init_cache_busting
 
 from extend.scan import begin_consume_queue
 from pogom import config
@@ -71,10 +72,9 @@ def configure(app):
         altitude = requests.get(url).json()[u'results'][0][u'elevation']
         log.debug('Local altitude is: %sm', altitude)
         position = (position[0], position[1], altitude)
-    except requests.exceptions.RequestException:
+    except (requests.exceptions.RequestException, IndexError, KeyError):
         log.error('Unable to retrieve altitude from Google APIs; setting to 0')
 
-		
     if not any(position):
         log.error('Could not get a position by name, aborting')
         sys.exit()
@@ -135,6 +135,8 @@ def configure(app):
         search_thread.start()
 
     if args.cors:
-        CORS(app);
+        CORS(app)
 
+    # No more stale JS
+    # init_cache_busting(app)
 

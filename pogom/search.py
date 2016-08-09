@@ -35,6 +35,7 @@ from pgoapi.utilities import f2i
 from pgoapi import utilities as util
 from pgoapi.exceptions import AuthException
 
+from . import config
 from .models import parse_map, Login, args, flaskDb
 
 log = logging.getLogger(__name__)
