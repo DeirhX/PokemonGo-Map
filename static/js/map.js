@@ -22,7 +22,8 @@ var map
 var rawDataIsLoading = false
 var locationMarker
 var marker
-var infoWindowsOpen = [];
+var infoWindowsOpen = []
+var highlightedMarker
 
 var noLabelsStyle = [{
   featureType: 'poi',
@@ -1220,7 +1221,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
       lng: item.longitude
     },
     map: map,
-    icon: 'static/forts/Harmony.png'
+    icon: 'static/images/green-leaf-icon-10.png'
   });
 
     marker.spawnData = item;
@@ -1243,6 +1244,9 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
       dataType: "json",
       cache: false,
       complete: function (data) {
+        if (highlightedMarker != marker) {
+          return
+        }
         if (data && data.responseJSON && data.responseJSON['rank'] && data.responseJSON['chances']) {
           item.rank = data.responseJSON['rank'];
           var rankChanceMod = 1 - (0.75 / item.rank);
@@ -1435,12 +1439,14 @@ function addListeners (marker) {
     openMarkerWindow(marker);
     clearSelection()
     updateAllLabelsDiffTime();
+    highlightedMarker = marker
   })
 
   marker.addListener('mouseout', function () {
     if (!marker.persist) {
       closeMarkerWindow(marker.infoWindow);
     }
+    highlightedMarker = null
   })
 
   return marker

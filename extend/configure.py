@@ -138,5 +138,5 @@ def configure(app):
         CORS(app)
 
     # No more stale JS
-    # init_cache_busting(app)
+    init_cache_busting(app)
 
