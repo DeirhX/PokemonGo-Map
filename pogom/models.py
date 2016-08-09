@@ -640,10 +640,13 @@ def clean_database():
 sqlQueue = Queue(1000)
 def write_thread(in_q):
     try:
-        flaskDb.connect_db()
+        connected = False
         while True:
             cls, data = in_q.get()
             log.info("Update queue size: " + str(in_q.qsize()))
+            if not connected:
+                flaskDb.connect_db()
+                connected = True
 
             while True:
                 try:
