@@ -13,7 +13,7 @@ from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from base64 import b64encode
 from threading import Thread
 
@@ -638,25 +638,26 @@ def clean_database():
 
 
 sqlQueue = Queue(1000)
-def write_thread(in_q) :
-    while True:
-        cls, data = in_q.get()
-        log.info("Update queue size: " + str(in_q.qsize()))
-
-        num_rows = len(data.values())
-        i = 0
-        step = 5000
+def write_thread(in_q):
+    try:
         flaskDb.connect_db()
-        while i < num_rows:
-            log.debug('Inserting items %d to %d', i, min(i + step, num_rows))
-            try:
-                InsertQuery(cls, rows=data.values()[i:min(i+step, num_rows)]).upsert().execute()
+        while True:
+            cls, data = in_q.get()
+            log.info("Update queue size: " + str(in_q.qsize()))
 
-            except Exception as e:
-                log.warning("%s... Retrying", e)
-                continue
-            i += step
+            while True:
+                try:
+                    log.debug('Inserting %d items to db', len(data.values()))
+                    InsertQuery(cls, rows=data.values().upsert().execute())
+                    break
+                except Exception as e:
+                    log.warning("%s... Retrying", e)
+                    time.wait(1)
+                    continue
+        # Does not reach here normally
         flaskDb.close_db(None)
+    except Exception as e:
+        log.exception('Fatal exception in database write_thread: %s', e)
 
 writer_thread = Thread(target=write_thread, args=(sqlQueue,))
 writer_thread.start()
