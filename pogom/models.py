@@ -651,7 +651,7 @@ def write_thread(in_q):
             while True:
                 try:
                     log.debug('Inserting %d items to db', len(data.values()))
-                    InsertQuery(cls, rows=data.values().upsert().execute())
+                    InsertQuery(cls, rows=data.values()).upsert().execute()
                     break
                 except Exception as e:
                     log.warning("%s... Retrying", e)
