@@ -645,7 +645,7 @@ def write_thread(in_q) :
 
         num_rows = len(data.values())
         i = 0
-        step = 120
+        step = 5000
         flaskDb.connect_db()
         while i < num_rows:
             log.debug('Inserting items %d to %d', i, min(i + step, num_rows))
