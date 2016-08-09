@@ -652,10 +652,11 @@ def write_thread(in_q):
                     break
                 except Exception as e:
                     log.warning("%s... Retrying", e)
+                    flaskDb.close_db(None)
                     time.wait(1)
+                    flaskDb.connect_db()
                     continue
         # Does not reach here normally
-        flaskDb.close_db(None)
     except Exception as e:
         log.exception('Fatal exception in database write_thread: %s', e)
 
