@@ -12,7 +12,7 @@ from flask import Flask, jsonify, render_template, request
 from flask import session
 from flask.json import JSONEncoder
 from flask_compress import Compress
-from s2sphere import *
+from s2sphere import LatLng
 
 from extend.configure import configure
 from extend.member import member_scan_pool_max, member_scan_pool_remain_user, \
@@ -66,7 +66,7 @@ class Pogom(Flask):
     def post_search_control(self):
         if not args.search_control:
             return 'Search control is disabled', 403
-        action = request.args.get('action','none')
+        action = request.args.get('action', 'none')
         if action == 'on':
             self.search_control.clear()
             log.info('Search thread resumed')
@@ -74,7 +74,7 @@ class Pogom(Flask):
             self.search_control.set()
             log.info('Search thread paused')
         else:
-            return jsonify({'message':'invalid use of api'})
+            return jsonify({'message': 'invalid use of api'})
         return self.get_search_control()
 
     def fullmap(self):
@@ -212,9 +212,9 @@ class Pogom(Flask):
                 'distance': int(origin_point.get_distance(
                     pokemon_point).radians * 6366468.241830914),
                 'time_to_disappear': '%d min %d sec' % (divmod((
-                    pokemon['disappear_time']-datetime.utcnow()).seconds, 60)),
+                    pokemon['disappear_time'] - datetime.utcnow()).seconds, 60)),
                 'disappear_time': pokemon['disappear_time'],
-                'disappear_sec': (pokemon['disappear_time']-datetime.utcnow()).seconds,
+                'disappear_sec': (pokemon['disappear_time'] - datetime.utcnow()).seconds,
                 'latitude': pokemon['latitude'],
                 'longitude': pokemon['longitude']
             }
@@ -237,9 +237,9 @@ class Pogom(Flask):
         valid_durations["1d"] = {"display": "Last Day", "value": timedelta(days=1), "selected": ("SELECTED" if duration == "1d" else "")}
         valid_durations["7d"] = {"display": "Last 7 Days", "value": timedelta(days=7), "selected": ("SELECTED" if duration == "7d" else "")}
         valid_durations["14d"] = {"display": "Last 14 Days", "value": timedelta(days=14), "selected": ("SELECTED" if duration == "14d" else "")}
-        valid_durations["1m"] = {"display": "Last Month", "value": timedelta(days=365/12), "selected": ("SELECTED" if duration == "1m" else "")}
-        valid_durations["3m"] = {"display": "Last 3 Months", "value": timedelta(days=3*365/12), "selected": ("SELECTED" if duration == "3m" else "")}
-        valid_durations["6m"] = {"display": "Last 6 Months", "value": timedelta(days=6*365/12), "selected": ("SELECTED" if duration == "6m" else "")}
+        valid_durations["1m"] = {"display": "Last Month", "value": timedelta(days=365 / 12), "selected": ("SELECTED" if duration == "1m" else "")}
+        valid_durations["3m"] = {"display": "Last 3 Months", "value": timedelta(days=3 * 365 / 12), "selected": ("SELECTED" if duration == "3m" else "")}
+        valid_durations["6m"] = {"display": "Last 6 Months", "value": timedelta(days=6 * 365 / 12), "selected": ("SELECTED" if duration == "6m" else "")}
         valid_durations["1y"] = {"display": "Last Year", "value": timedelta(days=365), "selected": ("SELECTED" if duration == "1y" else "")}
         valid_durations["all"] = {"display": "Map Lifetime", "value": 0, "selected": ("SELECTED" if duration == "all" else "")}
         if duration not in valid_durations:
