@@ -271,7 +271,10 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
                 api = None
             except Exception as e:
                 log.exception('Exception in search_worker: %s', e)
-                Login.set_failed(api.login_info)
+                try:
+                    Login.set_failed(api.login_info)
+                except Exception as e:
+                    log.exception('Failed to write into database')
                 api = None
 
         # We got over until_success loop so that means we're successful, yay! Get the next one
