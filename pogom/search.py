@@ -194,7 +194,17 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
     # The forever loop for the thread
     while True:
 
+<<<<<<< HEAD
         log.info('Search step beginning (queue size is %d)', search_items_queue.qsize())
+=======
+            # Create the API instance this will use
+            api = PGoApi()
+            if args.proxy:
+                api.set_proxy({'http': args.proxy, 'https': args.proxy})
+
+            # Get current time
+            loop_start_time = int(round(time.time() * 1000))
+>>>>>>> 9353241d1ec4e41cfd749644c0b1ada73bb340d5
 
         # Grab the next thing to search (when available)
         step, step_location = search_items_queue.get()
@@ -262,6 +272,7 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
                         time.sleep(sleep_time)
                         raise # This could be serious and likely need to relog
 
+<<<<<<< HEAD
                 flaskDb.close_db(None)
                 time.sleep(args.scan_delay)
 
@@ -282,6 +293,19 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
 
         # We got over until_success loop so that means we're successful, yay! Get the next one
         search_items_queue.task_done()
+=======
+                # If there's any time left between the start time and the time when we should be kicking off the next
+                # loop, hang out until its up.
+                sleep_delay_remaining = loop_start_time + (args.scan_delay * 1000) - int(round(time.time() * 1000))
+                if sleep_delay_remaining > 0:
+                    time.sleep(sleep_delay_remaining / 1000)
+
+                loop_start_time += args.scan_delay * 1000
+
+        # catch any process exceptions, log them, and continue the thread
+        except Exception as e:
+            log.exception('Exception in search_worker: %s. Username: %s', e, account['username'])
+>>>>>>> 9353241d1ec4e41cfd749644c0b1ada73bb340d5
 
 
 loginLock = Lock()

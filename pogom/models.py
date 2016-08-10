@@ -603,6 +603,20 @@ def parse_map(map_dict, step_location):
     pokestops_upserted = 0
     gyms_upserted = 0
 
+    scanned[0] = {
+        'scanned_id': str(step_location[0]) + ',' + str(step_location[1]),
+        'latitude': step_location[0],
+        'longitude': step_location[1],
+        'last_modified': datetime.utcnow(),
+    }
+
+    while True:
+        try:
+            flaskDb.connect_db()
+            break
+        except Exception as e:
+            log.warning('%s... Retrying', e)
+
     if pokemons and config['parse_pokemon']:
         pokemons_upserted = len(pokemons)
         bulk_upsert(Pokemon, pokemons)
@@ -615,20 +629,16 @@ def parse_map(map_dict, step_location):
         gyms_upserted = len(gyms)
         bulk_upsert(Gym, gyms)
 
+    bulk_upsert(ScannedLocation, scanned)
+
+    clean_database()
+
+    flaskDb.close_db(None)
+
     log.info('Upserted %d pokemon, %d pokestops, and %d gyms',
              pokemons_upserted,
              pokestops_upserted,
              gyms_upserted)
-
-    scanned[0] = {
-        'scanned_id': str(step_location[0]) + ',' + str(step_location[1]),
-        'latitude': step_location[0],
-        'longitude': step_location[1],
-    }
-
-    bulk_upsert(ScannedLocation, scanned)
-
-    # clean_database()
 
     return True
 
@@ -643,45 +653,28 @@ def clean_database():
 
     if args.purge_data > 0:
         query = (Pokemon
-                .delete()
-                .where((Pokemon.disappear_time <
-                    (datetime.utcnow() - timedelta(hours=args.purge_data)))))
+                 .delete()
+                 .where((Pokemon.disappear_time <
+                        (datetime.utcnow() - timedelta(hours=args.purge_data)))))
         query.execute()
 
     flaskDb.close_db(None)
 
-
-sqlQueue = Queue(1000)
-def write_thread(in_q):
-    try:
-        connected = False
-        while True:
-            cls, data = in_q.get()
-            log.info("Update queue size: " + str(in_q.qsize()))
-            if not connected:
-                flaskDb.connect_db()
-                connected = True
-
-            while True:
-                try:
-                    log.debug('Inserting %d items to db', len(data.values()))
-                    InsertQuery(cls, rows=data.values()).upsert().execute()
-                    break
-                except Exception as e:
-                    log.warning("%s... Retrying", e)
-                    flaskDb.close_db(None)
-                    time.sleep(1)
-                    flaskDb.connect_db()
-                    continue
-        # Does not reach here normally
-    except Exception as e:
-        log.exception('Fatal exception in database write_thread: %s', e)
-
-writer_thread = Thread(target=write_thread, args=(sqlQueue,))
-writer_thread.start()
-
 def bulk_upsert(cls, data):
-    sqlQueue.put((cls, data))
+    num_rows = len(data.values())
+    i = 0
+    step = 120
+
+    while i < num_rows:
+        log.debug('Inserting items %d to %d', i, min(i + step, num_rows))
+        try:
+            InsertQuery(cls, rows=data.values()[i:min(i + step, num_rows)]).upsert().execute()
+        except Exception as e:
+            log.warning('%s... Retrying', e)
+            continue
+
+        i += step
+
 
 def create_tables(db):
     db.connect()
