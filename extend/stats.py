@@ -68,7 +68,7 @@ def refresh_thread_loop():
         # Expel all stale refresh entries
         while len(refreshes_done):
             if (now - refreshes_done[0][0]) > refreshes_time_kept:
-                refreshes_done.get()
+                refreshes_done.popleft()
             else:
                 break
         global refreshes_made
