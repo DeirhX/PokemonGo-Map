@@ -607,15 +607,7 @@ def parse_map(map_dict, step_location):
         'scanned_id': str(step_location[0]) + ',' + str(step_location[1]),
         'latitude': step_location[0],
         'longitude': step_location[1],
-        'last_modified': datetime.utcnow(),
     }
-
-    while True:
-        try:
-            flaskDb.connect_db()
-            break
-        except Exception as e:
-            log.warning('%s... Retrying', e)
 
     if pokemons and config['parse_pokemon']:
         pokemons_upserted = len(pokemons)
@@ -631,7 +623,7 @@ def parse_map(map_dict, step_location):
 
     bulk_upsert(ScannedLocation, scanned)
 
-    clean_database()
+    # clean_database()
 
     flaskDb.close_db(None)
 
@@ -644,7 +636,6 @@ def parse_map(map_dict, step_location):
 
 
 def clean_database():
-    flaskDb.connect_db()
     query = (ScannedLocation
              .delete()
              .where((ScannedLocation.last_update <
@@ -657,8 +648,6 @@ def clean_database():
                  .where((Pokemon.disappear_time <
                         (datetime.utcnow() - timedelta(hours=args.purge_data)))))
         query.execute()
-
-    flaskDb.close_db(None)
 
 def bulk_upsert(cls, data):
     num_rows = len(data.values())
