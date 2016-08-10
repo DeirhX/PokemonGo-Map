@@ -13,7 +13,7 @@ from flask_cache_bust import init_cache_busting
 from extend.scan import begin_consume_queue
 from pogom import config
 from pogom.models import init_database, create_tables
-from pogom.search import search_overseer_thread, fake_search_loop
+from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop
 from pogom.utils import get_encryption_lib_path, insert_mock_data, get_args
 
 log = logging.getLogger()
@@ -114,6 +114,7 @@ def configure(app):
     app.set_search_control(pause_bit)
     app.set_location_queue(new_location_queue)
 
+    create_scan_queue_dispatcher()
     if args.scan_worker:
         begin_consume_queue()
 
