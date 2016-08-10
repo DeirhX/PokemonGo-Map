@@ -6,31 +6,10 @@ import queuing
 
 log = logging.getLogger(__name__)
 
-class Consumer:
+class ScanQueueConsumer(queuing.QueueConsumer):
     def __init__(self):
-        self.channel = None
-        self.connection = None
+        queuing.QueueConsumer.__init__(self, )
 
-    def __del__(self):
-        if self.connection:
-            self.connection.close()
-
-    @classmethod
-    def connect(self):
-        self.connection = queuing.connect()
-        self.channel = self.connection.channel()
-        self.channel.queue_declare(queue=queuing.scan_queue(), durable=False)
-        self.channel.basic_qos(prefetch_count=1)
-
-    @classmethod
-    def register_callback(self, callback):
-        self.channel.basic_consume(callback, queue=queuing.scan_queue())
-        self.channel.start_consuming()
-
-    @classmethod
-    def disconnect(self):
-        self.connection.close()
-        self.connection = None
 
 
 class Producer:
