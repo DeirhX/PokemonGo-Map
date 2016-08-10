@@ -43,6 +43,8 @@ def refresh_thread_loop():
     while True:
         refresh_thread_runs += 1
         now = datetime.utcnow()
+
+        # Expel all stale scan entries
         while not scans_done.empty():
             if (now - scans_done.queue[0][0] > scans_time_kept):
                 scans_done.get()
@@ -51,25 +53,25 @@ def refresh_thread_loop():
         global scans_made
         scans_made = scans_done.qsize()
 
-        if (refresh_thread_runs % recompute_frequency) == 1:
-            members_found = {}
-            guests_found = {}
+        # Expel all stale refresh entries
         while not refreshes_done.empty():
-            # Fill
-            if (refresh_thread_runs % recompute_frequency) == 1:
-                if refreshes_done.queue[0][2]: # user
-                    members_found[refreshes_done.queue[0][2]] = refreshes_done.queue[0][0]
-                else:
-                    guests_found[refreshes_done.queue[0][1]] = refreshes_done.queue[0][0]
-
-            if (now - refreshes_done.queue[0][0] > refreshes_time_kept):
+            if (now - refreshes_done.queue[0][0]) > refreshes_time_kept:
                 refreshes_done.get()
             else:
                 break
         global refreshes_made
         refreshes_made = refreshes_done.qsize()
 
+        # Once in a while, recompute member count (full traversal of live entries)
         if (refresh_thread_runs % recompute_frequency) == 1:
+            members_found = {}
+            guests_found = {}
+            for elem in list(refreshes_done.queue):
+                if elem[2]: # user
+                    members_found[elem[2]] = elem[0]
+                else:
+                    guests_found[elem[1]] = elem[0]
+
             global guests_seen
             guests_seen = len(guests_found)
             global members_seen
