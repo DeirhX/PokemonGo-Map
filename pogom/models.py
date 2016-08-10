@@ -47,7 +47,7 @@ def init_database(app):
             host=args.db_host,
             port=args.db_port,
             max_connections=connections,
-            stale_timeout=300)
+            stale_timeout=5)
     else:
         log.info('Connecting to local SQLite database')
         db = SqliteDatabase(args.db)

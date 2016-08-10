@@ -262,16 +262,19 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
                         time.sleep(sleep_time)
                         raise # This could be serious and likely need to relog
 
+                flaskDb.close_db(None)
                 time.sleep(args.scan_delay)
 
             # catch any process exceptions, log them, and continue the until_success loop
             except KeyError: # Received empty response probably, this login might be rotten already
                 log.warn('About to relogin with a different account')
                 Login.set_failed(api.login_info)
+                flaskDb.close_db(None)
                 api = None
             except Exception as e:
                 log.exception('Exception in search_worker: %s', e)
                 Login.set_failed(api.login_info)
+                flaskDb.close_db(None)
                 api = None
 
         # We got over until_success loop so that means we're successful, yay! Get the next one
