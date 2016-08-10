@@ -11,6 +11,7 @@ from flask import logging
 from pogom.search import do_search
 from pogom.utils import get_args
 from queuing import scan_queue
+from queuing.scan_queue import ScanQueueConsumer
 
 consumer = None
 args = get_args()
@@ -40,10 +41,10 @@ def begin_consume_queue():
 
     def consume_thread():
         global consumer
-        consumer = scan_queue.ScanQueueConsumer()
+        consumer = ScanQueueConsumer()
         consumer.connect()
         log.info('Listening to scan queue...')
-        consumer.register_callback(callback)
+        consumer.start_consume(callback)
 
     # Begin consuming
     thread = Thread(target=consume_thread)

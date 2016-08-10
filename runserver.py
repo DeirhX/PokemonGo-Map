@@ -6,13 +6,17 @@ import os
 import shutil
 import sys
 import time
+from extend.log import enableFileLogging
+
+enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
+log = logging.getLogger()
 
 # Currently supported pgoapi
 pgoapi_version = "1.1.7"
 
 # Moved here so logger is configured at load time
-logging.basicConfig(format='%(asctime)s [%(threadName)16s][%(module)14s][%(levelname)8s] %(message)s')
-log = logging.getLogger()
+# logging.basicConfig(format='%(asctime)s [%(threadName)16s][%(module)14s][%(levelname)8s] %(message)s')
+# log = logging.getLogger()
 
 # Make sure pogom/pgoapi is actually removed if it is an empty directory
 # This is a leftover directory from the time pgoapi was embedded in PokemonGo-Map
@@ -44,10 +48,10 @@ from pogom import config
 from pogom.app import Pogom
 from pogom.utils import get_args
 
-from extend.log import enableFileLogging
 
 
-enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
+
+
 args = get_args()
 app = Pogom(__name__)
 

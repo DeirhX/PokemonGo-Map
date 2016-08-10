@@ -61,7 +61,7 @@ class QueueConsumer(Consumer):
         if self.qos:
             self.channel.basic_qos(prefetch_count=self.qos)
 
-    def register_callback(self, callback):
+    def start_consume(self, callback):
         self.channel.basic_consume(callback, queue=self.queue_name)
         self.channel.start_consuming()
 
@@ -79,11 +79,11 @@ class ExchangeConsumer(Consumer):
     def connect(self):
         self.connection = connect()
         self.channel = self.connection.channel()
-        self.channel.exchange_declare(exchange=self.exchange_name, type=type)
+        self.channel.exchange_declare(exchange=self.exchange_name, type=self.type)
         self.queue_name = self.channel.queue_declare(exclusive=True).method.queue
         self.channel.queue_bind(exchange=self.exchange_name, queue=self.queue_name)
 
-    def register_callback(self, callback):
+    def start_consume(self, callback):
         self.channel.basic_consume(callback, queue=self.queue_name)
         self.channel.start_consuming()
 
