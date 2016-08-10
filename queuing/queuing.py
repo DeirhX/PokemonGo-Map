@@ -1,4 +1,5 @@
 import pika
+import pika.exceptions
 import time
 from flask import logging
 
@@ -11,6 +12,7 @@ def connect():
     return connection
 
 # Queue Names
+
 def scan_queue():
     return 'heroic_scan_queue'
 
@@ -21,7 +23,10 @@ def stats_receive_queue():
     return 'stats_receive_queue'
 
 
+
+
 # Consumer
+
 class Consumer:
     channel = None
     connection = None
@@ -77,14 +82,17 @@ class ExchangeConsumer(Consumer):
         self.type = type
 
     @classmethod
-    def connect(self)
+    def connect(self):
         self.connection = connect()
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange=self.exchange_name, type=type)
         result = self.channel.queue_declare(exclusive=True)
         self.channel.queue_bind(exchange=self.exchange_name, queue=result.method.queue)
 
+
+
 # Producer
+
 class Producer:
     channel = None
     connection = None
@@ -160,7 +168,7 @@ class ExchangeProducer(Producer):
         self.type = type
 
     @classmethod
-    def connect(self)
+    def connect(self):
         self.connection = connect()
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange=self.exchange_name, type=self.type)
