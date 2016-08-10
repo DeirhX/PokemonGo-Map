@@ -40,7 +40,7 @@ def begin_consume_queue():
 
     def consume_thread():
         global consumer
-        consumer = scan_queue.Consumer
+        consumer = scan_queue.ScanQueueConsumer()
         consumer.connect()
         log.info('Listening to scan queue...')
         consumer.register_callback(callback)

@@ -27,7 +27,7 @@ from threading import Thread, Lock
 from Queue import Queue, PriorityQueue
 
 from pogom.utils import json_serial
-from queuing.scan_queue import Producer
+from queuing.scan_queue import ScanQueueProducer
 from queue import Queue, Empty
 
 from pgoapi import PGoApi
@@ -352,13 +352,14 @@ class TooManyLoginAttempts(Exception):
 #
 # Scan consumer - producer
 #
+"""
 def create_scan_queue_dispatcher():
     scan_queue_thread = Thread(target=scan_queue_dispatcher, name='Scan queue thread', args=(args, scan_queue,))
     scan_queue_thread.daemon = True
     scan_queue_thread.start()
 
 def scan_queue_dispatcher(args, queue ):
-    producer = Producer()
+    producer = ScanQueueProducer()
     producer.connect()
     while True:
         timestamp, expire_time, position, steps = queue.get()
@@ -366,9 +367,16 @@ def scan_queue_dispatcher(args, queue ):
         log.info('Dispatching scan request...')
         producer.publish(json.dumps(dict, default=json_serial))
         log.info('Scan request sent.')
+"""
 
 def scan_enqueue(timestamp, expire_time, position, steps):
     log.info('Enqueuing scan request...')
+    producer = ScanQueueProducer()
+    producer.connect()
+    dict = {'timestamp': timestamp, 'expireTime' : expire_time, 'position': position, 'steps': steps}
+    log.info('Dispatching scan request...')
+    producer.publish(json.dumps(dict, default=json_serial))
+    log.info('Scan request sent.')
     scan_queue.put_nowait((timestamp, expire_time, position, steps))
 
 #

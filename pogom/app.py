@@ -315,6 +315,7 @@ class Pogom(Flask):
         except Full:
             d = {'result': 'full'}
         except Exception as ex:
+            log.exception('Error adding to scan queue')
             d = {'result': 'failed'}
         return jsonify(d)
 
