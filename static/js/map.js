@@ -1221,7 +1221,7 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
       lng: item.longitude
     },
     map: map,
-    icon: 'static/images/spawn.png'
+    icon: 'static/images/spawn-tall.png'
   });
 
     marker.spawnData = item;
