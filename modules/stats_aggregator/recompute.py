@@ -11,12 +11,11 @@ from .collect import Queued, Collected
 
 log = logging.getLogger()
 
+scans_time_kept = timedelta(minutes=1)
+refreshes_time_kept = timedelta(minutes=1)
+spawns_time_kept = timedelta(minutes=1)
 
-scans_time_kept = datetime.timedelta(minutes=1)
-refreshes_time_kept = datetime.timedelta(minutes=1)
-spawns_time_kept = datetime.timedelta(minutes=1)
-
-def stats_computer():
+def stats_computer_loop():
 
     refresh_thread_runs = 0
     recompute_every = 15

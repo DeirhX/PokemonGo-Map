@@ -7,6 +7,7 @@ from threading import Thread
 from flask import json
 from flask import logging
 
+from pogom.utils import json_serial
 from queuing.stats_queue import StatsSubmitProducer, StatsAggregateConsumer
 
 log = logging.getLogger()
@@ -66,22 +67,22 @@ def dispatch_stats_loop():
 
         d = {'scans': scans,
              'refreshes': refreshes,
-             'spawn_details:': spawn_details}
+             'spawn_details': spawn_details}
 
-        dispatcher.publish(json.dumps(d))
+        dispatcher.publish(json.dumps(d, default=json_serial))
         time.sleep(1)
 
 # Consume aggregated stats thread
 def receive_stats_loop():
 
     def consume_stats(ch, method, props, body):
-        log.debug('Received new stats')
+        log.debug('Received aggregate stats')
         global stats
         stats = json.loads(body)
 
     consumer = StatsAggregateConsumer()
     consumer.connect()
-    consumer.start_consume()
+    consumer.start_consume(consume_stats)
 
 
 dispatch_thread = Thread(target=dispatch_stats_loop)
