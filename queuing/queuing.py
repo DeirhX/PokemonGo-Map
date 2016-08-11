@@ -28,10 +28,11 @@ def stats_receive_queue():
 # Consumer
 
 class Consumer:
-    channel = None
-    connection = None
 
     def __init__(self):
+        self.queue_name = None
+        self.channel = None
+        self.connection = None
         pass
 
     def __del__(self):
@@ -44,6 +45,21 @@ class Consumer:
     def disconnect(self):
         self.connection.close()
         self.connection = None
+
+    def start_consume(self, callback):
+        while True:
+            try:
+                self.channel.basic_consume(callback, queue=self.queue_name)
+                self.channel.start_consuming()
+                break
+            except pika.exceptions.ConnectionClosed:
+                log.warning('Rabbit connection closed, retrying')
+                time.sleep(1)
+                self.connect()
+            except Exception as ex:
+                log.warning('Unknown rabbit error ' + str(ex) + ', retrying in ten')
+                time.sleep(10)
+                self.connect()
 
 
 class QueueConsumer(Consumer):
@@ -61,9 +77,6 @@ class QueueConsumer(Consumer):
         if self.qos:
             self.channel.basic_qos(prefetch_count=self.qos)
 
-    def start_consume(self, callback):
-        self.channel.basic_consume(callback, queue=self.queue_name)
-        self.channel.start_consuming()
 
 
 class ExchangeConsumer(Consumer):
@@ -83,9 +96,6 @@ class ExchangeConsumer(Consumer):
         self.queue_name = self.channel.queue_declare(exclusive=True).method.queue
         self.channel.queue_bind(exchange=self.exchange_name, queue=self.queue_name)
 
-    def start_consume(self, callback):
-        self.channel.basic_consume(callback, queue=self.queue_name)
-        self.channel.start_consuming()
 
 
 # Producer
@@ -168,9 +178,3 @@ class ExchangeProducer(Producer):
     def _do_basic_publish(self, message, delivery_mode):
         self.channel.basic_publish(exchange=self.exchange_name, routing_key='', body=message,
                                    properties=pika.BasicProperties(delivery_mode=delivery_mode))
-
-
-
-
-
-
