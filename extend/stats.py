@@ -5,18 +5,10 @@ from collections import deque
 from datetime import datetime, timedelta
 from threading import Thread
 
+from queuing.stats_queue import StatsSubmitProducer
+
 scans_new = Queue()
 refreshes_new = Queue()
-scans_done = deque()
-refreshes_done = deque()
-
-scans_made = 0
-refreshes_made = 0
-guests_seen = 0
-members_seen = 0
-
-scans_time_kept = timedelta(minutes=1)
-refreshes_time_kept = timedelta(minutes=1)
 
 
 def mark_scan(request, user):
@@ -41,6 +33,8 @@ def get_members_seen():
 # Recompute thread
 refresh_thread_runs = 0
 def refresh_thread_loop():
+    dispatcher = StatsSubmitProducer()
+    dispatcher.connect()
     recompute_frequency = 10
     global refresh_thread_runs
     while True:
