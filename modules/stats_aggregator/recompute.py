@@ -64,11 +64,11 @@ def stats_computer():
                 else:
                     guests_found[elem[1]] = elem[0]
 
-            d = {'scansMade': len(Collected.scans),
-                 'refreshesMade': len(Collected.refreshes),
-                 'spawnsAnalyzed': len(Collected.spawns),
-                 'guestsSeen' : len(guests_found),
-                 'membersSeen' : len(members_found),
+            d = {'scans_made': len(Collected.scans),
+                 'refreshes_made': len(Collected.refreshes),
+                 'spawns_viewed': len(Collected.spawns),
+                 'guests_seen' : len(guests_found),
+                 'members_seen' : len(members_found),
                  }
             aggregate_producer.publish(json.dumps(d))
 

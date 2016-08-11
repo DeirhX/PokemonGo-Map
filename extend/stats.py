@@ -4,88 +4,90 @@ import time
 from collections import deque
 from datetime import datetime, timedelta
 from threading import Thread
+from flask import json
+from flask import logging
 
-from queuing.stats_queue import StatsSubmitProducer
+from queuing.stats_queue import StatsSubmitProducer, StatsAggregateConsumer
 
-scans_new = Queue()
-refreshes_new = Queue()
+log = logging.getLogger()
 
+class Queued:
+    scans_new = Queue()
+    refreshes_new = Queue()
+    spawns_new = Queue()
+
+stats = {'scans_made': 0,
+         'refreshes_made': 0,
+         'spawns_viewed': 0,
+         'guests_seen' : 0,
+         'members_seen' : 0,
+        }
 
 def mark_scan(request, user):
-    scans_new.put((datetime.utcnow(), request.remote_addr, user))
+    Queued.scans_new.put((datetime.utcnow(), request.remote_addr, user))
 
 def mark_refresh(request, user):
-    refreshes_new.put((datetime.utcnow(), request.remote_addr, user))
+    Queued.refreshes_new.put((datetime.utcnow(), request.remote_addr, user))
+
+def mark_spawn(request, user):
+    Queued.spawns_new.put((datetime.utcnow(), request.remote_addr, user))
 
 def get_scans_made():
-    return scans_made
+    return stats['scans_made']
 
 def get_requests_made():
-    return refreshes_made
+    return stats['refreshes_made']
+
+def get_spawns_viewed():
+    return stats['spawns_viewed']
 
 def get_guests_seen():
-    return guests_seen
+    return stats['guests_seen']
 
 def get_members_seen():
-    return members_seen
+    return stats['members_seen']
 
 
-# Recompute thread
-refresh_thread_runs = 0
-def refresh_thread_loop():
+# Dispatch new stats thread
+def dispatch_stats_loop():
     dispatcher = StatsSubmitProducer()
     dispatcher.connect()
-    recompute_frequency = 10
-    global refresh_thread_runs
     while True:
-        refresh_thread_runs += 1
-        now = datetime.utcnow()
 
-        # Empty queue, move to iterable deque
-        while not scans_new.empty():
-            scans_done.append(scans_new.get())
+        scans = []
+        while not Queued.scans_new.empty():
+            scans.append(Queued.scans_new.get())
+        refreshes = []
+        while not Queued.refreshes_new.empty():
+            refreshes.append(Queued.refreshes_new.get())
+        spawn_details = []
+        while not Queued.spawns_new.empty():
+            spawn_details.append(Queued.spawns_new.get())
 
-        # Expel all stale scan entries
-        while len(scans_done):
-            if (now - scans_done[0][0] > scans_time_kept):
-                scans_done.popleft()
-            else:
-                break
+        d = {'scans': scans,
+             'refreshes': refreshes,
+             'spawn_details:': spawn_details}
 
-        global scans_made
-        scans_made = len(scans_done)
-
-        # Empty queue, move to iterable deque
-        while not refreshes_new.empty():
-            refreshes_done.append(refreshes_new.get())
-
-        # Expel all stale refresh entries
-        while len(refreshes_done):
-            if (now - refreshes_done[0][0]) > refreshes_time_kept:
-                refreshes_done.popleft()
-            else:
-                break
-        global refreshes_made
-        refreshes_made = len(refreshes_done)
-
-        # Once in a while, recompute member count (full traversal of live entries)
-        if (refresh_thread_runs % recompute_frequency) == 1:
-            members_found = {}
-            guests_found = {}
-            for elem in refreshes_done:
-                if elem[2]: # user
-                    members_found[elem[2]] = elem[0]
-                else:
-                    guests_found[elem[1]] = elem[0]
-
-            global guests_seen
-            guests_seen = len(guests_found)
-            global members_seen
-            members_seen = len(members_found)
-
+        dispatcher.publish(json.dumps(d))
         time.sleep(1)
 
+# Consume aggregated stats thread
+def receive_stats_loop():
 
-refresh_thread = Thread(target=refresh_thread_loop)
-refresh_thread.daemon = True
-refresh_thread.start()
+    def consume_stats(ch, method, props, body):
+        log.debug('Received new stats')
+        global stats
+        stats = json.loads(body)
+
+    consumer = StatsAggregateConsumer()
+    consumer.connect()
+    consumer.start_consume()
+
+
+dispatch_thread = Thread(target=dispatch_stats_loop)
+dispatch_thread.daemon = True
+dispatch_thread.start()
+
+receive_thread = Thread(target=receive_stats_loop)
+receive_thread.daemon = True
+receive_thread.start()
