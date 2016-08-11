@@ -33,6 +33,7 @@ class Consumer:
         self.queue_name = None
         self.channel = None
         self.connection = None
+        self.no_ack = True
         pass
 
     def __del__(self):
@@ -49,7 +50,7 @@ class Consumer:
     def start_consume(self, callback):
         while True:
             try:
-                self.channel.basic_consume(callback, queue=self.queue_name)
+                self.channel.basic_consume(callback, queue=self.queue_name, no_ack=self.no_ack)
                 self.channel.start_consuming()
                 break
             except pika.exceptions.ConnectionClosed:
