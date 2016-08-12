@@ -47,6 +47,11 @@ class Consumer:
         self.connection.close()
         self.connection = None
 
+    def empty_queue(self):
+        self.channel.queue_delete(queue=self.queue_name)
+        self.disconnect()
+        self.connect()
+
     def start_consume(self, callback):
         while True:
             try:

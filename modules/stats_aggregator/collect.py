@@ -1,5 +1,7 @@
 from Queue import Queue
 from collections import deque
+from datetime import datetime
+
 import dateutil.parser
 from flask import json
 from flask import logging
@@ -22,11 +24,11 @@ def collect_submit(ch, method, props, body):
     message = json.loads(body)
     # Empty queue, move to iterable deque
     for scan in message['scans']:
-        scan[0] = dateutil.parser.parse(scan[0])
+        scan[0] = datetime.utcnow() #dateutil.parser.parse(scan[0])
         Queued.scans.put(scan)
     for refresh in message['refreshes']:
-        refresh[0] = dateutil.parser.parse(refresh[0])
+        refresh[0] = datetime.utcnow()  #dateutil.parser.parse(refresh[0])
         Queued.refreshes.put(refresh)
     for spawn in message['spawn_details']:
-        spawn[0] = dateutil.parser.parse(spawn[0])
+        spawn[0] = datetime.utcnow()  #dateutil.parser.parse(spawn[0])
         Queued.spawns.put(spawn)

@@ -28,6 +28,7 @@ if __name__ == '__main__':
 
     collector = StatsSubmitConsumer()
     collector.connect()
+    collector.empty_queue()
     log.info('About to start consuming submits')
     collector.start_consume(collect_submit)
 
