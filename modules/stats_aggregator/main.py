@@ -1,11 +1,11 @@
 import os
-
+import logging
 import time
 
 import datetime
 from threading import Thread
 
-from flask import logging
+
 from extend.log import enableFileLogging
 from queuing.stats_queue import StatsAggregateProducer, StatsSubmitConsumer
 
@@ -15,6 +15,7 @@ from modules.stats_aggregator.shared import aggregate_producer
 
 enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
 log = logging.getLogger()
+log.setLevel(logging.INFO)
 
 if __name__ == '__main__':
 

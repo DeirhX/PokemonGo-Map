@@ -17,7 +17,7 @@ class Collected:
     spawns = deque()
 
 def collect_submit(ch, method, props, body):
-    log.info('Received stats submit: %s', body)
+    log.debug('Received stats submit: %s', body)
 
     message = json.loads(body)
     # Empty queue, move to iterable deque
