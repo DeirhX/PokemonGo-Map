@@ -67,7 +67,7 @@ def collect_entry(ch, method, props, body):
                 for scanned_location in value:
                     ScannedLocation.parse_json(scanned_location)
                     with new['scanned_lock']:
-                        new['scanned'][scanned_location['scanned_id']] = scanned_location
+                        new['scanned'][str(scanned_location['latitude'])+'|'+str(scanned_location['longitude'])] = scanned_location
             else:
                 log.warn('Unknown type encountered: %s', key)
                 pass
