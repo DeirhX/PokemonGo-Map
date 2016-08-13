@@ -27,6 +27,7 @@ new = {
     'pokemons': {},
     'pokemons_lock' : Lock(),
 }
+messages_processed = 0
 
 def collect_entry(ch, method, props, body):
     log.debug('Received db insert request: %s', body)
@@ -52,15 +53,20 @@ def collect_entry(ch, method, props, body):
                     Gym.parse_json(gym)
                     if not gym['gym_id'] in cached['gyms']:
                         with new['gyms_lock']:
-                            new['gyms'][gym['gym_id']] = cached['pokemons'][gym['gym_id']] = gym
+                            new['gyms'][gym['gym_id']] = cached['gyms'][gym['gym_id']] = gym
             elif (key == str(Pokestop)):
                 for pokestop in value:
                     Pokestop.parse_json(pokestop)
                     if not pokestop['pokestop_id'] in cached['pokestops']:
                         with new['pokestops_lock']:
-                            new['pokestops'][pokestop['pokestop_id']] = cached['pokemons'][pokestop['pokestop_id']] = pokestop
+                            new['pokestops'][pokestop['pokestop_id']] = cached['pokestops'][pokestop['pokestop_id']] = pokestop
             else:
                 log.warn('Unknown type encountered: %s', key)
+                pass
+        global messages_processed
+        messages_processed += 1
+        if messages_processed % 10 == 0:
+            log.info('Processed %d messages.', messages_processed)
     except Exception as ex:
         log.exception('Failed to parse received objects')
         # Don't ack, maybe we can salvage it later?

@@ -16,6 +16,15 @@ enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 
+consume_threads = 4
+upsert_threads = 4
+
+def consume():
+    collector = DbInserterQueueConsumer()
+    collector.connect()
+    log.info('About to start consuming submits')
+    collector.start_consume(collect_entry)
+
 if __name__ == '__main__':
 
     app = Pogom(__name__)
@@ -25,15 +34,18 @@ if __name__ == '__main__':
     trim_thread.start()
     log.info('Trim thread started')
 
-    upserter_thread = Thread(target=upserter_loop, name='Database upsert thread')
-    upserter_thread.daemon = True
-    upserter_thread.start()
-    log.info('Upserter thread started')
+    for i in range(upsert_threads):
+        upserter_thread = Thread(target=upserter_loop, name='Database upsert thread {0}'.format(i))
+        upserter_thread.daemon = True
+        upserter_thread.start()
+        log.info('Upserter thread started')
 
-    collector = DbInserterQueueConsumer()
-    collector.connect()
-    log.info('About to start consuming submits')
-    collector.start_consume(collect_entry)
+    for i in range(consume_threads):
+        consume_thread = Thread(target=consume, name='Consumer thread {0}'.format(i))
+        consume_thread.daemon = True
+        consume_thread.start()
+        log.info('Upserter thread started')
 
-
+    while True:
+        time.sleep(60)
 
