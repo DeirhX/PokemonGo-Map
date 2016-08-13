@@ -75,12 +75,6 @@ def get_args():
     parser.add_argument('-m', '--mock',
                         help='Mock mode. Starts the web server but not the background thread.',
                         action='store_true', default=False)
-    parser.add_argument('-ns', '--no-server',
-                        help='No-Server Mode. Starts the searcher but not the Webserver.',
-                        action='store_true', default=False)
-    parser.add_argument('-os', '--only-server',
-                        help='Server-Only Mode. Starts only the Webserver without the searcher.',
-                        action='store_true', default=False)
     parser.add_argument('-nsc', '--no-search-control',
                         help='Disables search control',
                         action='store_false', dest='search_control', default=True)
@@ -126,6 +120,7 @@ def get_args():
     parser.add_argument('-authid', '--oauth2-id', help='Google OAuth2 ID')
     parser.add_argument('-domain', '--domain', help='Domain registered for authentication')
     parser.add_argument('-vpath', '--virtual-path', help='Virtual path of server')
+    parser.add_argument('-web-server', '--web-server', help='Start the web server', action='store_true', default=False)
     parser.add_argument('-scan-worker', '--scan-worker', help='On-demand scan worker', action='store_true', default=False)
     parser.add_argument('-robot-worker', '--robot-worker', help='Permanent walking worker', action='store_true', default=False)
     parser.add_argument('-secret', '--app-secret-key', help='Flask secret session key')
@@ -133,7 +128,7 @@ def get_args():
 
     args = parser.parse_args()
 
-    if args.only_server:
+    if args.web_server:
         if args.location is None:
             parser.print_usage()
             print(sys.argv[0] + ": error: arguments -l/--location is required")

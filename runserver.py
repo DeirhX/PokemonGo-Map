@@ -62,7 +62,7 @@ if __name__ == '__main__':
     #app.config['APPLICATION_ROOT'] = args.virtual_path
     #app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=args.virtual_path)
 
-    if args.no_server:
+    if not args.web_server:
         # This loop allows for ctrl-c interupts to work since flask won't be holding the program open
         while True:
             time.sleep(60)

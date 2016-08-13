@@ -107,7 +107,7 @@ def configure(app):
 
     # Setup the location tracking queue and push the first location on
     new_location_queue = Queue()
-    if not args.scan_worker and not args.only_server:
+    if args.robot_worker:
         new_location_queue.put(position)
 
     app.set_current_location(position)
@@ -119,7 +119,7 @@ def configure(app):
         begin_consume_queue()
 
     # Gather the pokemons!
-    if (not args.only_server):
+    if args.scan_worker or args.robot_worker:
         if not args.mock:
             log.debug('Starting a real search thread')
             # search_thread = Thread(target=search_loop, args=(args,search_control,))
