@@ -650,7 +650,7 @@ def parse_map(map_dict, step_location):
         gyms_upserted = len(gyms)
         dispatch_upsert(Gym, gyms)
 
-        dispatch_upsert(ScannedLocation, scanned)
+    dispatch_upsert(ScannedLocation, scanned)
 
     # clean_database()
 
