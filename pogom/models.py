@@ -98,7 +98,8 @@ class Pokemon(BaseModel):
         cls.longitude = data['longitude']
         cls.disappear_time = dateutil.parser.parse(data['disappear_time'])
         cls.last_modified = dateutil.parser.parse(data['last_modified'])
-        cls.last_update = dateutil.parser.parse(data['last_update'])
+        if 'last_update' in data:
+            cls.last_update = dateutil.parser.parse(data['last_update'])
 
     @staticmethod
     def get_active(swLat, swLng, neLat, neLng, since=datetime.min):
@@ -239,6 +240,20 @@ class Pokestop(BaseModel):
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
 
+    @classmethod
+    def from_json(cls, data):
+        cls.pokestop_id = data['pokestop_id']
+        cls.enabled = data['enabled']
+        cls.latitude = data['latitude']
+        cls.longitude = data['longitude']
+        if 'active_pokemon_id' in data:
+            cls.active_pokemon_id = data['active_pokemon_id']
+        cls.last_modified = dateutil.parser.parse(data['last_modified'])
+        if 'lure_expiration' in data and data['lure_expiration']:
+            cls.lure_expiration = dateutil.parser.parse(data['lure_expiration'])
+        if 'last_update' in data:
+            cls.last_update = dateutil.parser.parse(data['last_update'])
+
     @staticmethod
     def get_latest():
         query = (Pokestop
@@ -297,6 +312,19 @@ class Gym(BaseModel):
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
+
+    @classmethod
+    def from_json(cls, data):
+        cls.gym_id = data['gym_id']
+        cls.team_id = data['team_id']
+        cls.guard_pokemon_id = data['guard_pokemon_id']
+        cls.gym_points = data['gym_points']
+        cls.enabled = data['enabled']
+        cls.latitude = data['latitude']
+        cls.longitude = data['longitude']
+        cls.last_modified = dateutil.parser.parse(data['last_modified'])
+        if 'last_update' in data:
+            cls.last_update = dateutil.parser.parse(data['last_update'])
 
     @classmethod
     def get_latest(cls):

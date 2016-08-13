@@ -64,7 +64,7 @@ class Consumer:
                 time.sleep(1)
                 self.connect()
             except Exception as ex:
-                log.warning('Unknown rabbit error ' + str(ex) + ', retrying in ten')
+                log.exception('Unknown rabbit error "' + str(ex) + '", retrying in ten')
                 time.sleep(10)
                 self.connect()
 

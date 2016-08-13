@@ -89,7 +89,7 @@ def get_args():
                         action='store_true', default=False)
     parser.add_argument('-k', '--gmaps-key',
                         help='Google Maps Javascript API Key',
-                        required=True)
+                        required=False)
     parser.add_argument('-C', '--cors', help='Enable CORS on web server',
                         action='store_true', default=False)
     parser.add_argument('-D', '--db', help='Database filename',
@@ -146,7 +146,7 @@ def get_args():
         num_passwords = 0
 
         if (args.username is None):
-            errors.append('Missing `username` either as -u/--username or in config')
+            pass #errors.append('Missing `username` either as -u/--username or in config')
         else:
             num_usernames = len(args.username)
 
@@ -154,7 +154,7 @@ def get_args():
             errors.append('Missing `location` either as -l/--location or in config')
 
         if (args.password is None):
-            errors.append('Missing `password` either as -p/--password or in config')
+            pass #errors.append('Missing `password` either as -p/--password or in config')
         else:
             num_passwords = len(args.password)
 
@@ -187,8 +187,9 @@ def get_args():
         args.accounts = []
 
         # Make the accounts list
-        for i, username in enumerate(args.username):
-            args.accounts.append({'username': username, 'password': args.password[i], 'auth_service': args.auth_service[i]})
+        if args.username:
+            for i, username in enumerate(args.username):
+                args.accounts.append({'username': username, 'password': args.password[i], 'auth_service': args.auth_service[i]})
 
     return args
 

@@ -21,13 +21,16 @@ everything = {
 def collect_entry(ch, method, props, body):
     log.debug('Received db insert request: %s', body)
     message = json.loads(body)
-    for key, value in message:
-        if (key is str(Pokemon)):
-            pass
-        if (key is str(Gym)):
-            pass
-        if (key is str(Pokestop)):
-            pass
+    for key, value in message.iteritems():
+        if (key == str(Pokemon)):
+            for poke_entry in value:
+                pokemon = Pokemon().from_json(poke_entry)
+        if (key == str(Gym)):
+            for gym_entry in value:
+                gym = Gym().from_json(gym_entry)
+        if (key == str(Pokestop)):
+            for pokestop_entry in value:
+                pokestop = Pokestop().from_json(pokestop_entry)
 
 
 def trim_entries_loop():
