@@ -22,7 +22,8 @@ def stats_submit_queue():
 def stats_receive_queue():
     return 'stats_receive_queue'
 
-
+def db_insert_queue():
+    return 'db_insert_queue'
 
 
 # Consumer

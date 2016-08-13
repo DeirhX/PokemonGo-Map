@@ -7,6 +7,8 @@ import time
 
 from Queue import Queue
 
+import dateutil
+from flask import json
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
                    DateTimeField, OperationalError, SmallIntegerField,\
@@ -19,6 +21,7 @@ from datetime import datetime, timedelta
 from base64 import b64encode
 from threading import Thread
 
+from queuing.db_insert_queue import DbInserterQueueProducer
 from . import config
 from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, get_args, send_to_webhook
 from .transform import transform_from_wgs_to_gcj
@@ -85,6 +88,17 @@ class Pokemon(BaseModel):
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
+
+    @classmethod
+    def from_json(cls, data):
+        cls.encounter_id = data['encounter_id']
+        cls.spawnpoint_id = data['spawnpoint_id']
+        cls.pokemon_id = data['pokemon_id']
+        cls.latitude = data['latitude']
+        cls.longitude = data['longitude']
+        cls.disappear_time = dateutil.parser.parse(data['disappear_time'])
+        cls.last_modified = dateutil.parser.parse(data['last_modified'])
+        cls.last_update = dateutil.parser.parse(data['last_update'])
 
     @staticmethod
     def get_active(swLat, swLng, neLat, neLng, since=datetime.min):
@@ -209,6 +223,7 @@ class Pokemon(BaseModel):
         for a in query:
             appearances.append(a)
         return appearances
+
 
 
 class Pokestop(BaseModel):
@@ -649,10 +664,14 @@ def clean_database():
                         (datetime.utcnow() - timedelta(hours=args.purge_data)))))
         query.execute()
 
+inserter = DbInserterQueueProducer()
+inserter.connect()
+
 def bulk_upsert(cls, data):
     num_rows = len(data.values())
     i = 0
     step = 120
+    inserter.publish(json.dumps({str(cls): data.values()}))
 
     while i < num_rows:
         log.debug('Inserting items %d to %d', i, min(i + step, num_rows))
