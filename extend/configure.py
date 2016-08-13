@@ -55,33 +55,6 @@ def configure(app):
         logging.getLogger("pgoapi").setLevel(logging.DEBUG)
         logging.getLogger("rpc_api").setLevel(logging.DEBUG)
 
-    # use lat/lng directly if matches such a pattern
-    prog = re.compile("^(\-?\d+\.\d+),?\s?(\-?\d+\.\d+)$")
-    res = prog.match(args.location)
-    if res:
-        log.debug('Using coords from CLI directly')
-        position = (float(res.group(1)), float(res.group(2)), 0)
-    else:
-        log.debug('Looking up coords in API')
-        position = get_pos_by_name(args.location)
-
-	# Use the latitude and longitude to get the local altitude from Google
-    try:
-        url = 'https://maps.googleapis.com/maps/api/elevation/json?locations={},{}'.format(
-            str(position[0]), str(position[1]))
-        altitude = requests.get(url).json()[u'results'][0][u'elevation']
-        log.debug('Local altitude is: %sm', altitude)
-        position = (position[0], position[1], altitude)
-    except (requests.exceptions.RequestException, IndexError, KeyError):
-        log.error('Unable to retrieve altitude from Google APIs; setting to 0')
-
-    if not any(position):
-        log.error('Could not get a position by name, aborting')
-        sys.exit()
-
-    log.info('Parsed location is: %.4f/%.4f/%.4f (lat/lng/alt)',
-             position[0], position[1], position[2])
-
     if args.no_pokemon:
         log.info('Parsing of Pokemon disabled')
     if args.no_pokestops:
@@ -101,25 +74,56 @@ def configure(app):
             os.remove(args.db)
     create_tables(db)
 
-    # Control the search status (running or not) across threads
-    pause_bit = Event()
-    pause_bit.clear()
+    if args.web_server or args.scan_worker or args.robot_worker:
+        # use lat/lng directly if matches such a pattern
+        prog = re.compile("^(\-?\d+\.\d+),?\s?(\-?\d+\.\d+)$")
+        res = prog.match(args.location)
+        if res:
+            log.debug('Using coords from CLI directly')
+            position = (float(res.group(1)), float(res.group(2)), 0)
+        else:
+            log.debug('Looking up coords in API')
+            position = get_pos_by_name(args.location)
 
-    # Setup the location tracking queue and push the first location on
-    new_location_queue = Queue()
-    if args.robot_worker:
-        new_location_queue.put(position)
+        # Use the latitude and longitude to get the local altitude from Google
+        try:
+            url = 'https://maps.googleapis.com/maps/api/elevation/json?locations={},{}'.format(
+                str(position[0]), str(position[1]))
+            altitude = requests.get(url).json()[u'results'][0][u'elevation']
+            log.debug('Local altitude is: %sm', altitude)
+            position = (position[0], position[1], altitude)
+        except (requests.exceptions.RequestException, IndexError, KeyError):
+            log.error('Unable to retrieve altitude from Google APIs; setting to 0')
 
-    app.set_current_location(position)
-    app.set_search_control(pause_bit)
-    app.set_location_queue(new_location_queue)
+        if not any(position):
+            log.error('Could not get a position by name, aborting')
+            sys.exit()
 
-    create_scan_queue_dispatcher()
-    if args.scan_worker:
-        begin_consume_queue()
+        log.info('Parsed location is: %.4f/%.4f/%.4f (lat/lng/alt)',
+                 position[0], position[1], position[2])
 
-    # Gather the pokemons!
+    if args.web_server:
+        # Control the search status (running or not) across threads
+        pause_bit = Event()
+        pause_bit.clear()
+        app.set_current_location(position)
+        app.set_search_control(pause_bit)
+        # No more stale JS
+        init_cache_busting(app)
+
     if args.scan_worker or args.robot_worker:
+        # Setup the location tracking queue and push the first location on
+        new_location_queue = Queue()
+        if args.robot_worker:
+            new_location_queue.put(position)
+
+        app.set_location_queue(new_location_queue)
+
+        create_scan_queue_dispatcher()
+        if args.scan_worker:
+            begin_consume_queue()
+
+        # Gather the pokemons!
         if not args.mock:
             log.debug('Starting a real search thread')
             # search_thread = Thread(target=search_loop, args=(args,search_control,))
@@ -137,6 +141,4 @@ def configure(app):
     if args.cors:
         CORS(app)
 
-    # No more stale JS
-    init_cache_busting(app)
 

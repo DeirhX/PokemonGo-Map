@@ -21,7 +21,7 @@ from extend.stats import get_guests_seen, get_members_seen, get_requests_made, g
 from extend.user import verify_token
 from pogom.utils import get_args
 from . import config
-from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn
+from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn, dispatch_upsert
 from .search import scan_enqueue
 
 log = logging.getLogger(__name__)
@@ -307,7 +307,7 @@ class Pogom(Flask):
                 'ip': request.remote_addr,
                 'account': user
             }
-            bulk_upsert(Scan, scan)
+            dispatch_upsert(Scan, scan)
 
             scan_enqueue(datetime.utcnow(), datetime.utcnow() + timedelta(minutes=5), position, 3)
             mark_scan(request, user)

@@ -89,17 +89,14 @@ class Pokemon(BaseModel):
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
 
-    @classmethod
-    def from_json(cls, data):
-        cls.encounter_id = data['encounter_id']
-        cls.spawnpoint_id = data['spawnpoint_id']
-        cls.pokemon_id = data['pokemon_id']
-        cls.latitude = data['latitude']
-        cls.longitude = data['longitude']
-        cls.disappear_time = dateutil.parser.parse(data['disappear_time'])
-        cls.last_modified = dateutil.parser.parse(data['last_modified'])
-        if 'last_update' in data:
-            cls.last_update = dateutil.parser.parse(data['last_update'])
+    @staticmethod
+    def parse_json(data):
+        if 'disappear_time' in data and isinstance(data['disappear_time'], unicode):
+            data['disappear_time'] = dateutil.parser.parse(data['disappear_time'])
+        if 'last_modified' in data and isinstance(data['last_modified'], unicode):
+            data['last_modified'] = dateutil.parser.parse(data['last_modified'])
+        if 'last_update' in data and isinstance(data['last_update'], unicode):
+            data['last_update'] = dateutil.parser.parse(data['last_update'])
 
     @staticmethod
     def get_active(swLat, swLng, neLat, neLng, since=datetime.min):
@@ -240,19 +237,14 @@ class Pokestop(BaseModel):
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
 
-    @classmethod
-    def from_json(cls, data):
-        cls.pokestop_id = data['pokestop_id']
-        cls.enabled = data['enabled']
-        cls.latitude = data['latitude']
-        cls.longitude = data['longitude']
-        if 'active_pokemon_id' in data:
-            cls.active_pokemon_id = data['active_pokemon_id']
-        cls.last_modified = dateutil.parser.parse(data['last_modified'])
-        if 'lure_expiration' in data and data['lure_expiration']:
-            cls.lure_expiration = dateutil.parser.parse(data['lure_expiration'])
-        if 'last_update' in data:
-            cls.last_update = dateutil.parser.parse(data['last_update'])
+    @staticmethod
+    def parse_json( data):
+        if 'last_modified' in data and isinstance(data['last_modified'], unicode):
+            data['last_modified'] = dateutil.parser.parse(data['last_modified'])
+        if 'lure_expiration' in data and isinstance(data['lure_expiration'], unicode):
+            data['lure_expiration'] = dateutil.parser.parse(data['lure_expiration'])
+        if 'last_update' in data and isinstance(data['last_update'], unicode):
+            data['last_update'] = dateutil.parser.parse(data['last_update'])
 
     @staticmethod
     def get_latest():
@@ -313,18 +305,12 @@ class Gym(BaseModel):
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
 
-    @classmethod
-    def from_json(cls, data):
-        cls.gym_id = data['gym_id']
-        cls.team_id = data['team_id']
-        cls.guard_pokemon_id = data['guard_pokemon_id']
-        cls.gym_points = data['gym_points']
-        cls.enabled = data['enabled']
-        cls.latitude = data['latitude']
-        cls.longitude = data['longitude']
-        cls.last_modified = dateutil.parser.parse(data['last_modified'])
-        if 'last_update' in data:
-            cls.last_update = dateutil.parser.parse(data['last_update'])
+    @staticmethod
+    def parse_json(data):
+        if 'last_modified' in data and isinstance(data['last_modified'], unicode):
+            data['last_modified'] = dateutil.parser.parse(data['last_modified'])
+        if 'last_update' in data and isinstance(data['last_update'], unicode):
+            data['last_update'] = dateutil.parser.parse(data['last_update'])
 
     @classmethod
     def get_latest(cls):
@@ -420,8 +406,8 @@ class Login(BaseModel):
     class Meta:
         primary_key = CompositeKey('type', 'username')
 
-    @classmethod
-    def get_least_used(cls, type):
+    @staticmethod
+    def get_least_used(type):
         query = (Login
                  .select()
                  .where(Login.use == 1)
@@ -431,15 +417,15 @@ class Login(BaseModel):
         result = query.get()
         return result
 
-    @classmethod
-    def set_failed(cls, login):
+    @staticmethod
+    def set_failed(login):
         login.last_fail = datetime.now()
         login.last_request = login.last_fail
         login.fail_count += 1
         login.save()
 
-    @classmethod
-    def set_success(cls, login):
+    @staticmethod
+    def set_success(login):
         login.last_login = datetime.now()
         login.last_request = login.last_login
         login.success_count += 1
@@ -654,17 +640,17 @@ def parse_map(map_dict, step_location):
 
     if pokemons and config['parse_pokemon']:
         pokemons_upserted = len(pokemons)
-        bulk_upsert(Pokemon, pokemons)
+        dispatch_upsert(Pokemon, pokemons)
 
     if pokestops and config['parse_pokestops']:
         pokestops_upserted = len(pokestops)
-        bulk_upsert(Pokestop, pokestops)
+        dispatch_upsert(Pokestop, pokestops)
 
     if gyms and config['parse_gyms']:
         gyms_upserted = len(gyms)
-        bulk_upsert(Gym, gyms)
+        dispatch_upsert(Gym, gyms)
 
-    bulk_upsert(ScannedLocation, scanned)
+        dispatch_upsert(ScannedLocation, scanned)
 
     # clean_database()
 
@@ -695,16 +681,24 @@ def clean_database():
 inserter = DbInserterQueueProducer()
 inserter.connect()
 
+def dispatch_upsert(cls, data):
+    if (cls is Pokemon) or (cls is Gym) or (cls is Pokestop):
+        inserter.publish(json.dumps({str(cls): data.values()}))
+    else:
+        bulk_upsert(cls, data)
+
 def bulk_upsert(cls, data):
-    num_rows = len(data.values())
+    if isinstance(data, dict):
+        data = data.values()
+
+    num_rows = len(data)
     i = 0
     step = 120
-    inserter.publish(json.dumps({str(cls): data.values()}))
 
     while i < num_rows:
         log.debug('Inserting items %d to %d', i, min(i + step, num_rows))
         try:
-            InsertQuery(cls, rows=data.values()[i:min(i + step, num_rows)]).upsert().execute()
+            InsertQuery(cls, rows=data[i:min(i + step, num_rows)]).upsert().execute()
         except Exception as e:
             log.warning('%s... Retrying', e)
             continue
