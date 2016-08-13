@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     aggregate_producer.connect()
 
-    stats_thread = Thread(target=stats_computer_loop)
+    stats_thread = Thread(target=stats_computer_loop, name='Stats compute thread')
     stats_thread.daemon = True
     stats_thread.start()
     log.info('Stats recompute thread started')

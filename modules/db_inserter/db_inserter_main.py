@@ -16,7 +16,7 @@ log.setLevel(logging.INFO)
 
 if __name__ == '__main__':
 
-    trim_thread = Thread(target=trim_entries_loop)
+    trim_thread = Thread(target=trim_entries_loop, name='Trim entries thread')
     trim_thread.daemon = True
     trim_thread.start()
     log.info('Trim thread started')

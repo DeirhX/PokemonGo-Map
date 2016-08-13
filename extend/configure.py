@@ -123,12 +123,12 @@ def configure(app):
         if not args.mock:
             log.debug('Starting a real search thread')
             # search_thread = Thread(target=search_loop, args=(args,search_control,))
-            search_thread = Thread(target=search_overseer_thread,
+            search_thread = Thread(target=search_overseer_thread, name='Search overseer',
                                    args=(args, args.num_threads, new_location_queue, pause_bit, encryption_lib_path))
         else:
             log.debug('Starting a fake search thread')
             insert_mock_data(position)
-            search_thread = Thread(target=fake_search_loop)
+            search_thread = Thread(target=fake_search_loop, name='Fake search loop')
 
         search_thread.daemon = True
         search_thread.name = 'search_thread'
