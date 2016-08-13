@@ -7,13 +7,14 @@ from threading import Lock
 import dateutil.parser
 from flask import json
 from flask import logging
-from pogom.models import Pokemon, Gym, Pokestop, bulk_upsert
+from pogom.models import Pokemon, Gym, Pokestop, bulk_upsert, ScannedLocation
 
 log = logging.getLogger()
 
 pokestops = {} # primary: pokestop_id
 gyms = {}      # primary: gym_id
 pokemons = {}  # primary: encounter_id
+scanned = {}   # primary: scanned_id
 cached = {
     'pokestops' : pokestops,
     'gyms': gyms,
@@ -26,6 +27,8 @@ new = {
     'gyms_lock' : Lock(),
     'pokemons': {},
     'pokemons_lock' : Lock(),
+    'scanned' : {},
+    'scanned_lock' : Lock(),
 }
 messages_processed = 0
 
@@ -60,6 +63,11 @@ def collect_entry(ch, method, props, body):
                     if not pokestop['pokestop_id'] in cached['pokestops']:
                         with new['pokestops_lock']:
                             new['pokestops'][pokestop['pokestop_id']] = cached['pokestops'][pokestop['pokestop_id']] = pokestop
+            elif (key == str(ScannedLocation)):
+                for scanned_location in value:
+                    ScannedLocation.parse_json(scanned_location)
+                    with new['scanned_lock']:
+                        new['scanned'][scanned_location['scanned_id']] = scanned_location
             else:
                 log.warn('Unknown type encountered: %s', key)
                 pass
@@ -77,6 +85,7 @@ def upsert_new_entries():
     pokestops = {}
     gyms = {}
     pokemons = {}
+    scanned = {}
 
     if len(new['pokestops']):
         with new['pokestops_lock']:
@@ -96,6 +105,12 @@ def upsert_new_entries():
             new['pokemons'] = {}
         bulk_upsert(Pokemon, pokemons)
 
+    if len(new['scanned']):
+        with new['scanned_lock']:
+            scanned = list(new['scanned'].values())
+            new['scanned'] = {}
+        bulk_upsert(ScannedLocation, scanned)
+
     if len(pokemons) or len(gyms) or len(pokestops):
         log.info('upsert_new_entries inserted %d pokemon, %d gyms and %d pokestops', len(pokemons), len(gyms), len(pokestops))
 
@@ -114,7 +129,7 @@ def trim_entries_loop():
             to_remove = []
             # Find keys of expire values
             for key, value in map.iteritems():
-                if (value.last_updated < max_age):
+                if (value['last_updated'] < max_age):
                     to_remove.append(key)
             # Remove them
             for to_remove_key in to_remove:

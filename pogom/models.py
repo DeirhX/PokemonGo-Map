@@ -359,6 +359,11 @@ class ScannedLocation(BaseModel):
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
 
+    @staticmethod
+    def parse_json(data):
+        if 'last_update' in data and isinstance(data['last_update'], unicode):
+            data['last_update'] = dateutil.parser.parse(data['last_update'])
+
     @classmethod
     def get_latest(cls):
         query = (ScannedLocation
@@ -678,12 +683,13 @@ def clean_database():
                         (datetime.utcnow() - timedelta(hours=args.purge_data)))))
         query.execute()
 
-inserter = DbInserterQueueProducer()
-inserter.connect()
+dispatch_upsert_queue = Queue()
+dispatch_upsert_producer = DbInserterQueueProducer()
+dispatch_upsert_producer.connect()
 
 def dispatch_upsert(cls, data):
-    if (cls is Pokemon) or (cls is Gym) or (cls is Pokestop):
-        inserter.publish(json.dumps({str(cls): data.values()}))
+    if (cls is Pokemon) or (cls is Gym) or (cls is Pokestop) or (cls is ScannedLocation):
+        dispatch_upsert_queue.put(json.dumps({str(cls): data.values()}))
     else:
         bulk_upsert(cls, data)
 
@@ -705,7 +711,6 @@ def bulk_upsert(cls, data):
 
         i += step
 
-
 def create_tables(db):
     db.connect()
     db.create_tables([Pokemon, Pokestop, Gym, ScannedLocation], safe=True)
@@ -715,3 +720,13 @@ def drop_tables(db):
     db.connect()
     db.drop_tables([Pokemon, Pokestop, Gym, ScannedLocation], safe=True)
     db.close()
+
+def publish_dispatch_upsert_loop():
+    while True:
+        data = dispatch_upsert_queue.get()
+        dispatch_upsert_producer.publish(data)
+
+publish_upsert_thread = Thread(target=publish_dispatch_upsert_loop, name='Publish upsert thread')
+publish_upsert_thread.daemon = True
+publish_upsert_thread.start()
+log.info('Publish upsert thread started')
