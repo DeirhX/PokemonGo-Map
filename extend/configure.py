@@ -102,10 +102,11 @@ def configure(app):
         log.info('Parsed location is: %.4f/%.4f/%.4f (lat/lng/alt)',
                  position[0], position[1], position[2])
 
-    if args.web_server:
-        # Control the search status (running or not) across threads
         pause_bit = Event()
         pause_bit.clear()
+
+    if args.web_server:
+        # Control the search status (running or not) across threads
         app.set_current_location(position)
         app.set_search_control(pause_bit)
         # No more stale JS
