@@ -1386,7 +1386,7 @@ function setupScannedMarker (item) {
     clickable: false,
     center: circleCenter,
     radius: 60, // metres
-    fillColor: getColorByDate(item['last_modified']),
+    fillColor: getColorByDate(item['last_update']),
     strokeWeight: 1,
     clickable: false,
   })
@@ -1641,8 +1641,9 @@ function processScanned (i, item) {
   var scanId = item['latitude'] + '|' + item['longitude']
 
   if (scanId in mapData.scanned) {
+    mapData.scanned[scanId].last_update = item['last_update']
     mapData.scanned[scanId].marker.setOptions({
-      fillColor: getColorByDate(item['last_modified'])
+      fillColor: getColorByDate(item['last_update'])
     })
   } else { // add marker to map and item to dict
     if (item.marker) {
