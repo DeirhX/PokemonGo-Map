@@ -25,7 +25,7 @@ def begin_consume_queue():
             timestamp, expire_time, position, steps = queue.get()
             log.info('Processing scan request...')
             do_search(position, steps)
-    scan_enqueue_thread = Thread(target=scan_dispatcher, name='Scan queue thread', args=(queue,))
+    scan_enqueue_thread = Thread(target=scan_dispatcher, name='Scan queue processor', args=(queue,))
     scan_enqueue_thread.daemon = True
     scan_enqueue_thread.start()
 
@@ -47,7 +47,7 @@ def begin_consume_queue():
         consumer.start_consume(callback)
 
     # Begin consuming
-    thread = Thread(target=consume_thread)
+    thread = Thread(target=consume_thread, name='Scan queue consumer')
     thread.daemon = True
     thread.start()
 

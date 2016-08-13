@@ -353,7 +353,7 @@ class TooManyLoginAttempts(Exception):
 # Scan consumer - producer
 #
 def create_scan_queue_dispatcher():
-    scan_queue_thread = Thread(target=scan_queue_dispatcher, name='Scan queue thread', args=(args, scan_queue,))
+    scan_queue_thread = Thread(target=scan_queue_dispatcher, name='Scan producer', args=(args, scan_queue,))
     scan_queue_thread.daemon = True
     scan_queue_thread.start()
 
