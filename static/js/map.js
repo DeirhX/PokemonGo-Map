@@ -952,7 +952,7 @@ function initSidebar () {
   $('#lock-marker-switch').prop('checked', Store.get('lockMarker'))
   $('#start-at-user-location-switch').prop('checked', Store.get('startAtUserLocation'))
   $('#scanned-switch').prop('checked', Store.get('showScanned'))
-  $('#spawnpoints-switch').prop('checked', Store.get('showSpawnpoints'))
+  $('#spawnpoint-switch').prop('checked', Store.get('showSpawnpoints'))
   $('#sound-switch').prop('checked', Store.get('playSound'))
   var searchBox = new google.maps.places.SearchBox(document.getElementById('next-location'))
   $('#next-location').css('background-color', $('#geoloc-switch').prop('checked') ? '#e0e0e0' : '#ffffff')
@@ -1527,7 +1527,6 @@ function loadRawData(incremental) {
     data: {
       'pokemon': loadPokemon,
       'pokestops': loadPokestops,
-      'spawns': loadSpawnpoints,
       'gyms': loadGyms,
       'scanned': loadScanned,
       'spawnpoints': loadSpawnpoints,
@@ -1576,16 +1575,16 @@ function processPokemons (i, item) {
 }
 
 function processSpawns(i, item) {
-  if (!Store.get('showSpawns')) {
+  if (!Store.get('showSpawnpoints')) {
     return false; // in case the checkbox was unchecked in the meantime.
   }
 
-  if (!(item.id in mapData.spawns)) {
+  if (!(item.id in mapData.spawnpoints)) {
     // add marker to map and item to dict
     if (item.marker) item.marker.setMap(null);
     if (!item.hidden) {
       item.marker = setupSpawnMarker(item);
-      mapData.spawns[item.id] = item;
+      mapData.spawnpoints[item.id] = item;
     }
   }
 }
@@ -1661,7 +1660,7 @@ function updateMap(incremental) {
    	$.each(result.pokestops, processPokestops)
     $.each(result.gyms, processGyms)
    	$.each(result.scanned, processScanned)
-   	$.each(result.spawnpoints, processSpawnpoints)
+   	$.each(result.spawns, processSpawns)
    	showInBoundsMarkers(mapData.pokemons)
     showInBoundsMarkers(mapData.lurePokemons)
    	showInBoundsMarkers(mapData.gyms)
@@ -1762,8 +1761,8 @@ var updateSpawnIcon = function(spawn) {
 };
 
 var updateAllSpawnIcons = function() {
-  for (var spawnId in mapData.spawns) {
-    updateSpawnIcon(mapData.spawns[spawnId]);
+  for (var spawnId in mapData.spawnpoints) {
+    updateSpawnIcon(mapData.spawnpoints[spawnId]);
   }
 };
 
@@ -2198,7 +2197,7 @@ $(function () {
   $('#gyms-switch').change(buildSwitchChangeListener(mapData, ['gyms'], 'showGyms'))
   $('#pokemon-switch').change(buildSwitchChangeListener(mapData, ['pokemons'], 'showPokemon'))
   $('#scanned-switch').change(buildSwitchChangeListener(mapData, ['scanned'], 'showScanned'))
-  $('#spawnpoints-switch').change(buildSwitchChangeListener(mapData, ['spawnpoints'], 'showSpawnpoints'))
+  $('#spawnpoint-switch').change(buildSwitchChangeListener(mapData, ['spawnpoints'], 'showSpawnpoints'))
 
   $('#pokestops-switch').change(function () {
     var options = {
