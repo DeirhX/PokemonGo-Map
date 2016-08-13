@@ -111,6 +111,7 @@ def configure(app):
         app.set_search_control(pause_bit)
         # No more stale JS
         init_cache_busting(app)
+        create_scan_queue_dispatcher()
 
     if args.scan_worker or args.robot_worker:
         # Setup the location tracking queue and push the first location on
@@ -120,7 +121,6 @@ def configure(app):
 
         app.set_location_queue(new_location_queue)
 
-        create_scan_queue_dispatcher()
         if args.scan_worker:
             begin_consume_queue()
 
