@@ -64,9 +64,11 @@ if __name__ == '__main__':
 
     if not args.web_server:
         # This loop allows for ctrl-c interupts to work since flask won't be holding the program open
+        log.info('No web server requested, main thread waiting...')
         while True:
             time.sleep(60)
     else:
+        log.info('Booting up web-server...')
         if args.use_ssl:
             context = ('server.cer', 'server.key')
             app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port,
