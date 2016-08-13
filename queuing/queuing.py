@@ -12,7 +12,6 @@ def connect():
     return connection
 
 # Queue Names
-
 def scan_queue():
     return 'heroic_scan_queue'
 
