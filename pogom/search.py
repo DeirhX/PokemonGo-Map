@@ -342,7 +342,7 @@ def check_login(args, api, position):
             time.sleep(args.login_delay)
             loginLock.acquire()
         flaskDb.close_db(None)
-
+    time.sleep(5)
 
 
 
