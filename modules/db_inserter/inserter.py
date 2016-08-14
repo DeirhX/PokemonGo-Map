@@ -116,7 +116,7 @@ def upsert_new_entries():
             scanned = list(new['scanned'].values())
             new['scanned'] = {}
         bulk_upsert(ScannedLocation, scanned)
-        log.info('Inserted scans: %d', len(scanned))
+        #log.info('Inserted scans: %d', len(scanned))
         for item in scanned:
             item['received'] = datetime.utcnow()
 

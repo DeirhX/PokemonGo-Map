@@ -5,7 +5,7 @@ import datetime
 from extend.log import enableFileLogging
 from threading import Thread
 from datetime import timedelta, datetime
-from flask import json
+
 
 from modules.db_inserter.inserter import upserter_loop, trim_entries_loop, collect_entry
 from pogom.app import Pogom
@@ -16,8 +16,8 @@ enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 
-consume_threads = 1
-upsert_threads = 2
+consume_threads = 4
+upsert_threads = 4
 
 def consume():
     collector = DbInserterQueueConsumer()

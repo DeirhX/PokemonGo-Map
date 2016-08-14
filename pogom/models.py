@@ -3,6 +3,7 @@
 import logging
 import calendar
 import time
+import ujson
 
 from Queue import Queue
 
@@ -716,7 +717,7 @@ dispatch_upsert_producer.connect()
 
 def dispatch_upsert(cls, data):
     if (cls is Pokemon) or (cls is Gym) or (cls is Pokestop) or (cls is ScannedLocation):
-        dispatch_upsert_queue.put(json.dumps({str(cls): data.values()}, default=json_datetime_ts))
+        dispatch_upsert_queue.put(ujson.dumps({str(cls): data.values()}))
     else:
         bulk_upsert(cls, data)
 
