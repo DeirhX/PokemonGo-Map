@@ -115,11 +115,9 @@ def configure(app):
 
     if args.scan_worker or args.robot_worker:
         # Setup the location tracking queue and push the first location on
-        new_location_queue = Queue()
+        location_list = []
         if args.robot_worker:
-            new_location_queue.put(position)
-
-        app.set_location_queue(new_location_queue)
+            location_list.append(position)
 
         if args.scan_worker:
             begin_consume_queue()
@@ -129,7 +127,7 @@ def configure(app):
             log.debug('Starting a real search thread')
             # search_thread = Thread(target=search_loop, args=(args,search_control,))
             search_thread = Thread(target=search_overseer_thread, name='Search overseer',
-                                   args=(args, args.num_threads, new_location_queue, pause_bit, encryption_lib_path))
+                                   args=(args, location_list, pause_bit, encryption_lib_path))
         else:
             log.debug('Starting a fake search thread')
             insert_mock_data(position)

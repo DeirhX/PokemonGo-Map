@@ -21,6 +21,7 @@ import logging
 import time
 import math
 import json
+import geopy.distance as geopy_distance
 
 from threading import Thread, Lock
 
@@ -36,14 +37,13 @@ from pgoapi import utilities as util
 from pgoapi.exceptions import AuthException
 
 from . import config
-from .models import parse_map, Login, args, flaskDb
+from .models import parse_map, Login, args, flaskDb, Pokemon
 
 log = logging.getLogger(__name__)
 
 TIMESTAMP = '\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000'
-search_items_queue = Queue(config['SEARCH_QUEUE_DEPTH'])
+global_search_queue = Queue(config['SEARCH_QUEUE_DEPTH'])
 scan_queue = Queue(config['SCAN_QUEUE_DEPTH'])
-
 
 def get_new_coords(init_loc, distance, bearing):
     """ Given an initial lat/lng, a distance(in kms), and a bearing (degrees),
@@ -114,93 +114,89 @@ def fake_search_loop():
         time.sleep(10)
 
 # The main search loop that keeps an eye on the over all process
-def search_overseer_thread(args, thread_count, new_location_queue, pause_bit, encryption_lib_path):
+def search_overseer_thread(args, location_list, pause_bit, encryption_lib_path):
 
     log.info('Search overseer starting')
-
     parse_lock = Lock()
 
     # Create a search_worker_thread per account
-    log.info('Starting search worker threads')
-    for i in range(thread_count):
+    for i, current_location in enumerate(location_list):
+
+        # update our list of coords
+        locations = list(generate_location_steps(current_location, args.step_limit))
+
+        # repopulate for our spawn points
+        if args.spawnpoints_only:
+            # We need to get all spawnpoints in range. This is a square 70m * step_limit * 2
+            sp_dist = 0.07 * 2 * args.step_limit
+            log.debug('Spawnpoint search radius: %f', sp_dist)
+            # generate coords of the midpoints of each edge of the square
+            south, west = get_new_coords(current_location, sp_dist, 180), get_new_coords(current_location, sp_dist, 270)
+            north, east = get_new_coords(current_location, sp_dist, 0), get_new_coords(current_location, sp_dist, 90)
+            # Use the midpoints to arrive at the corners
+            log.debug('Searching for spawnpoints between %f, %f and %f, %f', south[0], west[1], north[0], east[1])
+            spawnpoints = set(
+                (d['latitude'], d['longitude']) for d in Pokemon.get_spawnpoints(south[0], west[1], north[0], east[1]))
+            if len(spawnpoints) == 0:
+                log.warning(
+                    'No spawnpoints found in the specified area! (Did you forget to run a normal scan in this area first?)')
+
+            def any_spawnpoints_in_range(coords):
+                return any(geopy_distance.distance(coords, x).meters <= 70 for x in spawnpoints)
+
+            locations = [coords for coords in locations if any_spawnpoints_in_range(coords)]
+
+        if len(locations) == 0:
+            log.warning('Nothing to scan!')
+
         log.debug('Starting search worker thread %d', i)
         t = Thread(target=search_worker_thread,
                    name='search_worker_{}'.format(i),
-                   args=(args, search_items_queue, parse_lock, encryption_lib_path))
+                   args=(args, locations, global_search_queue, parse_lock, encryption_lib_path))
         t.daemon = True
         t.start()
 
-    # A place to track the current location
-    current_location = False
+    # while True:
+    #    time.sleep(1)
+    return
 
-    # The real work starts here but will halt on pause_bit.set()
-    while True:
-
-        # paused; clear queue if needed, otherwise sleep and loop
-        if pause_bit.is_set():
-            if not search_items_queue.empty():
-                try:
-                    while True:
-                        search_items_queue.get_nowait()
-                except Empty:
-                    pass
-            time.sleep(1)
-            continue
-
-        # If a new location has been passed to us, get the most recent one
-        if not new_location_queue.empty():
-            log.info('New location caught, moving search grid')
-            try:
-                while True:
-                    current_location = new_location_queue.get_nowait()
-            except Empty:
-                pass
-
-            # We (may) need to clear the search_items_queue
-            if not search_items_queue.empty():
-                try:
-                    while True:
-                        search_items_queue.get_nowait()
-                except Empty:
-                    pass
-
-        # If there are no search_items_queue either the loop has finished (or been
-        # cleared above) -- either way, time to fill it back up
-
-        # Feed as many as you can
-        # if search_items_queue.empty():
-        # log.debug('Search queue empty, restarting loop')
-        if current_location:
-            do_search(current_location, args.step_limit)
-        # else:
-        #     log.info('Search queue processing, %d items left', search_items_queue.qsize())
-
-        # Now we just give a little pause here
-        time.sleep(1)
 
 def do_search(location, steps):
+    for entry in steps_from_location(location, steps):
+        global_search_queue.put(entry)
+
+def steps_from_location(location, steps):
+    list = []
     for step, step_location in enumerate(generate_location_steps(location, steps), 1):
         log.debug('Queueing step %d @ %f/%f/%f', step, step_location[0], step_location[1], step_location[2])
         search_args = (step, step_location)
-        search_items_queue.put(search_args)
+        list.append(search_args)
+    return list
 
-def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_path):
+def search_worker_thread(args, iterate_locations, global_search_queue, parse_lock, encryption_lib_path):
 
     log.info('Search worker thread starting')
 
     # We will attempt new login every this api is None
     api = None
 
+    # If iterating over private locations endlessly
+    location_i = 0
     # The forever loop for the thread
     while True:
-
-        log.info('Search step beginning (queue size is %d)', search_items_queue.qsize())
 
         # Get current time
         loop_start_time = int(round(time.time() * 1000))
 
         # Grab the next thing to search (when available)
-        step, step_location = search_items_queue.get()
+        if iterate_locations:
+            step_location = iterate_locations[location_i]
+            location_i += 1
+            step = location_i
+            log.info('Location obtained from local queue, step: %d of %d', step, len(iterate_locations))
+        else:
+            step, step_location = global_search_queue.get()
+            log.info('Location obtained from global queue, remaining: %d', global_search_queue.qsize())
 
         # Was the scan successful at last?
         success = False
@@ -284,7 +280,8 @@ def search_worker_thread(args, search_items_queue, parse_lock, encryption_lib_pa
                 api = None
 
         # We got over until_success loop so that means we're successful, yay! Get the next one
-        search_items_queue.task_done()
+        if not iterate_locations:
+            global_search_queue.task_done()
 
         # If there's any time left between the start time and the time when we should be kicking off the next
         # loop, hang out until its up.

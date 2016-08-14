@@ -54,9 +54,6 @@ class Pogom(Flask):
     def set_search_control(self, control):
         self.search_control = control
 
-    def set_location_queue(self, queue):
-        self.location_queue = queue
-
     def set_current_location(self, location):
         self.current_location = location
 
