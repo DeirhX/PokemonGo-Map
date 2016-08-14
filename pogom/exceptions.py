@@ -6,3 +6,6 @@ class NoAuthTicketException(Exception):
 
 class EmptyResponseException(Exception):
     pass
+
+class NoAvailableLogins(Exception):
+    pass

@@ -27,7 +27,7 @@ from threading import Thread, Lock
 
 from Queue import Queue, PriorityQueue
 
-from pogom.exceptions import NoAuthTicketException, EmptyResponseException
+from pogom.exceptions import NoAuthTicketException, EmptyResponseException, NoAvailableLogins
 from pogom.utils import json_datetime_iso
 from queuing.scan_queue import ScanQueueProducer
 from queue import Queue, Empty
@@ -246,8 +246,14 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     # We'd see timeouts of 5, 10, 15, 20, 25
                     sleep_time = args.scan_delay * (1 + failed_total)
 
-                    # Ok, let's get started -- check our login status
-                    check_login(args, api, step_location)
+                    # Ok, let's get started -- get a login or wait for one
+                    while True:
+                        try:
+                            check_login(args, api, step_location)
+                            break
+                        except NoAvailableLogins:
+                            log.error('No available logins that can be used. Waiting for one...')
+                            time.sleep(10)
 
                     api.activate_signature(encryption_lib_path)
 
@@ -324,7 +330,13 @@ def check_login(args, api, position):
     with loginLock:
         flaskDb.connect_db()
         while True: # i < args.login_retries:
-            login_info = Login.get_least_used(1)
+            login_name = Login.get_least_used(1, 30)[0] # 30mins is the normal relogin timeout
+            if login_name:
+                login_info = Login.get_by_username(login_name)
+            else:
+                flaskDb.close_db(None)
+                raise NoAvailableLogins()
+
             try:
                 auth_service = 'google' if not login_info.type else 'ptc'
                 api.set_authentication(provider = auth_service, username = login_info.username, password = login_info.password)

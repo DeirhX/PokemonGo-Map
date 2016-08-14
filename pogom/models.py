@@ -434,27 +434,28 @@ class Login(BaseModel):
     class Meta:
         primary_key = CompositeKey('type', 'username')
 
-    @staticmethod
-    def get_least_used(type):
-        query = (Login
-                 .select()
-                 .where(Login.use == 1)
-                 .where(Login.type == type)
-                 .order_by(Login.last_request)
-                 .limit(1))
-        result = query.get()
+    @classmethod
+    def get_least_used(cls, type, min_age_minutes):
+        cursor = flaskDb.database.get_cursor()
+        cursor.callproc('lock_available_login', (type, min_age_minutes))
+        result = cursor.fetchone()
+        cursor.close()
         return result
+
+    @classmethod
+    def get_by_username(cls, username):
+        return Login.select().where(Login.username == username).get()
 
     @staticmethod
     def set_failed(login):
-        login.last_fail = datetime.now()
+        login.last_fail = datetime.utcnow()
         login.last_request = login.last_fail
         login.fail_count += 1
         login.save()
 
     @staticmethod
     def set_success(login):
-        login.last_login = datetime.now()
+        login.last_login = datetime.utcnow()
         login.last_request = login.last_login
         login.success_count += 1
         login.save()
