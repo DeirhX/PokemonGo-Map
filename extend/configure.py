@@ -16,7 +16,7 @@ from extend.scan import begin_consume_queue
 from extend.stats import begin_share_receive_stats
 from pogom import config
 from pogom.models import init_database, create_tables
-from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop
+from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop, scan_overseer_thread
 from pogom.utils import get_encryption_lib_path, insert_mock_data, get_args
 
 log = logging.getLogger()
@@ -117,20 +117,20 @@ def configure(app):
         create_scan_queue_dispatcher()
         begin_share_receive_stats()
 
-    if args.scan_worker or args.robot_worker:
-        # Setup the location tracking queue and push the first location on
-        location_list = []
-        steps = args.step_limit
+    if args.scan_worker:
+        begin_consume_queue()
+        scan_thread = Thread(target=scan_overseer_thread, name='Scan overseer',
+                               args=(args, args.num_threads, pause_bit, encryption_lib_path))
+        scan_thread.daemon = True
+        scan_thread.name = 'scan_overseer_thread'
+        scan_thread.start()
 
-        if args.scan_worker:
-            begin_consume_queue()
-
-        if (args.robot_worker):
-            # if args.num_threads <= 1:
-            #    location_list.append(position)
-            rings = int(math.ceil(math.sqrt(args.num_threads / 3))) # beehive me!
-            steps = args.step_limit / (2 * rings - 1)
-            location_list = map(lambda x: (x.lat.decimal_degree, x.lon.decimal_degree, 0), generate_hive_cells(position, rings, steps))
+    if args.robot_worker:
+        # if args.num_threads <= 1:
+        #    location_list.append(position)
+        rings = int(math.ceil(math.sqrt(args.num_threads / 3))) # beehive me!
+        steps = args.step_limit / (2 * rings - 1)
+        location_list = map(lambda x: (x.lat.decimal_degree, x.lon.decimal_degree, 0), generate_hive_cells(position, rings, steps))
 
         # Gather the pokemons!
         if not args.mock:
@@ -144,7 +144,7 @@ def configure(app):
             search_thread = Thread(target=fake_search_loop, name='Fake search loop')
 
         search_thread.daemon = True
-        search_thread.name = 'search_thread'
+        search_thread.name = 'search_overseer_thread'
         search_thread.start()
 
     if args.cors:
