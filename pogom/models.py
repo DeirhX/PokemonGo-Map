@@ -24,7 +24,8 @@ from threading import Thread
 
 from queuing.db_insert_queue import DbInserterQueueProducer
 from . import config
-from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, get_args, send_to_webhook
+from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, get_args, send_to_webhook, json_datetime_ts, \
+    json_ts_datetime
 from .transform import transform_from_wgs_to_gcj
 from .customLog import printPokemon
 
@@ -94,12 +95,12 @@ class Pokemon(BaseModel):
 
     @staticmethod
     def parse_json(data):
-        if 'disappear_time' in data and isinstance(data['disappear_time'], unicode):
-            data['disappear_time'] = dateutil.parser.parse(data['disappear_time'])
-        if 'last_modified' in data and isinstance(data['last_modified'], unicode):
-            data['last_modified'] = dateutil.parser.parse(data['last_modified'])
-        if 'last_update' in data and isinstance(data['last_update'], unicode):
-            data['last_update'] = dateutil.parser.parse(data['last_update'])
+        if 'last_modified' in data:
+            data['last_modified'] = json_ts_datetime(data['last_modified'])
+        if 'disappear_time' in data:
+            data['disappear_time'] = json_ts_datetime(data['disappear_time'])
+        if 'last_update' in data:
+            data['last_update'] = json_ts_datetime(data['last_update'])
 
     @staticmethod
     def get_active(swLat, swLng, neLat, neLng, since=datetime.min):
@@ -259,12 +260,12 @@ class Pokestop(BaseModel):
 
     @staticmethod
     def parse_json( data):
-        if 'last_modified' in data and isinstance(data['last_modified'], unicode):
-            data['last_modified'] = dateutil.parser.parse(data['last_modified'])
-        if 'lure_expiration' in data and isinstance(data['lure_expiration'], unicode):
-            data['lure_expiration'] = dateutil.parser.parse(data['lure_expiration'])
-        if 'last_update' in data and isinstance(data['last_update'], unicode):
-            data['last_update'] = dateutil.parser.parse(data['last_update'])
+        if 'last_modified' in data:
+            data['last_modified'] = json_ts_datetime(data['last_modified'])
+        if 'lure_expiration' in data:
+            data['lure_expiration'] = json_ts_datetime(data['lure_expiration'])
+        if 'last_update' in data:
+            data['last_update'] = json_ts_datetime(data['last_update'])
 
     @staticmethod
     def get_latest():
@@ -327,10 +328,10 @@ class Gym(BaseModel):
 
     @staticmethod
     def parse_json(data):
-        if 'last_modified' in data and isinstance(data['last_modified'], unicode):
-            data['last_modified'] = dateutil.parser.parse(data['last_modified'])
-        if 'last_update' in data and isinstance(data['last_update'], unicode):
-            data['last_update'] = dateutil.parser.parse(data['last_update'])
+        if 'last_update' in data:
+            data['last_update'] = json_ts_datetime(data['last_update'])
+        if 'last_modified' in data:
+            data['last_modified'] = json_ts_datetime(data['last_modified'])
 
     @classmethod
     def get_latest(cls):
@@ -715,7 +716,7 @@ dispatch_upsert_producer.connect()
 
 def dispatch_upsert(cls, data):
     if (cls is Pokemon) or (cls is Gym) or (cls is Pokestop) or (cls is ScannedLocation):
-        dispatch_upsert_queue.put(json.dumps({str(cls): data.values()}))
+        dispatch_upsert_queue.put(json.dumps({str(cls): data.values()}, default=json_datetime_ts))
     else:
         bulk_upsert(cls, data)
 

@@ -16,8 +16,8 @@ enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 
-consume_threads = 4
-upsert_threads = 4
+consume_threads = 1
+upsert_threads = 2
 
 def consume():
     collector = DbInserterQueueConsumer()
@@ -44,7 +44,7 @@ if __name__ == '__main__':
         consume_thread = Thread(target=consume, name='Consumer thread {0}'.format(i))
         consume_thread.daemon = True
         consume_thread.start()
-        log.info('Upserter thread started')
+        log.info('Consumer thread started')
 
     while True:
         time.sleep(60)

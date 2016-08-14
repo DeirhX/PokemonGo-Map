@@ -5,7 +5,7 @@ import time
 from threading import Lock
 
 import dateutil.parser
-from flask import json
+import ujson
 from flask import logging
 from pogom.models import Pokemon, Gym, Pokestop, bulk_upsert, ScannedLocation
 
@@ -36,7 +36,7 @@ def collect_entry(ch, method, props, body):
     log.debug('Received db insert request: %s', body)
 
     try:
-        message = json.loads(body)
+        message = ujson.loads(body)
     except Exception as ex:
         log.exception('Failed to parse incoming message')
         ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -92,24 +92,34 @@ def upsert_new_entries():
             pokestops = list(new['pokestops'].values())
             new['pokestops'] = {}
         bulk_upsert(Pokestop, pokestops)
+        for item in pokestops:
+            item['received'] = datetime.utcnow()
 
     if len(new['gyms']):
         with new['gyms_lock']:
             gyms = list(new['gyms'].values())
             new['gyms'] = {}
         bulk_upsert(Gym, gyms)
+        for item in gyms:
+            item['received'] = datetime.utcnow()
 
     if len(new['pokemons']):
         with new['pokemons_lock']:
             pokemons = list(new['pokemons'].values())
             new['pokemons'] = {}
         bulk_upsert(Pokemon, pokemons)
+        for item in pokemons:
+            item['received'] = datetime.utcnow()
 
     if len(new['scanned']):
         with new['scanned_lock']:
             scanned = list(new['scanned'].values())
             new['scanned'] = {}
         bulk_upsert(ScannedLocation, scanned)
+        log.info('Inserted scans: %d', len(scanned))
+        for item in scanned:
+            item['received'] = datetime.utcnow()
+
 
     if len(pokemons) or len(gyms) or len(pokestops):
         log.info('upsert_new_entries inserted %d pokemon, %d gyms and %d pokestops', len(pokemons), len(gyms), len(pokestops))
@@ -129,7 +139,7 @@ def trim_entries_loop():
             to_remove = []
             # Find keys of expire values
             for key, value in map.iteritems():
-                if (value['last_updated'] < max_age):
+                if (value['received'] < max_age):
                     to_remove.append(key)
             # Remove them
             for to_remove_key in to_remove:

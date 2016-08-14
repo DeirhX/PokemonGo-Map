@@ -350,10 +350,24 @@ def get_encryption_lib_path():
 
     return lib_path
 
-def json_serial(obj):
+def json_datetime_iso(obj):
     """JSON serializer for objects not serializable by default json code"""
 
     if isinstance(obj, datetime):
         serial = obj.isoformat()
         return serial
     raise TypeError ("Type not serializable")
+
+def json_datetime_ts(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, datetime):
+        diff = (obj - datetime(1970, 1, 1))
+        ts = long(diff.total_seconds()) * 1000 + diff.microseconds
+        return ts
+    raise TypeError ("Type not serializable")
+
+def json_ts_datetime(ts):
+    if not ts:
+        return None
+    return datetime(1970, 1, 1) + timedelta(milliseconds=long(ts))

@@ -26,7 +26,7 @@ from threading import Thread, Lock
 
 from Queue import Queue, PriorityQueue
 
-from pogom.utils import json_serial
+from pogom.utils import json_datetime_iso
 from queuing.scan_queue import ScanQueueProducer
 from queue import Queue, Empty
 
@@ -364,7 +364,7 @@ def scan_queue_dispatcher(args, queue ):
         timestamp, expire_time, position, steps = queue.get()
         dict = {'timestamp': timestamp, 'expireTime' : expire_time, 'position': position, 'steps': steps}
         log.info('Dispatching scan request...')
-        producer.publish(json.dumps(dict, default=json_serial))
+        producer.publish(json.dumps(dict, default=json_datetime_iso))
         log.info('Scan request sent.')
 
 def scan_enqueue(timestamp, expire_time, position, steps):

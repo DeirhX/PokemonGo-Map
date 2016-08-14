@@ -7,7 +7,7 @@ from threading import Thread
 from flask import json
 from flask import logging
 
-from pogom.utils import json_serial
+from pogom.utils import json_datetime_iso
 from queuing.stats_queue import StatsSubmitProducer, StatsAggregateConsumer
 
 log = logging.getLogger()
@@ -69,7 +69,7 @@ def dispatch_stats_loop():
              'refreshes': refreshes,
              'spawn_details': spawn_details}
 
-        dispatcher.publish(json.dumps(d, default=json_serial))
+        dispatcher.publish(json.dumps(d, default=json_datetime_iso))
         time.sleep(1)
 
 # Consume aggregated stats thread
