@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 from base64 import b64encode
 from threading import Thread
 
+from pogom.exceptions import NoAuthTicketException, EmptyResponseException
 from queuing.db_insert_queue import DbInserterQueueProducer
 from . import config
 from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, get_args, send_to_webhook, json_datetime_ts, \
@@ -584,6 +585,10 @@ def parse_map(map_dict, step_location):
     scanned = {}
     scan = {}
 
+    # log.info('Received map response: %s', json.dumps(map_dict))
+
+    #if 'auth_ticket' not in map_dict:
+    #    raise NoAuthTicketException
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     for cell in cells:
         if config['parse_pokemon']:
@@ -691,6 +696,7 @@ def parse_map(map_dict, step_location):
 
     if pokemons_upserted == 0 and pokestops_upserted == 0 and gyms_upserted == 0:
         log.error('Received empty map response: %s', json.dumps(map_dict))
+        raise EmptyResponseException()
 
     log.info('Upserted %d pokemon, %d pokestops, and %d gyms',
              pokemons_upserted,

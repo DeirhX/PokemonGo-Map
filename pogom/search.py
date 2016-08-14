@@ -27,6 +27,7 @@ from threading import Thread, Lock
 
 from Queue import Queue, PriorityQueue
 
+from pogom.exceptions import NoAuthTicketException, EmptyResponseException
 from pogom.utils import json_datetime_iso
 from queuing.scan_queue import ScanQueueProducer
 from queue import Queue, Empty
@@ -267,8 +268,12 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                         log.debug('Search step %s completed', step)
                         success = True
                         break  # All done, get out of the request-retry loop
-                    except KeyError:
-                        log.exception('Search step %s map parsing failed, will relog in %g seconds', step, sleep_time)
+                    except EmptyResponseException:
+                        log.warn('Empty response from server, retrying in %g seconds', sleep_time)
+                        failed_total += 1
+                        time.sleep(sleep_time)
+                    except KeyError as e:
+                        log.exception('Search step %s map parsing failed, will retry in %g seconds. Error: %s', step, sleep_time, str(e))
                         failed_total += 1
                         time.sleep(sleep_time)
                         raise # This could be serious and likely need to relog
