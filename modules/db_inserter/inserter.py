@@ -54,13 +54,15 @@ def collect_entry(ch, method, props, body):
             elif (key == str(Gym)):
                 for gym in value:
                     Gym.parse_json(gym)
-                    if not gym['gym_id'] in cached['gyms']:
+                    if not gym['gym_id'] in cached['gyms'] \
+                            or cached['gyms'][gym['gym_id']]['last_modified'] != gym['last_modified']:
                         with new['gyms_lock']:
                             new['gyms'][gym['gym_id']] = cached['gyms'][gym['gym_id']] = gym
             elif (key == str(Pokestop)):
                 for pokestop in value:
                     Pokestop.parse_json(pokestop)
-                    if not pokestop['pokestop_id'] in cached['pokestops']:
+                    if not pokestop['pokestop_id'] in cached['pokestops'] \
+                            or cached['pokestops'][pokestop['pokestop_id']]['last_modified'] != pokestop['last_modified']:
                         with new['pokestops_lock']:
                             new['pokestops'][pokestop['pokestop_id']] = cached['pokestops'][pokestop['pokestop_id']] = pokestop
             elif (key == str(ScannedLocation)):
