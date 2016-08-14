@@ -85,10 +85,11 @@ def receive_stats_loop():
     consumer.start_consume(consume_stats)
 
 
-dispatch_thread = Thread(target=dispatch_stats_loop, name='Dispatch stats thread')
-dispatch_thread.daemon = True
-dispatch_thread.start()
+def begin_share_receive_stats():
+    dispatch_thread = Thread(target=dispatch_stats_loop, name='Dispatch stats thread')
+    dispatch_thread.daemon = True
+    dispatch_thread.start()
 
-receive_thread = Thread(target=receive_stats_loop, name='Receive aggregate stats thread')
-receive_thread.daemon = True
-receive_thread.start()
+    receive_thread = Thread(target=receive_stats_loop, name='Receive aggregate stats thread')
+    receive_thread.daemon = True
+    receive_thread.start()

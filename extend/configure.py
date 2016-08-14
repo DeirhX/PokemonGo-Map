@@ -5,12 +5,15 @@ import sys
 from Queue import Queue
 from threading import Thread, Event
 
+import math
 import requests
 from flask.ext.cors import CORS
 from pgoapi.utilities import get_pos_by_name
 from flask_cache_bust import init_cache_busting
 
+from extend.beehive import generate_hive_cells
 from extend.scan import begin_consume_queue
+from extend.stats import begin_share_receive_stats
 from pogom import config
 from pogom.models import init_database, create_tables
 from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop
@@ -112,22 +115,29 @@ def configure(app):
         # No more stale JS
         init_cache_busting(app)
         create_scan_queue_dispatcher()
+        begin_share_receive_stats()
 
     if args.scan_worker or args.robot_worker:
         # Setup the location tracking queue and push the first location on
         location_list = []
-        if args.robot_worker:
-            location_list.append(position)
+        steps = args.step_limit
 
         if args.scan_worker:
             begin_consume_queue()
+
+        if (args.robot_worker):
+            # if args.num_threads <= 1:
+            #    location_list.append(position)
+            rings = int(math.ceil(math.sqrt(args.num_threads / 3))) # beehive me!
+            steps = args.step_limit / (2 * rings - 1)
+            location_list = map(lambda x: (x.lat.decimal_degree, x.lon.decimal_degree, 0), generate_hive_cells(position, rings, steps))
 
         # Gather the pokemons!
         if not args.mock:
             log.debug('Starting a real search thread')
             # search_thread = Thread(target=search_loop, args=(args,search_control,))
             search_thread = Thread(target=search_overseer_thread, name='Search overseer',
-                                   args=(args, location_list, pause_bit, encryption_lib_path))
+                                   args=(args, location_list, steps, pause_bit, encryption_lib_path))
         else:
             log.debug('Starting a fake search thread')
             insert_mock_data(position)

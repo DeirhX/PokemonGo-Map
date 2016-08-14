@@ -114,7 +114,7 @@ def fake_search_loop():
         time.sleep(10)
 
 # The main search loop that keeps an eye on the over all process
-def search_overseer_thread(args, location_list, pause_bit, encryption_lib_path):
+def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib_path):
 
     log.info('Search overseer starting')
     parse_lock = Lock()
@@ -123,12 +123,12 @@ def search_overseer_thread(args, location_list, pause_bit, encryption_lib_path):
     for i, current_location in enumerate(location_list):
 
         # update our list of coords
-        locations = list(generate_location_steps(current_location, args.step_limit))
+        locations = list(generate_location_steps(current_location, steps))
 
         # repopulate for our spawn points
         if args.spawnpoints_only:
             # We need to get all spawnpoints in range. This is a square 70m * step_limit * 2
-            sp_dist = 0.07 * 2 * args.step_limit
+            sp_dist = 0.07 * 2 * args.steps
             log.debug('Spawnpoint search radius: %f', sp_dist)
             # generate coords of the midpoints of each edge of the square
             south, west = get_new_coords(current_location, sp_dist, 180), get_new_coords(current_location, sp_dist, 270)
@@ -191,7 +191,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
         # Grab the next thing to search (when available)
         if iterate_locations:
             step_location = iterate_locations[location_i]
-            location_i += 1
+            location_i = (location_i + 1) % len(iterate_locations)
             step = location_i
             log.info('Location obtained from local queue, step: %d of %d', step, len(iterate_locations))
         else:
