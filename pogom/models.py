@@ -429,6 +429,7 @@ class Login(BaseModel):
     use = SmallIntegerField()
     fail_count = IntegerField()
     success_count = IntegerField()
+    empty_response_count = IntegerField()
 
     class Meta:
         primary_key = CompositeKey('type', 'username')
@@ -695,7 +696,7 @@ def parse_map(map_dict, step_location):
     flaskDb.close_db(None)
 
     if pokemons_upserted == 0 and pokestops_upserted == 0 and gyms_upserted == 0:
-        log.error('Received empty map response: %s', json.dumps(map_dict))
+        # log.error('Received empty map response: %s', json.dumps(map_dict))
         raise EmptyResponseException()
 
     log.info('Upserted %d pokemon, %d pokestops, and %d gyms',
