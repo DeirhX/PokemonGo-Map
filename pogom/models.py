@@ -9,7 +9,7 @@ from Queue import Queue
 
 import sys
 import dateutil
-from flask import json
+from flask import json, jsonify
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
                    DateTimeField, OperationalError, SmallIntegerField,\
@@ -688,6 +688,9 @@ def parse_map(map_dict, step_location):
     # clean_database()
 
     flaskDb.close_db(None)
+
+    if pokemons_upserted == 0 and pokestops_upserted == 0 and gyms_upserted == 0:
+        log.error('Received empty map response: %s', json.dumps(map_dict))
 
     log.info('Upserted %d pokemon, %d pokestops, and %d gyms',
              pokemons_upserted,
