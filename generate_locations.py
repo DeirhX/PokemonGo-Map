@@ -3,31 +3,23 @@
 
 import json
 
-cells_lon = 3
-cells_lat = 3
-center_lon = 14.453
-center_lat = 50.048
-lon_size = 0.025
-lat_size = 0.025
-login_offset = 40
+import argparse
 
-base_lat = center_lat - lat_size * (float(cells_lat-1) / 2)
-base_lon = center_lon - lon_size* (float(cells_lon-1) / 2)
+from extend.beehive import generate_hive_cells
 
-entries = []
+parser = argparse.ArgumentParser()
+parser.add_argument("-lat", "--lat", help="latitude", type=float, required=True)
+parser.add_argument("-lon", "--lon", help="longitude", type=float, required=True)
+parser.add_argument("-r", "--rings", help="rings", default=5, type=int, required=True)
+parser.add_argument("-st", "--steps", help="steps", default=3, type=int, required=True)
+parser.add_argument("-p", "--params", help="other params", default=3, type=str, required=True)
 
-with open('previous_accs.txt') as acc_file:
-    while login_offset:
-        acc_file.readline()
-        login_offset -= 1
-    for x in range(cells_lon):
-        for y in range(cells_lat):
-            username, password = acc_file.readline().split()
-            lat_offset = 0
-            if (x % 2):
-                lat_offset = lat_size / 2
-            location = '{0},{1}'.format(lat_offset + base_lat + y * lat_size, base_lon + x * lon_size)
-            entries.append({'username' : username, 'password' : password, 'location' : location})
+args = parser.parse_args()
 
-with open('locations.json', 'w') as file:
-    json.dump(entries, file, indent=1)
+format = args.params
+position = [args.lat, args.lon ]
+start_arguments = map(lambda x: format.format(x.lat.decimal_degree, x.lon.decimal_degree), generate_hive_cells(position, args.rings, args.steps))
+
+for i, argument in enumerate(start_arguments):
+    with open('start-scan-{0}.bat'.format(i), 'w') as file:
+        file.write(argument)
