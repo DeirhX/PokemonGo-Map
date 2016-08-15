@@ -1160,9 +1160,9 @@ function setupPokemonMarker (item, skipNotification, isBounceDisabled) {
       lat: item['latitude'],
       lng: item['longitude']
     },
-    zIndex: 9999,
     map: map,
     icon: icon,
+    zIndex: 10,
     animationDisabled: animationDisabled
   })
 
@@ -1206,8 +1206,9 @@ function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
   var marker = new google.maps.Marker({
     position: {
       lat: item.latitude,
-      lng: item.longitude
+      lng: item.longitude,
     },
+    zIndex: 3,
     map: map,
     icon: 'static/images/spawn-tall.png'
   });
@@ -1323,8 +1324,9 @@ function setupGymMarker (item) {
   var marker = new google.maps.Marker({
     position: {
       lat: item['latitude'],
-      lng: item['longitude']
+      lng: item['longitude'],
     },
+    zIndex: 5,
     map: map,
     icon: 'static/forts/' + gymTypes[item['team_id']] + '.png'
   })
@@ -1383,11 +1385,11 @@ function setupScannedMarker (item) {
 
   var marker = new google.maps.Circle({
     map: map,
-    clickable: false,
     center: circleCenter,
     radius: 60, // metres
     fillColor: getColorByDate(item['last_update']),
     strokeWeight: 1,
+    zIndex: 1,
     clickable: false,
   })
 
