@@ -330,12 +330,17 @@ def check_login(args, api, position):
     with loginLock:
         flaskDb.connect_db()
         while True: # i < args.login_retries:
-            login_name = Login.get_least_used(1, 30)[0] # 30mins is the normal relogin timeout
-            if login_name:
-                login_info = Login.get_by_username(login_name)
+            # If was already logged in, try to reuse this account first (but only once)
+            if api and api.login_info:
+                login_info = api.login_info
+                api.login_info = None
             else:
-                flaskDb.close_db(None)
-                raise NoAvailableLogins()
+                login_name = Login.get_least_used(1, 30)[0] # 30mins is the normal relogin timeout
+                if login_name:
+                    login_info = Login.get_by_username(login_name)
+                else:
+                    flaskDb.close_db(None)
+                    raise NoAvailableLogins()
 
             try:
                 auth_service = 'google' if not login_info.type else 'ptc'

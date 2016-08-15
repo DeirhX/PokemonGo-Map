@@ -18,7 +18,7 @@ with open('accounts.txt', 'r') as f :
     alist = [line.rstrip() for line in f]
     for line in alist:
         user, password = line.split(' ')
-        sql = "INSERT INTO login (type, username, password, `use`) VALUES (1, '{0}', '{1}', '{2}')".format(user, password, 1)
+        sql = "INSERT INTO login (type, username, password, `use`) VALUES (1, '{0}', '{1}', '{2}')".format(user, password,      1)
         try:
             db.execute_sql(sql)
         except peewee.IntegrityError:
