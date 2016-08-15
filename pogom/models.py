@@ -430,6 +430,7 @@ class Login(BaseModel):
     fail_count = IntegerField()
     success_count = IntegerField()
     empty_response_count = IntegerField()
+    accept_tos = SmallIntegerField()
 
     class Meta:
         primary_key = CompositeKey('type', 'username')

@@ -281,6 +281,10 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     except KeyError as e:
                         log.exception('Search step %s map parsing failed, will retry in %g seconds. Error: %s', step, sleep_time, str(e))
                         failed_total += 1
+                        if not api.login_info.accept_tos:
+                            api.mark_tutorial_complete(tutorials_completed = 0, send_marketing_emails = False, send_push_notifications = False)
+                            api.login_info.accept_tos = 1
+                            api.login_info.save()
                         time.sleep(sleep_time)
                         raise # This could be serious and likely need to relog
 
