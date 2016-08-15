@@ -335,7 +335,7 @@ def check_login(args, api, position):
                 login_info = api.login_info
                 api.login_info = None
             else:
-                login_name = Login.get_least_used(1, 30)[0] # 30mins is the normal relogin timeout
+                login_name = Login.get_least_used(1, 35)[0] # 30mins is the normal relogin timeout
                 if login_name:
                     login_info = Login.get_by_username(login_name)
                 else:
