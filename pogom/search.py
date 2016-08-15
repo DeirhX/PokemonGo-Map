@@ -331,7 +331,7 @@ def check_login(args, api, position):
         flaskDb.connect_db()
         while True: # i < args.login_retries:
             # If was already logged in, try to reuse this account first (but only once)
-            if api and api.login_info:
+            if api and hasattr(api, 'login_info'):
                 login_info = api.login_info
                 api.login_info = None
             else:
