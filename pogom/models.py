@@ -436,9 +436,9 @@ class Login(BaseModel):
         primary_key = CompositeKey('type', 'username')
 
     @classmethod
-    def get_least_used(cls, type, min_age_minutes):
+    def get_least_used(cls, auth, min_age_minutes, type):
         cursor = flaskDb.database.get_cursor()
-        cursor.callproc('lock_available_login', (type, min_age_minutes))
+        cursor.callproc('lock_available_login_type', (auth, min_age_minutes, type))
         result = cursor.fetchone()
         cursor.close()
         return result

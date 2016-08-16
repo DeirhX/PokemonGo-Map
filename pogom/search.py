@@ -174,9 +174,9 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
     return
 
 
-def do_search(location, steps):
+def do_search(location, steps, type):
     for entry in steps_from_location(location, steps):
-        global_search_queue.put(entry)
+        global_search_queue.put(entry + (type,))
 
 def steps_from_location(location, steps):
     list = []
@@ -206,9 +206,10 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             step_location = iterate_locations[location_i]
             location_i = (location_i + 1) % len(iterate_locations)
             step = location_i
+            type = 1
             log.info('Location obtained from local queue, step: %d of %d', step, len(iterate_locations))
         else:
-            step, step_location = global_search_queue.get()
+            step, step_location, type = global_search_queue.get()
             log.info('Location obtained from global queue, remaining: %d', global_search_queue.qsize())
 
         # Was the scan successful at last?
@@ -249,7 +250,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     # Ok, let's get started -- get a login or wait for one
                     while True:
                         try:
-                            check_login(args, api, step_location)
+                            check_login(args, api, step_location, type)
                             break
                         except NoAvailableLogins:
                             log.error('No available logins that can be used. Waiting for one...')
@@ -319,7 +320,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
         loop_start_time += args.scan_delay * 1000
 
 loginLock = Lock()
-def check_login(args, api, position):
+def check_login(args, api, position, type):
 
     # Logged in? Enough time left? Cool!
     if api._auth_provider and api._auth_provider._ticket_expire:
@@ -339,7 +340,7 @@ def check_login(args, api, position):
                 login_info = api.login_info
                 api.login_info = None
             else:
-                login_name = Login.get_least_used(1, 35)[0] # 30mins is the normal relogin timeout
+                login_name = Login.get_least_used(1, 35, type)[0] # 30mins is the normal relogin timeout
                 if login_name:
                     login_info = Login.get_by_username(login_name)
                 else:
