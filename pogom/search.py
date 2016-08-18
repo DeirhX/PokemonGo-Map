@@ -240,7 +240,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                         # on this overall loop forever. Better to lose one cell
                         # than have the scanner, essentially, halt.
                         log.error('Search step %d went over max scan_retires; abandoning', step)
-                        fail = True
+                        raise KeyError
                         break
 
                     # Increase sleep delay between each failed scan
