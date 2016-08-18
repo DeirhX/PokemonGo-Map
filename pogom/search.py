@@ -18,6 +18,7 @@ Search Architecture:
 '''
 
 import logging
+import pprint
 import time
 import math
 import json
@@ -282,10 +283,6 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     except KeyError as e:
                         log.exception('Search step %s map parsing failed, will retry in %g seconds. Error: %s', step, sleep_time, str(e))
                         failed_total += 1
-                        if not api.login_info.accept_tos:
-                            api.mark_tutorial_complete(tutorials_completed = 0, send_marketing_emails = False, send_push_notifications = False)
-                            api.login_info.accept_tos = 1
-                            api.login_info.save()
                         time.sleep(sleep_time)
                         raise # This could be serious and likely need to relog
 
@@ -349,6 +346,19 @@ def check_login(args, api, position, type):
 
             try:
                 auth_service = 'google' if not login_info.type else 'ptc'
+                if not login_info.accept_tos:
+                    api.login(auth_service, login_info.username, login_info.password)
+                    time.sleep(2)
+                    api.mark_tutorial_complete(tutorials_completed=0, send_marketing_emails=False,
+                                               send_push_notifications=False)
+                    login_info.accept_tos = 1
+                    login_info.save()
+                    log.info('Accepted Terms of Service for {}'.format(login_info.username))
+                    # print('Response dictionary: \r\n{}'.format(pprint.PrettyPrinter(indent=4).pformat(response)))
+                    time.sleep(2)
+                    api.check_codename_available(codename=login_info.username)
+                    time.sleep(1)
+                    api.claim_codename(codename=login_info.username)
                 api.set_authentication(provider = auth_service, username = login_info.username, password = login_info.password)
                 if api._auth_provider._access_token:
                     log.debug('Login for account %s successful', login_info.username)
