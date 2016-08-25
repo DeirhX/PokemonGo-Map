@@ -2237,10 +2237,10 @@ $(function () {
   updateMessageOfTheDay();
 
   // run interval timers to regularly update map and timediffs
-  window.setInterval(updateAllLabelsDiffTime, 1000);
-  window.setInterval(updateAllSpawnCycles, 1000);
-  window.setInterval(updateAllSpawnIcons, 1000);
-  window.setInterval(updateAllPokestopIcons, 1000);
+  setTimeout(window.setInterval(updateAllLabelsDiffTime, 1000), 100)
+  setTimeout(window.setInterval(updateAllSpawnCycles, 1000), 400)
+  setTimeout(window.setInterval(updateAllSpawnIcons, 1000), 500)
+  setTimeout(window.setInterval(updateAllPokestopIcons, 1000), 800)
 
   window.setInterval(function() {
     if (navigator.geolocation && Store.get('geoLocate')) {
