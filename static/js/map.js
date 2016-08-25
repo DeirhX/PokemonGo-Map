@@ -936,7 +936,7 @@ function updateSearchMarker (style) {
 }
 
 function createSearchMarker () {
-    marker = new google.maps.Marker({ // need to keep reference.
+    searchMarker = new google.maps.Marker({ // need to keep reference.
     position: {
       lat: centerLat,
       lng: centerLng
@@ -1122,7 +1122,7 @@ function gymLabel (teamName, teamId, gymPoints, latitude, longitude) {
 
 function pokestopLabel (expireTime, latitude, longitude) {
   var str
-  if (expireTime) {
+  if (expireTime && new Date(expireTime) > new Date()) {
     var expireDate = new Date(expireTime)
 
     str = `
@@ -1378,8 +1378,14 @@ function updateGymMarker (item, marker) {
   return marker
 }
 
+function getPokestopIcon(item) {
+  var isLured = item['lure_expiration'] && item['lure_expiration'] > new Date().getTime()
+  var imagename = isLured ? 'PstopLured' : 'Pstop'
+  return 'static/forts/' + imagename + '.png'
+}
+
 function setupPokestopMarker (item) {
-  var imagename = item['lure_expiration'] ? 'PstopLured' : 'Pstop'
+
   var marker = new google.maps.Marker({
     position: {
       lat: item['latitude'],
@@ -1387,9 +1393,8 @@ function setupPokestopMarker (item) {
     },
     map: map,
     zIndex: 2,
-    icon: 'static/forts/' + imagename + '.png'
   })
-
+  marker.setIcon(getPokestopIcon(item))
   marker.infoWindow = new google.maps.InfoWindow({
     content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude']),
     disableAutoPan: true
@@ -1798,6 +1803,19 @@ var updateSpawnIcon = function(spawn) {
 var updateAllSpawnIcons = function() {
   for (var spawnId in mapData.spawnpoints) {
     updateSpawnIcon(mapData.spawnpoints[spawnId]);
+  }
+};
+
+var updatePokestopIcon = function(pokestop) {
+  var currentIcon = pokestop.marker.getIcon()
+  var newIcon = getPokestopIcon(pokestop)
+  if (newIcon != currentIcon)
+    pokestop.marker.setIcon(newIcon)
+};
+
+var updateAllPokestopIcons = function() {
+  for (var pokestopId in mapData.pokestops) {
+    updatePokestopIcon(mapData.pokestops[pokestopId]);
   }
 };
 
@@ -2222,6 +2240,8 @@ $(function () {
   window.setInterval(updateAllLabelsDiffTime, 1000);
   window.setInterval(updateAllSpawnCycles, 1000);
   window.setInterval(updateAllSpawnIcons, 1000);
+  window.setInterval(updateAllPokestopIcons, 1000);
+
   window.setInterval(function() {
     if (navigator.geolocation && Store.get('geoLocate')) {
       navigator.geolocation.getCurrentPosition(function (position) {
