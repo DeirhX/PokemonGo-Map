@@ -169,7 +169,7 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
     for i, current_location in enumerate(location_list):
 
         # update our list of coords
-        locations = list(generate_location_steps(current_location, steps))
+        locations = list(generate_location_steps(current_location, steps, 0.07))
 
         # repopulate for our spawn points
         if args.spawnpoints_only:
