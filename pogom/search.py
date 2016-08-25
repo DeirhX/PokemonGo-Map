@@ -492,7 +492,10 @@ def check_login(args, api, position, type):
                     api.check_codename_available(codename=login_info.username)
                     time.sleep(1)
                     api.claim_codename(codename=login_info.username)
-                api.set_authentication(provider = auth_service, username = login_info.username, password = login_info.password)
+                if args.proxy:
+	                api.set_authentication(provider=auth_service, username = login_info.username, password = login_info.password, proxy_config={'http': args.proxy, 'https': args.proxy})
+    	        else:
+        	        api.set_authentication(provider=auth_service, username = login_info.username, password = login_info.password)
                 if api._auth_provider._access_token:
                     log.debug('Login for account %s successful', login_info.username)
                     Login.set_success(login_info)
