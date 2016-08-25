@@ -4,6 +4,7 @@
 import logging
 import os
 import shutil
+import ssl
 import sys
 import time
 from extend.log import enableFileLogging
@@ -40,23 +41,14 @@ if not hasattr(pgoapi, "__version__") or StrictVersion(pgoapi.__version__) < Str
     log.critical("It seems `pgoapi` is not up-to-date. You must run pip install -r requirements.txt again")
     sys.exit(1)
 
-from threading import Thread, Event
-from queue import Queue
-from flask_cors import CORS
-
 from pogom import config
 from pogom.app import Pogom
 from pogom.utils import get_args
 
-
-
-
-
 args = get_args()
 app = Pogom(__name__)
 
-if __name__ == '__main__':
-
+def main():
     config['ROOT_PATH'] = app.root_path
 
     #app.config['APPLICATION_ROOT'] = args.virtual_path
@@ -69,9 +61,15 @@ if __name__ == '__main__':
             time.sleep(60)
     else:
         log.info('Booting up web-server...')
-        if args.use_ssl:
-            context = ('server.cer', 'server.key')
-            app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port,
-                    ssl_context=context)
-        else:
-            app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port)
+        ssl_context = None
+        if args.ssl_certificate and args.ssl_privatekey \
+                and os.path.exists(args.ssl_certificate) and os.path.exists(args.ssl_privatekey):
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+            ssl_context.load_cert_chain(args.ssl_certificate, args.ssl_privatekey)
+            log.info('Web server in SSL mode.')
+
+        app.run(threaded=True, use_reloader=False, debug=args.debug, host=args.host, port=args.port, ssl_context=ssl_context)
+
+if __name__ == '__main__':
+    main()
+

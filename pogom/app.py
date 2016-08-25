@@ -126,7 +126,7 @@ class Pogom(Flask):
             else:
                 d['pokemons'] = Pokemon.get_active(swLat, swLng, neLat, neLng, last_pokemon)
 
-        if request.args.get('pokestops', 'false') == 'true':
+        if request.args.get('pokestops', 'true') == 'true':
             d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng, last_gym)
         if request.args.get('seen', 'false') == 'true':
             for duration in self.get_valid_stat_input()["duration"]["items"].values():
