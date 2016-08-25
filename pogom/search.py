@@ -170,8 +170,6 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
 
         # update our list of coords
         locations = list(generate_location_steps(current_location, steps))
-    locations = []
-    spawnpoints = set()
 
         # repopulate for our spawn points
         if args.spawnpoints_only:
@@ -212,6 +210,7 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
 def do_search(location, steps, type):
     for entry in steps_from_location(location, steps):
         global_search_queue.put(entry + (type,))
+
 def search_overseer_thread_ss(args, new_location_queue, pause_bit, encryption_lib_path):
     log.info('Search ss overseer starting')
     search_items_queue = Queue()
