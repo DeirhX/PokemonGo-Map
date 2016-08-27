@@ -46,11 +46,14 @@ module.exports = function(grunt) {
       },
       build: {
         files: {
+          'static/dist/js/yourmom.js': 'static/dist/js/*.built.js'
+          /*
           'static/dist/js/app.min.js': 'static/dist/js/app.built.js',
           'static/dist/js/map.min.js': 'static/dist/js/map.built.js',
           'static/dist/js/mobile.min.js': 'static/dist/js/mobile.built.js',
           'static/dist/js/stats.min.js': 'static/dist/js/stats.built.js',
           'static/dist/js/statistics.min.js': 'static/dist/js/statistics.built.js'
+          */
         }
       }
     },

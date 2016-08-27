@@ -28,6 +28,12 @@ log = logging.getLogger(__name__)
 compress = Compress()
 args = get_args() # Performance reasons
 
+def script_url(name):
+    if not args.debug:
+        return 'dist/js/' + name + '.min.js'
+    else:
+        return 'js/' + name + '.js'
+
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):
         super(Pogom, self).__init__(import_name, **kwargs)
@@ -47,6 +53,7 @@ class Pogom(Flask):
         self.route("/search_control", methods=['GET'])(self.get_search_control)
         self.route("/search_control", methods=['POST'])(self.post_search_control)
         self.route("/stats", methods=['GET'])(self.get_stats)
+        self.add_template_global(script_url, name='script_url')
 
         config['ROOT_PATH'] = self.root_path
         self.secret_key = args.app_secret_key
@@ -367,6 +374,7 @@ class Pogom(Flask):
 
     def message(self):
         return jsonify({'message' : 'New crypto is defeated. Scans will be coming back slowly.'})
+
 
 class CustomJSONEncoder(JSONEncoder):
 
