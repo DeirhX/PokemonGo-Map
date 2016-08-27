@@ -25,6 +25,7 @@
     "grunt-legacssy": "latest",
     "grunt-minjson": "latest",
     "grunt-sass": "latest",
+	"grunt-typescript": "latest",
     "grunt-unused": "latest",
     "grunt-usemin": "latest",
     "grunt-newer": "^1.2.0",

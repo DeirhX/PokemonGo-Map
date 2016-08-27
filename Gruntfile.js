@@ -74,6 +74,20 @@ module.exports = function(grunt) {
         }
       }
     },
+    typescript: {
+      base: {
+        src: ['static/js/**/*.ts'],
+        dest: 'static/dist/js',
+        options: {
+          module: 'amd', //or commonjs
+          target: 'es5', //or es3
+          rootDir: 'static/js',
+          sourceMap: true,
+          declaration: true
+        }
+      }
+    },
+
     clean: {
       build: {
         src: 'static/dist'
@@ -118,8 +132,9 @@ module.exports = function(grunt) {
   grunt.registerTask('css-build', ['newer:sass', 'newer:cssmin']);
   grunt.registerTask('js-lint', ['newer:eslint']);
   grunt.registerTask('json', ['newer:minjson']);
+  grunt.registerTask('ts-build', ['newer:typescript']);
 
-  grunt.registerTask('build', ['clean', 'js-build', 'css-build', 'json']);
+  grunt.registerTask('build', ['clean', 'ts-build', 'js-build', 'css-build', 'json']);
   grunt.registerTask('lint', ['js-lint']);
   grunt.registerTask('default', ['build', 'watch']);
 
