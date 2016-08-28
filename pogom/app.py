@@ -30,9 +30,9 @@ args = get_args() # Performance reasons
 
 def script_url(name):
     if not args.debug:
-        return 'dist/js/' + name + '.min.js'
+        return 'dist/js/' + (name + '.min.js' if name else '')
     else:
-        return 'js/' + name + '.js'
+        return 'js/' + (name + '.js' if name else '')
 
 class Pogom(Flask):
     def __init__(self, import_name, **kwargs):

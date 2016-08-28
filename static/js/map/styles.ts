@@ -1,5 +1,4 @@
 
-
 const mapStyles = {
     noLabelsStyle: [{
         featureType: 'poi',

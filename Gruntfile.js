@@ -87,7 +87,9 @@ module.exports = function(grunt) {
         }
       }
     },
-
+    tslint: {
+      src: ['static/js/**/.ts']
+    },
     clean: {
       build: {
         src: 'static/dist'
@@ -135,7 +137,7 @@ module.exports = function(grunt) {
   grunt.registerTask('ts-build', ['newer:typescript']);
 
   grunt.registerTask('build', ['clean', 'ts-build', 'js-build', 'css-build', 'json']);
-  grunt.registerTask('lint', ['js-lint']);
+  grunt.registerTask('lint', ['ts-lint', 'js-lint']);
   grunt.registerTask('default', ['build', 'watch']);
 
 };

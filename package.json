@@ -25,18 +25,21 @@
     "grunt-legacssy": "latest",
     "grunt-minjson": "latest",
     "grunt-sass": "latest",
-	"grunt-typescript": "latest",
+    "grunt-typescript": "latest",
+    "grunt-tslint": "latest",
     "grunt-unused": "latest",
     "grunt-usemin": "latest",
     "grunt-newer": "^1.2.0",
-    "jit-grunt": "^0.10.0"
+    "jit-grunt": "^0.10.0",
+    "typescript": "^1.8.10"
   },
   "scripts": {
     "postinstall": "grunt build",
     "build": "grunt build",
     "watch": "grunt default",
     "lint": "grunt lint",
-    "grunt": "grunt"
+    "grunt": "grunt",
+    "tsc_amd": "tsc --module amd Game.ts"
   },
   "repository": {
     "type": "git",
