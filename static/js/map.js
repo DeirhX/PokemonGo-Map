@@ -3,8 +3,9 @@
 //
  define(function (require) {
 
-  var store = require('./store');
-  
+  var store = require('store');
+  var mapStyles = require("map/styles").default;
+
   var $selectExclude
   var $selectPokemonNotify
   var $selectRarityNotify
