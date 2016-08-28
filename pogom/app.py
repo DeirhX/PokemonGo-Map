@@ -82,13 +82,14 @@ class Pogom(Flask):
         return self.get_search_control()
 
     def fullmap(self):
-        #args = get_args()
+
         fixed_display = "none" if args.fixed_location else "inline"
         search_display = "inline" if args.search_control else "none"
-
+        lat = request.args.get('lat')
+        lng = request.args.get('lng')
         return render_template('map.html',
-                               lat=self.current_location[0],
-                               lng=self.current_location[1],
+                               lat=self.current_location[0] if (not lat or not lng) else lat,
+                               lng=self.current_location[1] if (not lat or not lng) else lng,
                                gmaps_key=config['GMAPS_KEY'],
                                lang=config['LOCALE'],
                                is_fixed=fixed_display,

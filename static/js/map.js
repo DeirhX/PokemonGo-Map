@@ -166,7 +166,14 @@
     })
 
     map.setMapTypeId(store.Store.get('map_style'))
-    google.maps.event.addListener(map, 'idle', updateMap)
+    google.maps.event.addListener(map, 'idle', function() {
+        if (history.pushState) {
+            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname +
+                `?lat=${String(map.getCenter().lat()).substring(0, 8)}&lng=${String(map.getCenter().lng()).substring(0, 8)}`;
+            window.history.pushState({path:newurl},'',newurl);
+        }
+        updateMap();
+    });
 
     searchMarker = createSearchMarker()
 
