@@ -1,4 +1,8 @@
-requirejs(["map"], function (map) {
-    let initMap = map.initMap;
-})
+define(function (require) {
 
+    require(["async!https://maps.googleapis.com/maps/api/js?key=" + googleApiKey + "&callback=initMap&libraries=places,geometry"], function () {
+        map = require("map");
+        map.initMap();
+    });
+
+});

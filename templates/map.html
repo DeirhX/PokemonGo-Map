@@ -273,6 +273,7 @@
     <script>
       var centerLat = {{lat}};
       var centerLng = {{lng}};
+      var googleApiKey = "{{gmaps_key}}";
     </script>
     <script src="{{ url_for('static', filename='js/vendor/classie.js').lstrip('/') }}"></script>
     <script src="{{ url_for('static', filename='js/vendor/require.js').lstrip('/') }}" data-main="{{ url_for('static', filename=script_url('main')).lstrip('/') }}"></script>
@@ -283,7 +284,6 @@
 
     <!--<script src="{{ url_for('static', filename=script_url('map')).lstrip('/') }}"></script>-->
     <script src="{{ url_for('static', filename=script_url('stats')).lstrip('/') }}"></script>
-    <script defer src="https://maps.googleapis.com/maps/api/js?key={{ gmaps_key }}&amp;callback=initMap&amp;libraries=places,geometry"></script>
     <script src="https://apis.google.com/js/platform.js" async defer></script>
   </body>
 </html>

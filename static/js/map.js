@@ -1,7 +1,7 @@
 //
 // Global map.js variables
 //
-define(function (require) {
+ define(function (require) {
 
   var store = require('./store');
   
@@ -175,6 +175,9 @@ define(function (require) {
     google.maps.event.addListenerOnce(map, 'idle', function () {
       updateMap()
     })
+
+    initPage();
+    initPage2();
 
     google.maps.event.addListener(map, 'zoom_changed', function () {
       redrawPokemon(mapData.pokemons)
@@ -1290,7 +1293,7 @@ define(function (require) {
   // Page Ready Exection
   //
 
-  $(function () {
+  function initPage() {
     if (!Notification) {
       console.log('could not load notifications')
       return
@@ -1299,9 +1302,7 @@ define(function (require) {
     if (Notification.permission !== 'granted') {
       Notification.requestPermission()
     }
-  })
 
-  $(function () {
     // populate Navbar Style menu
     $selectStyle = $('#map-style')
 
@@ -1401,9 +1402,9 @@ define(function (require) {
 
       updateSearchMarker(store.Store.get('lockMarker'))
     })
-  })
+  };
 
-  $(function () {
+  function initPage2() {
     function formatState (state) {
       if (!state.id) {
         return state.text
@@ -1592,7 +1593,8 @@ define(function (require) {
         heightStyle: 'content'
       })
     }
-  })
+  };
+
   function toggleMarkerWindow(marker, newState){
     var wasOpen = false;
     for (var i = 0; i < infoWindowsOpen.length; ++i) {
@@ -1728,4 +1730,8 @@ define(function (require) {
 
             });
       }
+
+   return {
+     initMap: initMap,
+   }
 });
