@@ -1,7 +1,4 @@
 define(function (require) {
-    require(["async!https://maps.googleapis.com/maps/api/js?key=" + googleApiKey + "&callback=initMap&libraries=places,geometry"], function () {
-        map = require("./map");
-        map.initMap();
-    });
+    require("map/map");
 });
 //# sourceMappingURL=main.js.map

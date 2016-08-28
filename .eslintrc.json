@@ -12,6 +12,7 @@
     "jquery": true
   },
   "globals": {
+    "define": true,
     "google": true,
     "mapData": true,
     "Store": true,
@@ -29,5 +30,10 @@
     "darkStyleNoLabels": true,
     "light2StyleNoLabels": true,
     "pGoStyleNoLabels": true
+  },
+  "rules": {
+    "semi": 0,
+    "quotes": 0,
+    "indent": ["warn", 4]
   }
 }
