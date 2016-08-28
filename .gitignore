@@ -14,3 +14,7 @@ src/
 _build
 _build_html
 beehive.*
+/accounts.txt
+/static/js/*.map
+/static/js/map/*.map
+/static/forts/pogom

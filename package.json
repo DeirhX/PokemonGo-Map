@@ -17,6 +17,7 @@
     "grunt-contrib-connect": "latest",
     "grunt-contrib-copy": "latest",
     "grunt-contrib-cssmin": "latest",
+    "grunt-contrib-requirejs": "latest",
     "grunt-contrib-uglify": "latest",
     "grunt-contrib-watch": "latest",
     "grunt-eslint": "^19.0.0",
@@ -31,7 +32,8 @@
     "grunt-usemin": "latest",
     "grunt-newer": "^1.2.0",
     "jit-grunt": "^0.10.0",
-    "typescript": "^1.8.10"
+    "typescript": "^1.8.10",
+    "requirejs": "latest"
   },
   "scripts": {
     "postinstall": "grunt build",

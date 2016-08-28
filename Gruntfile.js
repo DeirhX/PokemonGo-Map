@@ -19,7 +19,7 @@ module.exports = function(grunt) {
       }
     },
     eslint: {
-      src: ['static/js/*.js', '!js/vendor/**/*.js']
+      src: ['static/js/*.js', '!static/js/vendor/**/*.js']
     },
     babel: {
       options: {
@@ -27,13 +27,20 @@ module.exports = function(grunt) {
         presets: ['es2015']
       },
       dist: {
+        files: [{
+          expand: true,
+          cwd: 'static/js',
+          src: ['**/*.js', '!vendor/**/*.js'],
+          dest: 'static/dist/js',
+          ext: '.js',
+        }] /*
         files: {
           'static/dist/js/app.built.js': 'static/js/app.js',
           'static/dist/js/map.built.js': 'static/js/map.js',
           'static/dist/js/mobile.built.js': 'static/js/mobile.js',
           'static/dist/js/stats.built.js': 'static/js/stats.js',
           'static/dist/js/statistics.built.js': 'static/js/statistics.js'
-        }
+        }*/
       }
     },
     uglify: {
@@ -45,16 +52,25 @@ module.exports = function(grunt) {
         }
       },
       build: {
+        files: [{
+          expand: true,
+          cwd: 'static/dist/js',
+          src: '**/*.built.js',
+          dest: 'static/dist/js',
+          ext: '.js',
+        }] /*
         files: {
-          'static/dist/js/yourmom.js': 'static/dist/js/*.built.js'
-          /*
+          'static/dist/js/yourmom.js': 'static/dist/js/*.built.js',
+
           'static/dist/js/app.min.js': 'static/dist/js/app.built.js',
           'static/dist/js/map.min.js': 'static/dist/js/map.built.js',
           'static/dist/js/mobile.min.js': 'static/dist/js/mobile.built.js',
           'static/dist/js/stats.min.js': 'static/dist/js/stats.built.js',
-          'static/dist/js/statistics.min.js': 'static/dist/js/statistics.built.js'
-          */
-        }
+          'static/dist/js/statistics.min.js': 'static/dist/js/statistics.built.js',
+          'static/dist/js/map/canvas.min.js': 'static/dist/js/statistics.built.js',
+          'static/dist/js/map/styles.min.js': 'static/dist/js/statistics.built.js',
+
+        }*/
       }
     },
     minjson: {
@@ -89,6 +105,28 @@ module.exports = function(grunt) {
     },
     tslint: {
       src: ['static/js/**/.ts']
+    },
+    requirejs: {
+      compile: {
+
+        options: {
+          appDir: "static/dist/js",
+          baseUrl: ".",
+          dir: "static/dist/rs",
+          optimize: 'uglify',
+          modules:[
+            {
+              name:'main'
+            }
+          ],
+          logLevel: 0,
+          findNestedDependencies: true,
+          fileExclusionRegExp: /^\./,
+          inlineText: true
+        },
+        src: ['static/dist/js/**/*.js'],
+        ext: '.js',
+      }
     },
     clean: {
       build: {
@@ -127,16 +165,19 @@ module.exports = function(grunt) {
           'static/dist/css/statistics.min.css': 'static/dist/css/statistics.built.css'
         }
       }
-    }
+    },
+
   });
 
-  grunt.registerTask('js-build', ['newer:babel', 'newer:uglify']);
+  grunt.registerTask('js-build', ['newer:babel']);
+  grunt.registerTask('js-uglybuild', ['newer:babel', 'newer:uglify']);
   grunt.registerTask('css-build', ['newer:sass', 'newer:cssmin']);
   grunt.registerTask('js-lint', ['newer:eslint']);
   grunt.registerTask('json', ['newer:minjson']);
   grunt.registerTask('ts-build', ['newer:typescript']);
+  grunt.registerTask('rs-build', ['newer:requirejs']);
 
-  grunt.registerTask('build', ['clean', 'ts-build', 'js-build', 'css-build', 'json']);
+  grunt.registerTask('build', ['clean', 'ts-build', 'js-build', 'rs-build', 'css-build', 'json']);
   grunt.registerTask('lint', ['ts-lint', 'js-lint']);
   grunt.registerTask('default', ['build', 'watch']);
 
