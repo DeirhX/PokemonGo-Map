@@ -6,6 +6,8 @@ define(function (require) {
   var store = require('store');
   var mapStyles = require("map/styles").default;
   var createSearchMarker = require("map/markers").createSearchMarker;
+  var loadSearchMarkerStyles = require("map/markers").loadSearchMarkerStyles;
+  var pokemonLabel = require("map/overlay/labels").pokemonLabel;
   var core = require("map/core");
 
   var $selectExclude
@@ -15,15 +17,12 @@ define(function (require) {
   var $selectIconResolution
   var $selectIconSize
   var $selectLuredPokestopsOnly
-  var $selectSearchIconMarker
 
   var language = document.documentElement.lang === '' ? 'en' : document.documentElement.lang
   var idToPokemon = {}
   var i8lnDictionary = {}
   var languageLookups = 0
   var languageLookupThreshold = 3
-
-  var searchMarkerStyles
 
   var excludedPokemon = []
   var notifiedPokemon = []
@@ -172,11 +171,11 @@ define(function (require) {
     })
 
     map.setMapTypeId(store.Store.get('map_style'))
-    google.maps.event.addListener(map, 'idle', function() {
+    google.maps.event.addListener(map, 'idle', function () {
         if (history.pushState) {
             var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname +
                 `?lat=${String(map.getCenter().lat()).substring(0, 8)}&lng=${String(map.getCenter().lng()).substring(0, 8)}`;
-            window.history.pushState({path:newurl},'',newurl);
+            window.history.pushState({path: newurl}, '', newurl);
         }
         updateMap();
     });
@@ -198,26 +197,16 @@ define(function (require) {
     })
       deirhExtensions(map);
       var updateTimer = window.setInterval(updateMap, 5000, true);
-    $(window).blur(function(){
-      //window.clearInterval(updateTimer);
+    $(window).blur(function () {
+      // window.clearInterval(updateTimer);
     });
-    $(window).focus(function(){
+    $(window).focus(function () {
       window.clearInterval(updateTimer);
       updateTimer = window.setInterval(updateMap, 5000, true);
     });
 
       return map;
   };
-
-  function updateSearchMarker (style) {
-    if (style in searchMarkerStyles) {
-      searchMarker.setIcon(searchMarkerStyles[style].icon)
-      store.Store.set('searchMarkerStyle', style)
-    }
-    return searchMarker
-  }
-
-
 
   var searchControlURI = 'search_control'
   function searchControl (action) {
@@ -270,46 +259,7 @@ define(function (require) {
     return number <= 99 ? ('0' + number).slice(-2) : number
   }
 
-  function getTypeSpan (type) {
-    return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
-  }
-
-  function pokemonLabel (name, rarity, types, disappearTime, id, latitude, longitude, encounterId) {
-    var disappearDate = new Date(disappearTime)
-    var rarityDisplay = rarity ? '(' + rarity + ')' : ''
-    var typesDisplay = ''
-    $.each(types, function (index, type) {
-      typesDisplay += getTypeSpan(type)
-    })
-
-    var contentstring = `
-      <div>
-        <b>${name}</b>
-        <span> - </span>
-        <small>
-          <a href='http://www.pokemon.com/us/pokedex/${id}' target='_blank' title='View in Pokedex'>#${id}</a>
-        </small>
-        <span> ${rarityDisplay}</span>
-        <span> - </span>
-        <small>${typesDisplay}</small>
-      </div>
-      <div>
-        Disappears at ${pad(disappearDate.getHours())}:${pad(disappearDate.getMinutes())}:${pad(disappearDate.getSeconds())}
-        <span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span>
-      </div>
-      <div>
-        Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
-      </div>
-      <div>
-        <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
-        <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
-        <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
-        <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
-      </div>`
-    return contentstring
-  }
-
-  function spawnLabel(id, latitude, longitude, spawn_time) {
+  function spawnLabel (id, latitude, longitude, spawnTime) {
     var str;
       str = `
         <div id="spawn-content">
@@ -473,7 +423,7 @@ define(function (require) {
     return marker
   }
 
-  function fastForwardSpawnTimes(spawnTemplate) {
+  function fastForwardSpawnTimes (spawnTemplate) {
       var now = new Date();
       if (now > spawnTemplate.disappearsAt) {
           var hourDiff = Math.floor(Math.abs(now - spawnTemplate.disappearsAt) / 36e5) + 1;
@@ -482,7 +432,7 @@ define(function (require) {
       }
   }
 
-  function setupSpawnMarker(item, skipNotification, isBounceDisabled) {
+  function setupSpawnMarker (item, skipNotification, isBounceDisabled) {
 
     var marker = new google.maps.Marker({
       position: {
@@ -1012,18 +962,20 @@ define(function (require) {
           activeContent.show();
           activeContent.find(".disappear-countdown").removeClass("disabled");
           inactiveContent.find(".appear-countdown").addClass("disabled");
-          if (marker)
-              marker.setOpacity(1.0);
+          if (marker) {
+            marker.setOpacity(1.0);
+          }
       } else if (justDisappeared) {
           activeContent.hide();
           inactiveContent.show();
           inactiveContent.find(".appear-countdown").removeClass("disabled");
           activeContent.find(".disappear-countdown").addClass("disabled");
 
-          inactiveContent.find(".label-nextspawn")[0].innerHTML = pad(spawn.appearsAt.getHours())
-              + ':' + pad(spawn.appearsAt.getMinutes()) +':' + pad(spawn.appearsAt.getSeconds());
-          if (marker)
-              marker.setOpacity(0.3);
+          inactiveContent.find(".label-nextspawn")[0].innerHTML = pad(spawn.appearsAt.getHours()) +
+              ':' + pad(spawn.appearsAt.getMinutes()) +':' + pad(spawn.appearsAt.getSeconds());
+          if (marker) {
+            marker.setOpacity(0.3);
+          }
       }
 
       if (justAppeared || justDisappeared) { // Immediately update countdowns if state has changed
@@ -1034,13 +986,13 @@ define(function (require) {
       }
   }
 
-  var updateAllSpawnCycles = function() {
+  var updateAllSpawnCycles = function () {
       $('.spawn-timing').each(function(index, element) {
           updateSpawnCycle($(element));
       });
   };
 
-  var updateSpawnIcon = function(spawn) {
+  var updateSpawnIcon = function (spawn) {
       fastForwardSpawnTimes(spawn);
       if (new Date() >= spawn.appearsAt && new Date() <= spawn.disappearsAt) {
           spawn.marker.setOpacity(1.0);
@@ -1049,7 +1001,7 @@ define(function (require) {
       }
   };
 
-  var updateAllSpawnIcons = function() {
+  var updateAllSpawnIcons = function () {
     for (var spawnId in mapData.spawnpoints) {
       updateSpawnIcon(mapData.spawnpoints[spawnId]);
     }
@@ -1355,35 +1307,8 @@ define(function (require) {
       updateMap()
     })
 
-    $selectSearchIconMarker = $('#iconmarker-style')
+    loadSearchMarkerStyles($('#iconmarker-style'));
 
-    $.getJSON('static/dist/data/searchmarkerstyle.min.json').done(function (data) {
-      searchMarkerStyles = data
-      var searchMarkerStyleList = []
-
-      $.each(data, function (key, value) {
-        searchMarkerStyleList.push({
-          id: key,
-          text: value.name
-        })
-      })
-
-      $selectSearchIconMarker.select2({
-        placeholder: 'Select Icon Marker',
-        data: searchMarkerStyleList,
-        minimumResultsForSearch: Infinity
-      })
-
-      $selectSearchIconMarker.on('change', function (e) {
-        var selectSearchIconMarker = $selectSearchIconMarker.val()
-        store.Store.set('searchMarkerStyle', selectSearchIconMarker)
-        updateSearchMarker(selectSearchIconMarker)
-      })
-
-      $selectSearchIconMarker.val(store.Store.get('searchMarkerStyle')).trigger('change')
-
-      updateSearchMarker(store.Store.get('lockMarker'))
-    })
   };
 
   function initPage2() {
