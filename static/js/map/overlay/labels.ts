@@ -1,5 +1,4 @@
-
-function pad (num: number, len: number) {
+function pad(num: number, len: number) {
     let iter = 1;
     let maxNum = 10;
     let outStr = "";
@@ -13,16 +12,16 @@ function pad (num: number, len: number) {
     return outStr + num;
 }
 
-function getTypeSpan (type) {
+function getTypeSpan(type) {
     return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
 }
 
-export function pokemonLabel (name, rarity, types, disappearTime, id, latitude, longitude, encounterId): string {
+export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId): string {
     const disappearDate = new Date(disappearTime);
     const rarityDisplay = rarity ? "(" + rarity + ")" : "";
     let typesDisplay = "";
     for (let type of types) {
-      typesDisplay += getTypeSpan(type)  ;
+        typesDisplay += getTypeSpan(type);
     }
     const contentstring = `
       <div>
@@ -50,4 +49,91 @@ export function pokemonLabel (name, rarity, types, disappearTime, id, latitude, 
       </div>`
 
     return contentstring;
-  }
+}
+
+export function spawnLabel(id, latitude, longitude, spawnTime) {
+    return `
+        <div id="spawn-content">
+          <b>Loading...</b>
+        </div>`;
+}
+
+export function gymLabel(teamName, teamId, gymPoints, latitude, longitude) {
+    const gymColor = ["0, 0, 0, .4", "74, 138, 202, .6", "240, 68, 58, .6", "254, 217, 40, .6"]
+    if (teamId === 0) {
+        return `
+        <div>
+          <center>
+            <div>
+              <b style='color:rgba(${gymColor[teamId]})'>${teamName}</b><br>
+              <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
+            </div>
+            <div>
+              Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+            </div>
+            <div>
+              <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
+            </div>
+          </center>
+        </div>`;
+    } else {
+        const gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000]
+        let gymLevel = 1
+        while (gymPoints >= gymPrestige[gymLevel - 1]) {
+            gymLevel++
+        }
+        return `
+        <div>
+          <center>
+            <div style='padding-bottom: 2px'>
+              Gym owned by:
+            </div>
+            <div>
+              <b style='color:rgba(${gymColor[teamId]})'>Team ${teamName}</b><br>
+              <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
+            </div>
+            <div>
+              Level: ${gymLevel} | Prestige: ${gymPoints}
+            </div>
+            <div>
+              Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+            </div>
+            <div>
+              <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
+            </div>
+          </center>
+        </div>`;
+    }
+}
+
+export function pokestopLabel(expireTime, latitude, longitude) {
+    if (expireTime && new Date(expireTime) > new Date()) {
+        const expireDate = new Date(expireTime)
+
+        return  `
+        <div>
+          <b>Lured Pokéstop</b>
+        </div>
+        <div>
+          Lure expires at ${pad(expireDate.getHours(), 2)}:${pad(expireDate.getMinutes(), 2)}:${pad(expireDate.getSeconds(), 2)}
+          <span class='label-countdown' disappears-at='${expireTime}'>(00m00s)</span>
+        </div>
+        <div>
+          Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+        </div>
+        <div>
+          <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
+        </div>`;
+    } else {
+        return `
+        <div>
+          <b>Pokéstop</b>
+        </div>
+        <div>
+          Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+        </div>
+        <div>
+          <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
+        </div>`;
+    }
+}

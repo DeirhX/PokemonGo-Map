@@ -5,7 +5,7 @@ define(function (require) {
     var store = require('store');
     var mapStyles = require("map/styles").default;
     var markers = require("map/markers");
-    var pokemonLabel = require("map/overlay/labels").pokemonLabel;
+    var labels = require("map/overlay/labels");
     var core = require("map/core");
 
     var $selectExclude
@@ -92,10 +92,6 @@ define(function (require) {
         ).trigger('change')
     }
 
-    function removePokemonMarker (encounterId) { // eslint-disable-line no-unused-vars
-        mapData.pokemons[encounterId].marker.setMap(null)
-        mapData.pokemons[encounterId].hidden = true
-    }
 
     function initMap () { // eslint-disable-line no-unused-vars
         map = new google.maps.Map(document.getElementById('map'), {
@@ -257,101 +253,7 @@ define(function (require) {
         return number <= 99 ? ('0' + number).slice(-2) : number
     }
 
-    function spawnLabel (id, latitude, longitude, spawnTime) {
-        var str;
-        str = `
-        <div id="spawn-content">
-          <b>Loading...</b>
-        </div>`;
 
-        return str;
-    }
-
-    function gymLabel (teamName, teamId, gymPoints, latitude, longitude) {
-        var gymColor = ['0, 0, 0, .4', '74, 138, 202, .6', '240, 68, 58, .6', '254, 217, 40, .6']
-        var str
-        if (teamId === 0) {
-            str = `
-        <div>
-          <center>
-            <div>
-              <b style='color:rgba(${gymColor[teamId]})'>${teamName}</b><br>
-              <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
-            </div>
-            <div>
-              Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
-            </div>
-            <div>
-              <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
-            </div>
-          </center>
-        </div>`
-        } else {
-            var gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000]
-            var gymLevel = 1
-            while (gymPoints >= gymPrestige[gymLevel - 1]) {
-                gymLevel++
-            }
-            str = `
-        <div>
-          <center>
-            <div style='padding-bottom: 2px'>
-              Gym owned by:
-            </div>
-            <div>
-              <b style='color:rgba(${gymColor[teamId]})'>Team ${teamName}</b><br>
-              <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
-            </div>
-            <div>
-              Level: ${gymLevel} | Prestige: ${gymPoints}
-            </div>
-            <div>
-              Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
-            </div>
-            <div>
-              <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
-            </div>
-          </center>
-        </div>`
-        }
-
-        return str
-    }
-
-    function pokestopLabel (expireTime, latitude, longitude) {
-        var str
-        if (expireTime && new Date(expireTime) > new Date()) {
-            var expireDate = new Date(expireTime)
-
-            str = `
-        <div>
-          <b>Lured Pokéstop</b>
-        </div>
-        <div>
-          Lure expires at ${pad(expireDate.getHours())}:${pad(expireDate.getMinutes())}:${pad(expireDate.getSeconds())}
-          <span class='label-countdown' disappears-at='${expireTime}'>(00m00s)</span>
-        </div>
-        <div>
-          Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
-        </div>
-        <div>
-          <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
-        </div>`
-        } else {
-            str = `
-        <div>
-          <b>Pokéstop</b>
-        </div>
-        <div>
-          Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
-        </div>
-        <div>
-          <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
-        </div>`
-        }
-
-        return str
-    }
 
     function getGoogleSprite (index, sprite, displayHeight) {
         displayHeight = Math.max(displayHeight, 3)
@@ -402,7 +304,7 @@ define(function (require) {
         })
 
         marker.infoWindow = new google.maps.InfoWindow({
-            content: pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id']),
+            content: labels.pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id']),
             disableAutoPan: true
         })
 
@@ -449,7 +351,7 @@ define(function (require) {
         updateSpawnIcon(item);
 
         marker.infoWindow = new google.maps.InfoWindow({
-            content: spawnLabel(item.id, item.latitude, item.longitude),
+            content: labels.spawnLabel(item.id, item.latitude, item.longitude),
             disableAutoPan: true,
         });
         marker.infoWindow.addListener('domready', function () {
@@ -532,7 +434,8 @@ define(function (require) {
                         disableAutoPan: true
                     });
                     marker.infoWindow.addListener('domready', function (element) {
-                        var iwOuter = $('.gm-style-iw').find('.spawn-timing').each(function (index, element) {
+                        /* var iwOuter = */
+                        $('.gm-style-iw').find('.spawn-timing').each(function (index, element) {
                             $(element).data('spawn', item);
                             $(element).data('marker', marker);
                             updateSpawnCycle(element);
@@ -560,7 +463,7 @@ define(function (require) {
         })
 
         marker.infoWindow = new google.maps.InfoWindow({
-            content: gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['latitude'], item['longitude']),
+            content: labels.gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['latitude'], item['longitude']),
             disableAutoPan: true
         })
 
@@ -570,7 +473,7 @@ define(function (require) {
 
     function updateGymMarker (item, marker) {
         marker.setIcon('static/forts/' + gymTypes[item['team_id']] + '.png')
-        marker.infoWindow.setContent(gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['latitude'], item['longitude']))
+        marker.infoWindow.setContent(labels.gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['latitude'], item['longitude']))
         return marker
     }
 
@@ -591,7 +494,7 @@ define(function (require) {
         })
         marker.setIcon(getPokestopIcon(item))
         marker.infoWindow = new google.maps.InfoWindow({
-            content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude']),
+            content: labels.pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude']),
             disableAutoPan: true
         })
 
@@ -1050,11 +953,7 @@ define(function (require) {
         });
     };
 
-    function getPointDistance(pointA, pointB) {
-        return google.maps.geometry.spherical.computeDistanceBetween(pointA, pointB)
-    }
-
-    function sendNotification(title, text, icon, lat, lng) {
+    function sendNotification (title, text, icon, lat, lng) {
         if (!('Notification' in window)) {
             return false // Notifications are not present in browser
         }
@@ -1613,6 +1512,10 @@ define(function (require) {
         }).done(function (result) {
 
         });
+    }
+
+    function getPointDistance(pointA, pointB) {
+        return google.maps.geometry.spherical.computeDistanceBetween(pointA, pointB)
     }
 
     return {
