@@ -1,6 +1,6 @@
 /// <reference path="../../../typings/globals/require/index.d.ts" />
 
-import {map} from "./core";
+import {map, google} from "./core";
 import {Store} from "../store";
 
 export function createSearchMarker (lat, lng) {

@@ -128,7 +128,9 @@ define(function (require) {
         ]
       }
     })
+    // TEMPORARY //
     core.map = map;
+    core.google = google;
 
     var styleNoLabels = new google.maps.StyledMapType(mapStyles.noLabelsStyle, {
       name: 'No Labels'
