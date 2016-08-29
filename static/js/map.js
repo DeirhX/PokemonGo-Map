@@ -1,10 +1,12 @@
 //
 // Global map.js variables
 //
- define(function (require) {
+define(function (require) {
 
   var store = require('store');
   var mapStyles = require("map/styles").default;
+  var createSearchMarker = require("map/markers").createSearchMarker;
+  var core = require("map/core");
 
   var $selectExclude
   var $selectPokemonNotify
@@ -126,6 +128,7 @@
         ]
       }
     })
+    core.map = map;
 
     var styleNoLabels = new google.maps.StyledMapType(mapStyles.noLabelsStyle, {
       name: 'No Labels'
@@ -176,7 +179,7 @@
         updateMap();
     });
 
-    searchMarker = createSearchMarker()
+    searchMarker = createSearchMarker(map.getCenter().lat(), map.getCenter().lng())
 
     addMyLocationButton()
     initSidebar()
@@ -200,6 +203,8 @@
       window.clearInterval(updateTimer);
       updateTimer = window.setInterval(updateMap, 5000, true);
     });
+
+      return map;
   };
 
   function updateSearchMarker (style) {
@@ -1598,10 +1603,10 @@
   function deirhExtensions(map) {
 
       map.addListener('click', function(e) {
-           marker.setPosition(e.latLng);
+           searchMarker.setPosition(e.latLng);
            $('button.home-map-scan div.status small')[0].innerHTML = 'Click to scan ['
-            + Math.round(marker.getPosition().lat()*10000) / 10000 + ','
-            + Math.round(marker.getPosition().lng()*10000) / 10000 + '] ';
+            + Math.round(searchMarker.getPosition().lat()*10000) / 10000 + ','
+            + Math.round(searchMarker.getPosition().lng()*10000) / 10000 + '] ';
           if ($('.home-map-scan').hasClass('started').length) {
             $('.home-map-scan').removeClass('started');
           }
@@ -1617,7 +1622,7 @@
      });
 
       $('.home-map-scan').click(function() {
-          if (marker == null)
+          if (searchMarker == null)
               return;
 
           $('.home-map-scan').addClass('busy');
@@ -1625,15 +1630,15 @@
           $('.home-map-scan').removeClass('failed');
 
           $('button.home-map-scan div.status small')[0].innerHTML = 'Scanning of ['
-              + Math.round(marker.getPosition().lat()*10000) / 10000 + ','
-              + Math.round(marker.getPosition().lng()*10000) / 10000 + '] started';
+              + Math.round(searchMarker.getPosition().lat()*10000) / 10000 + ','
+              + Math.round(searchMarker.getPosition().lng()*10000) / 10000 + '] started';
 
           $.ajax({
               url: "scan",
               type: 'GET',
               data: {
-                  'lat': marker.getPosition().lat(),
-                  'lon': marker.getPosition().lng(),
+                  'lat': searchMarker.getPosition().lat(),
+                  'lon': searchMarker.getPosition().lng(),
                   'key' : 'dontspam'
               },
               dataType: "json"
@@ -1707,6 +1712,8 @@
       }
 
    return {
-     initMap: initMap,
+    //   default: {
+         initMap: initMap,
+    //   }
    }
 });

@@ -1,4 +1,4 @@
 define(function (require) {
-    require("map/map");
+    require("map/load");
 });
 //# sourceMappingURL=main.js.map
