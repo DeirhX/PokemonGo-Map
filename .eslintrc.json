@@ -34,6 +34,7 @@
   "rules": {
     "semi": 0,
     "quotes": 0,
-    "indent": ["warn", 4]
+    "indent": ["warn", 4],
+    "no-multiple-empty-lines": 0
   }
 }

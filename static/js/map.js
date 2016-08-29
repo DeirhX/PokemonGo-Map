@@ -5,8 +5,7 @@ define(function (require) {
 
   var store = require('store');
   var mapStyles = require("map/styles").default;
-  var createSearchMarker = require("map/markers").createSearchMarker;
-  var loadSearchMarkerStyles = require("map/markers").loadSearchMarkerStyles;
+  var markers = require("map/markers");
   var pokemonLabel = require("map/overlay/labels").pokemonLabel;
   var core = require("map/core");
 
@@ -31,7 +30,6 @@ define(function (require) {
   var map
   var rawDataIsLoading = false
   var locationMarker
-  var searchMarker
   var infoWindowsOpen = []
   var highlightedMarker
 
@@ -180,7 +178,7 @@ define(function (require) {
         updateMap();
     });
 
-    searchMarker = createSearchMarker(map.getCenter().lat(), map.getCenter().lng())
+    markers.createSearchMarker(map.getCenter().lat(), map.getCenter().lng())
 
     addMyLocationButton()
     initSidebar()
@@ -464,34 +462,34 @@ define(function (require) {
         dataType: "json",
         cache: false,
         complete: function (data) {
-          if (highlightedMarker != marker) {
+          if (highlightedMarker !== marker) {
             return
           }
           if (data && data.responseJSON && data.responseJSON['rank'] && data.responseJSON['chances']) {
             item.rank = data.responseJSON['rank'];
             var rankChanceMod = 1 - (0.75 / item.rank);
-            var percentHtml = "";
-            var iconHtml = "";
+            // var percentHtml = "";
+            // var iconHtml = "";
             var table = "";
             data.responseJSON['chances'].sort(function(a, b){
               return ((a.chance < b.chance) ? +1 : ((a.chance > b.chance) ? -1 : 0));
             });
-            var max_entries = 5
-            for (var i = 0; i < Math.min(data.responseJSON['chances'].length, max_entries); ++i) {
+            var maxEntries = 5
+            for (var i = 0; i < Math.min(data.responseJSON['chances'].length, maxEntries); ++i) {
               var entry = data.responseJSON['chances'][i];
-              var pokemon_index = entry.pokemon_id - 1;
+              var pokemonIndex = entry.pokemon_id - 1;
               var sprite = pokemonSprites[store.Store.get('pokemonIcons')] || pokemonSprites['highres']
-              var icon_size = 32;
-              var icon = getGoogleSprite(pokemon_index, sprite, icon_size);
+              var iconSize = 32;
+              var icon = getGoogleSprite(pokemonIndex, sprite, iconSize);
               table += `
           <span class="spawn-entry"><div><a href='http://www.pokemon.com/us/pokedex/${entry.pokemon_id}' target='_blank' title='View in Pokedex'>
               <icon style='width: ${icon.size.width}px; height: ${icon.size.height}px; background-image: url("${icon.url}"); 
               background-size: ${icon.scaledSize.width}px ${icon.scaledSize.height}px; background-position: -${icon.origin.x}px -${icon.origin.y}px; background-repeat: no-repeat;'></icon></a>
           </div><div class="chance">${Math.round(entry.chance*rankChanceMod)}%</div></span>`;
-              //<span>${entry.chance}%</span>
+              // <span>${entry.chance}%</span>
             }
-              var despawn_time = new Date(data.responseJSON['despawn']);
-              var spawn_time = new Date(data.responseJSON['spawn']);
+              var despawnTime = new Date(data.responseJSON['despawn']);
+              var spawnTime = new Date(data.responseJSON['spawn']);
             var str = `
            <div>
              <div class="spawn-window">
@@ -503,14 +501,14 @@ define(function (require) {
               </div>
               
               <div class="spawn-timing">
-                  <div class="spawn-inactive" spawns-at='${spawn_time.getTime()}'>
+                  <div class="spawn-inactive" spawns-at='${spawnTime.getTime()}'>
                       Next spawn at: 
-                      <span class='label-nextspawn'>${pad(spawn_time.getHours())}:${pad(spawn_time.getMinutes())}:${pad(spawn_time.getSeconds())}</span> 
-                      <span class='label-countdown appear-countdown' disappears-at='${spawn_time.getTime()}'>(00m00s)</span>
+                      <span class='label-nextspawn'>${pad(spawnTime.getHours())}:${pad(spawnTime.getMinutes())}:${pad(spawnTime.getSeconds())}</span> 
+                      <span class='label-countdown appear-countdown' disappears-at='${spawnTime.getTime()}'>(00m00s)</span>
                   </div>
-                  <div class="spawn-active" despawns-at='${despawn_time.getTime()}'>
+                  <div class="spawn-active" despawns-at='${despawnTime.getTime()}'>
                       Disappears in: 
-                      <span class='label-countdown disappear-countdown' disappears-at='${despawn_time.getTime()}'>(00m00s)</span>
+                      <span class='label-countdown disappear-countdown' disappears-at='${despawnTime.getTime()}'>(00m00s)</span>
                   </div>
               </div>
               <div>
@@ -772,8 +770,8 @@ define(function (require) {
         'swLng': swLng,
         'neLat': neLat,
         'neLng': neLng,
-        'key' : 'dontspam',
-        'lastTimestamps' : incrementalTimestamps
+        'key': 'dontspam',
+        'lastTimestamps': incrementalTimestamps
       },
       dataType: 'json',
       cache: false,
@@ -784,9 +782,10 @@ define(function (require) {
           rawDataIsLoading = true
         }
       },
-      complete: function(data) {
-        if (incremental && data.responseJSON)
+      complete: function (data) {
+        if (incremental && data.responseJSON) {
           lastReceivedObjects = data.responseJSON.lastTimestamps;
+        }
         rawDataIsLoading = false;
       }
     })
@@ -812,7 +811,7 @@ define(function (require) {
     }
   }
 
-  function processSpawns(i, item) {
+  function processSpawns (i, item) {
     if (!store.Store.get('showSpawnpoints')) {
       return false; // in case the checkbox was unchecked in the meantime.
     }
@@ -925,7 +924,7 @@ define(function (require) {
     })
   }
 
-  function updateSpawnCycle(element, first) {
+  function updateSpawnCycle (element, first) {
       var spawn = $(element).data('spawn');
       if (!spawn) {
         return;
@@ -1010,11 +1009,12 @@ define(function (require) {
   var updatePokestopIcon = function(pokestop) {
     var currentIcon = pokestop.marker.getIcon()
     var newIcon = getPokestopIcon(pokestop)
-    if (newIcon != currentIcon)
+    if (newIcon != currentIcon) {
       pokestop.marker.setIcon(newIcon)
+    }
   };
 
-  var updateAllPokestopIcons = function() {
+  var updateAllPokestopIcons = function () {
     for (var pokestopId in mapData.pokestops) {
       updatePokestopIcon(mapData.pokestops[pokestopId]);
     }
@@ -1045,8 +1045,8 @@ define(function (require) {
       $(element).text(timestring)
   };
 
-  var updateAllLabelsDiffTime = function() {
-    $('.label-countdown').each(function(index, element) {
+  var updateAllLabelsDiffTime = function () {
+    $('.label-countdown').each(function (index, element) {
         if (!$(element).hasClass('disabled')) {
           updateLabelDiffTime(element);
         }
@@ -1180,7 +1180,7 @@ define(function (require) {
     var loc = new google.maps.LatLng(lat, lng)
     changeSearchLocation(lat, lng).done(function () {
       map.setCenter(loc)
-      searchMarker.setPosition(loc)
+      markers.searchMarker.setPosition(loc)
     })
   }
 
@@ -1227,7 +1227,7 @@ define(function (require) {
   // Page Ready Exection
   //
 
-  function initPage() {
+  function initPage () {
     if (!Notification) {
       console.log('could not load notifications')
       return
@@ -1307,8 +1307,7 @@ define(function (require) {
       updateMap()
     })
 
-    loadSearchMarkerStyles($('#iconmarker-style'));
-
+    markers.loadSearchMarkerStyles($('#iconmarker-style'));
   };
 
   function initPage2() {
@@ -1411,25 +1410,6 @@ define(function (require) {
     setTimeout(window.setInterval(updateAllSpawnIcons, 1000), 500)
     setTimeout(window.setInterval(updateAllPokestopIcons, 1000), 800)
 
-    window.setInterval(function() {
-      if (navigator.geolocation && store.Store.get('geoLocate')) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-          var baseURL = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '')
-          var lat = position.coords.latitude
-          var lon = position.coords.longitude
-
-          // the search function makes any small movements cause a loop. Need to increase resolution
-          if (getPointDistance(searchMarker.getPosition(), (new google.maps.LatLng(lat, lon))) > 40) {
-            $.post(baseURL + '/next_loc?lat=' + lat + '&lon=' + lon).done(function () {
-              var center = new google.maps.LatLng(lat, lon)
-              map.panTo(center)
-              searchMarker.setPosition(center)
-            })
-          }
-        })
-      }
-    }, 1000)
-
     // Wipe off/restore map icons when switches are toggled
     function buildSwitchChangeListener (data, dataType, storageKey) {
       return function () {
@@ -1502,12 +1482,13 @@ define(function (require) {
     }
   };
 
-  function toggleMarkerWindow(marker, newState){
-    var wasOpen = false;
+  function toggleMarkerWindow (marker, newState){
+    // var wasOpen = false;
     for (var i = 0; i < infoWindowsOpen.length; ++i) {
       infoWindowsOpen[i].close();
-      if (infoWindowsOpen[i] == marker.infoWindow)
-        wasOpen = true;
+      if (infoWindowsOpen[i] === marker.infoWindow) {
+        // wasOpen = true;
+      }
     }
 
     infoWindowsOpen = [];
@@ -1527,13 +1508,12 @@ define(function (require) {
     toggleMarkerWindow(marker, false);
   }
 
-  function deirhExtensions(map) {
-
+  function deirhExtensions (map) {
       map.addListener('click', function(e) {
-           searchMarker.setPosition(e.latLng);
-           $('button.home-map-scan div.status small')[0].innerHTML = 'Click to scan ['
-            + Math.round(searchMarker.getPosition().lat()*10000) / 10000 + ','
-            + Math.round(searchMarker.getPosition().lng()*10000) / 10000 + '] ';
+           markers.searchMarker.setPosition(e.latLng);
+           $('button.home-map-scan div.status small')[0].innerHTML = 'Click to scan [' +
+            Math.round(markers.searchMarker.getPosition().lat()*10000) / 10000 + ',' +
+            Math.round(markers.searchMarker.getPosition().lng()*10000) / 10000 + '] ';
           if ($('.home-map-scan').hasClass('started').length) {
             $('.home-map-scan').removeClass('started');
           }
@@ -1542,14 +1522,14 @@ define(function (require) {
       // Restrict zoom
       var minZoomLevel = 14;
       google.maps.event.addListener(map, 'zoom_changed', function() {
-       var z = map.getZoom();
+       // var z = map.getZoom();
        if (map.getZoom() < minZoomLevel) {
           map.setZoom(minZoomLevel);
        }
      });
 
-      $('.home-map-scan').click(function() {
-          if (searchMarker == null)
+      $('.home-map-scan').click(function () {
+          if (markers.searchMarker == null)
               return;
 
           $('.home-map-scan').addClass('busy');
@@ -1557,21 +1537,21 @@ define(function (require) {
           $('.home-map-scan').removeClass('failed');
 
           $('button.home-map-scan div.status small')[0].innerHTML = 'Scanning of ['
-              + Math.round(searchMarker.getPosition().lat()*10000) / 10000 + ','
-              + Math.round(searchMarker.getPosition().lng()*10000) / 10000 + '] started';
+              + Math.round(markers.searchMarker.getPosition().lat()*10000) / 10000 + ','
+              + Math.round(markers.searchMarker.getPosition().lng()*10000) / 10000 + '] started';
 
           $.ajax({
               url: "scan",
               type: 'GET',
               data: {
-                  'lat': searchMarker.getPosition().lat(),
-                  'lon': searchMarker.getPosition().lng(),
-                  'key' : 'dontspam'
+                  'lat': markers.searchMarker.getPosition().lat(),
+                  'lon': markers.searchMarker.getPosition().lng(),
+                  'key': 'dontspam'
               },
               dataType: "json"
           }).done(function (result) {
              $('.home-map-scan').removeClass('busy');
-             if (result.result == 'received') {
+             if (result.result === 'received') {
                  $('.home-map-scan').addClass('started');
              } else {
                  $('.home-map-scan').addClass('failed');
@@ -1579,7 +1559,7 @@ define(function (require) {
           });
       });
 
-      function getActiveUsers() {
+      function getActiveUsers () {
             $.ajax({
               url: "stats",
               type: 'GET',
@@ -1611,18 +1591,17 @@ define(function (require) {
             lng: position.coords.longitude
           };
 
-          //infoWindow.setPosition(pos);
+          // infoWindow.setPosition(pos);
           map.setCenter(pos);
-        }, function() {
+        }, function () {
 
         });
       } else {
         // Browser doesn't support Geolocation
       };
-
   }
 
-      function onSignIn(googleUser) {
+      function onSignIn (googleUser) {
         var profile = googleUser.getBasicProfile();
         console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
         console.log('Name: ' + profile.getName());
