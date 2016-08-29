@@ -106,7 +106,7 @@ class Pogom(Flask):
         neLat = request.args.get('neLat')
         neLng = request.args.get('neLng')
         key = request.args.get('key')
-        if (key != u'dontspam'):
+        if key != u'dontspam' or abs(neLat - swLat) > 0.5 or abs(neLng - swLng) > 0.5:
             return ""
 
         last_pokemon = request.args.get('lastTimestamps[lastPokemon]')
