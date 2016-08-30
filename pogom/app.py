@@ -87,9 +87,11 @@ class Pogom(Flask):
         search_display = "inline" if args.search_control else "none"
         lat = request.args.get('lat')
         lng = request.args.get('lng')
+        override = False if (not lat or not lng) else True
         return render_template('map.html',
-                               lat=self.current_location[0] if (not lat or not lng) else lat,
-                               lng=self.current_location[1] if (not lat or not lng) else lng,
+                               lat=self.current_location[0] if not override else lat,
+                               lng=self.current_location[1] if not override else lng,
+                               centerOverride=str(override).lower(),
                                gmaps_key=config['GMAPS_KEY'],
                                lang=config['LOCALE'],
                                is_fixed=fixed_display,
