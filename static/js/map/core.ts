@@ -7,7 +7,7 @@ let core = {
 
 export default core;
 
-export function centerMap (lat: number, lng: number, zoom: number): void {
+export function centerMap (lat: number, lng: number, zoom?: number): void {
     const loc = new core.google.maps.LatLng(lat, lng);
 
     core.map.setCenter(loc);

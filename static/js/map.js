@@ -9,6 +9,8 @@ define(function (require) {
     var notifications = require("notifications");
     var core = require("map/core");
     var entities = require("data/entities");
+    var sprites = require("assets/sprites");
+    var sidebar = require("interface/sidebar");
 
     var $selectExclude
     var $selectPokemonNotify
@@ -40,35 +42,6 @@ define(function (require) {
         lurePokemons: {},
         scanned: {},
         spawnpoints: {}
-    }
-    var pokemonSprites = {
-        normal: {
-            columns: 12,
-            iconWidth: 30,
-            iconHeight: 30,
-            spriteWidth: 360,
-            spriteHeight: 390,
-            filename: 'static/icons-sprite.png',
-            name: 'Normal'
-        },
-        highres: {
-            columns: 7,
-            iconWidth: 65,
-            iconHeight: 65,
-            spriteWidth: 455,
-            spriteHeight: 1430,
-            filename: 'static/icons-large-sprite.png',
-            name: 'High-Res'
-        },
-        shuffle: {
-            columns: 7,
-            iconWidth: 65,
-            iconHeight: 65,
-            spriteWidth: 455,
-            spriteHeight: 1430,
-            filename: 'static/icons-shuffle-sprite.png',
-            name: 'Shuffle'
-        }
     }
 
 
@@ -132,8 +105,8 @@ define(function (require) {
 
         search.createSearchMarker(map.getCenter().lat(), map.getCenter().lng())
 
-        addMyLocationButton()
-        initSidebar()
+        addMyLocationButton();
+        sidebar.initSidebar();
         google.maps.event.addListenerOnce(map, 'idle', function () {
             updateMap()
         })
@@ -162,49 +135,6 @@ define(function (require) {
 
     function searchControl (action) {
         $.post(searchControlURI + '?action=' + encodeURIComponent(action))
-    }
-
-    function updateSearchStatus () {
-        $.getJSON(searchControlURI).then(function (data) {
-            $('#search-switch').prop('checked', data.status)
-        })
-    }
-
-    function initSidebar () {
-        $('#gyms-switch').prop('checked', store.Store.get('showGyms'))
-        $('#pokemon-switch').prop('checked', store.Store.get('showPokemon'))
-        $('#pokestops-switch').prop('checked', store.Store.get('showPokestops'))
-        $('#lured-pokestops-only-switch').val(store.Store.get('showLuredPokestopsOnly'))
-        $('#lured-pokestops-only-wrapper').toggle(store.Store.get('showPokestops'))
-        $('#geoloc-switch').prop('checked', store.Store.get('geoLocate'))
-        $('#lock-marker-switch').prop('checked', store.Store.get('lockMarker'))
-        $('#start-at-user-location-switch').prop('checked', store.Store.get('startAtUserLocation'))
-        $('#scanned-switch').prop('checked', store.Store.get('showScanned'))
-        $('#spawnpoint-switch').prop('checked', store.Store.get('showSpawnpoints'))
-        $('#sound-switch').prop('checked', store.Store.get('playSound'))
-        var searchBox = new google.maps.places.SearchBox(document.getElementById('next-location'))
-        $('#next-location').css('background-color', $('#geoloc-switch').prop('checked') ? '#e0e0e0' : '#ffffff')
-
-        updateSearchStatus()
-        setInterval(updateSearchStatus, 5000)
-
-        searchBox.addListener('places_changed', function () {
-            var places = searchBox.getPlaces()
-
-            if (places.length === 0) {
-                return
-            }
-
-            var loc = places[0].geometry.location
-            changeLocation(loc.lat(), loc.lng())
-        })
-
-        var icons = $('#pokemon-icons')
-        $.each(pokemonSprites, function (key, value) {
-            icons.append($('<option></option>').attr('value', key).text(value.name))
-        })
-        icons.val((pokemonSprites[store.Store.get('pokemonIcons')]) ? store.Store.get('pokemonIcons') : 'highres')
-        $('#pokemon-icon-size').val(store.Store.get('iconSizeModifier'))
     }
 
     function clearStaleMarkers () {
@@ -337,7 +267,7 @@ define(function (require) {
                 item.marker.setMap(null)
             }
             if (!item.hidden) {
-                item.marker = markers.setupPokemonMarker(item, pokemonSprites)
+                item.marker = markers.setupPokemonMarker(item, sprites.pokemonSprites)
                 mapData.pokemons[item['encounter_id']] = item
             }
         }
@@ -352,7 +282,7 @@ define(function (require) {
             // add marker to map and item to dict
             if (item.marker) item.marker.setMap(null);
             if (!item.hidden) {
-                item.marker = markers.setupSpawnMarker(item, pokemonSprites);
+                item.marker = markers.setupSpawnMarker(item, sprites.pokemonSprites);
                 mapData.spawnpoints[item.id] = item;
             }
         }
@@ -454,7 +384,7 @@ define(function (require) {
         $.each(pokemonList, function (key, value) {
             var item = pokemonList[key]
             if (!item.hidden) {
-                var newMarker = setupPokemonMarker(item, pokemonSprites, skipNotification, this.marker.animationDisabled)
+                var newMarker = setupPokemonMarker(item, sprites.pokemonSprites, skipNotification, this.marker.animationDisabled)
                 item.marker.setMap(null)
                 pokemonList[key].marker = newMarker
             }
@@ -571,19 +501,6 @@ define(function (require) {
             })
         })
     }
-
-    function changeLocation (lat, lng) {
-        var loc = new google.maps.LatLng(lat, lng)
-        changeSearchLocation(lat, lng).done(function () {
-            map.setCenter(loc)
-            markers.searchMarker.setPosition(loc)
-        })
-    }
-
-    function changeSearchLocation (lat, lng) {
-        return $.post('next_loc?lat=' + lat + '&lon=' + lng, {})
-    }
-
 
     function i8ln (word) {
         if ($.isEmptyObject(i8lnDictionary) && language !== 'en' && languageLookups < languageLookupThreshold) {

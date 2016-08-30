@@ -18,6 +18,7 @@
     "Store": true,
     "centerLat": true,
     "centerLng": true,
+    "centerOverride": true,
     "pageLoaded": true,
     "countMarkers": true,
     "skel": true,
