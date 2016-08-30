@@ -65,7 +65,7 @@ export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, l
       </div>`;
 }
 
-export function spawnLabel(id, latitude, longitude, spawnTime) {
+export function spawnLabel(id, latitude, longitude, spawnTime?) {
     return `
         <div id="spawn-content">
           <b>Loading...</b>
@@ -94,7 +94,7 @@ export function gymLabel(teamName, teamId, gymPoints, latitude, longitude) {
         const gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000]
         let gymLevel = 1
         while (gymPoints >= gymPrestige[gymLevel - 1]) {
-            gymLevel++
+            gymLevel++;
         }
         return `
         <div>

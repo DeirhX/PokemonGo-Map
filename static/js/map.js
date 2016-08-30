@@ -3,7 +3,7 @@
 //
 define(function (require) {
     var store = require('store');
-    var mapStyles = require("map/styles").default;
+    var mapStyles = require("map/styles");
     var search = require("map/overlay/search");
     var markers = require("map/overlay/markers");
     var notifications = require("notifications");
@@ -116,19 +116,18 @@ define(function (require) {
             }
         })
         // TEMPORARY //
-        core.map = map;
-        core.google = google;
+        core.default.map = map;
+        core.default.google = google;
 
         mapStyles.initStyles();
         mapStyles.watchStyleChange();
 
-        google.maps.event.addListener(map, 'idle', function () {
+        core.onCenterChange((lat, lng) => {
             if (history.pushState) {
                 var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname +
-                    `?lat=${String(map.getCenter().lat()).substring(0, 8)}&lng=${String(map.getCenter().lng()).substring(0, 8)}`;
+                    `?lat=${String(lat).substring(0, 8)}&lng=${String(lng).substring(0, 8)}`;
                 window.history.pushState({path: newurl}, '', newurl);
             }
-            updateMap();
         });
 
         search.createSearchMarker(map.getCenter().lat(), map.getCenter().lng())

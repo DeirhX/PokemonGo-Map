@@ -1,15 +1,23 @@
 /// <reference path="../../../typings/globals/require/index.d.ts" />
 
-let map;
-let google;
-export { map, google };
+let core = {
+    map: null,
+    google: null,
+};
 
-export function centerMap (lat, lng, zoom) {
-    const loc = new google.maps.LatLng(lat, lng)
+export default core;
 
-    map.setCenter(loc)
+export function centerMap (lat: number, lng: number, zoom: number): void {
+    const loc = new core.google.maps.LatLng(lat, lng);
+
+    core.map.setCenter(loc);
 
     if (zoom) {
-        map.setZoom(zoom);
+        core.map.setZoom(zoom);
     }
+}
+
+export function onCenterChange(centerChangedCallback: (lat: number, lng: number) => void) {
+    core.google.maps.event.addListener(core.map, "idle", () => {
+        centerChangedCallback(core.map.getCenter().lat(), core.map.getCenter().lng()); });
 }

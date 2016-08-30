@@ -1,5 +1,5 @@
 /// <reference path="../../../../typings/globals/jquery/index.d.ts" />
-import {google, map} from "../core";
+import core from "../core";
 import {gymTypes, updateSpawnCycle, fastForwardSpawnTimes} from "../../data/entities";
 import * as labels from "./labels";
 import * as utils from "../../utils";
@@ -31,7 +31,7 @@ function toggleMarkerWindow(marker, newState) {
 
     infoWindowsOpen = [];
     if (newState) {
-        marker.infoWindow.open(map, marker);
+        marker.infoWindow.open(core.map, marker);
         infoWindowsOpen.push(marker.infoWindow);
     } else if (marker.infoWindow) {
         marker.infoWindow.close();
@@ -62,13 +62,13 @@ function addMarkerListeners(marker) {
         updateAllLabelsDiffTime();
     });
 
-    google.maps.event.addListener(marker.infoWindow, "closeclick", () => marker.persist = null)
+    core.google.maps.event.addListener(marker.infoWindow, "closeclick", () => marker.persist = null)
 
     marker.addListener("mouseover", () => {
         openMarkerWindow(marker);
         utils.clearSelection()
         updateAllLabelsDiffTime();
-        highlightedMarker = marker
+        highlightedMarker = marker;
     })
 
     marker.addListener("mouseout", function () {
@@ -82,17 +82,17 @@ function addMarkerListeners(marker) {
 }
 
 export function setupGymMarker(item) {
-    let marker = new google.maps.Marker({
+    let marker = new core.google.maps.Marker({
         position: {
             lat: item["latitude"],
             lng: item["longitude"],
         },
         zIndex: 5,
-        map: map,
+        map: core.map,
         icon: "static/forts/" + gymTypes[item["team_id"]] + ".png"
     })
 
-    marker.infoWindow = new google.maps.InfoWindow({
+    marker.infoWindow = new core.google.maps.InfoWindow({
         content: labels.gymLabel(gymTypes[item["team_id"]], item["team_id"], item["gym_points"], item["latitude"], item["longitude"]),
         disableAutoPan: true,
     })
@@ -108,16 +108,16 @@ function getPokestopIcon(item) {
 }
 
 export function setupPokestopMarker (item) {
-    var marker = new google.maps.Marker({
+    var marker = new core.google.maps.Marker({
         position: {
             lat: item["latitude"],
             lng: item["longitude"]
         },
-        map: map,
+        map: core.map,
         zIndex: 2,
     })
     marker.setIcon(getPokestopIcon(item))
-    marker.infoWindow = new google.maps.InfoWindow({
+    marker.infoWindow = new core.google.maps.InfoWindow({
         content: labels.pokestopLabel(item["lure_expiration"], item["latitude"], item["longitude"]),
         disableAutoPan: true
     })
@@ -151,13 +151,13 @@ export function updateGymMarker(item, marker) {
 
 
 export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounceDisabled) {
-    var marker = new google.maps.Marker({
+    var marker = new core.google.maps.Marker({
         position: {
             lat: item.latitude,
             lng: item.longitude,
         },
         zIndex: 3,
-        map: map,
+        map: core.map,
         icon: 'static/images/spawn-tall.png'
     });
 
@@ -167,7 +167,7 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
     item.disappearsAt = new Date(item.last_disappear);
     updateSpawnIcon(item);
 
-    marker.infoWindow = new google.maps.InfoWindow({
+    marker.infoWindow = new core.google.maps.InfoWindow({
         content: labels.spawnLabel(item.id, item.latitude, item.longitude),
         disableAutoPan: true,
     });
@@ -246,7 +246,7 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
                 var html = $dom.html();
 
                 closeMarkerWindow(marker.infoWindow);
-                marker.infoWindow = new google.maps.InfoWindow({
+                marker.infoWindow = new core.google.maps.InfoWindow({
                     content: html,
                     disableAutoPan: true
                 });
@@ -269,7 +269,7 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
 
 export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBounceDisabled) {
     // Scale icon size up with the map exponentially
-    var iconSize = 2 + (map.getZoom() - 3) * (map.getZoom() - 3) * 0.2 + Store.get('iconSizeModifier')
+    var iconSize = 2 + (core.map.getZoom() - 3) * (core.map.getZoom() - 3) * 0.2 + Store.get('iconSizeModifier')
     var pokemonIndex = item['pokemon_id'] - 1
     var sprite = pokemonSprites[Store.get('pokemonIcons')] || pokemonSprites['highres']
     var icon = getGoogleSprite(pokemonIndex, sprite, iconSize)
@@ -279,12 +279,12 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
         animationDisabled = true
     }
 
-    var marker = new google.maps.Marker({
+    var marker = new core.google.maps.Marker({
         position: {
             lat: item['latitude'],
             lng: item['longitude']
         },
-        map: map,
+        map: core.map,
         icon: icon,
         zIndex: 10,
         animationDisabled: animationDisabled
@@ -295,7 +295,7 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
         this.animationDisabled = true
     })
 
-    marker.infoWindow = new google.maps.InfoWindow({
+    marker.infoWindow = new core.google.maps.InfoWindow({
         content: labels.pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id']),
         disableAutoPan: true
     })
@@ -308,7 +308,7 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
             sendNotification('A wild ' + item['pokemon_name'] + ' appeared!', 'Click to load map', 'static/icons/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
         }
         if (marker.animationDisabled !== true) {
-            marker.setAnimation(google.maps.Animation.BOUNCE)
+            marker.setAnimation(core.google.maps.Animation.BOUNCE)
         }
     }
 
@@ -332,10 +332,10 @@ export function getColorByDate (value) {
 }
 
 export function setupScannedMarker (item) {
-    var circleCenter = new google.maps.LatLng(item['latitude'], item['longitude'])
+    var circleCenter = new core.google.maps.LatLng(item['latitude'], item['longitude'])
 
-    var marker = new google.maps.Circle({
-        map: map,
+    var marker = new core.google.maps.Circle({
+        map: core.map,
         center: circleCenter,
         radius: 60, // metres
         fillColor: getColorByDate(item['last_update']),
