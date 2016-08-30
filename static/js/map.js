@@ -119,46 +119,9 @@ define(function (require) {
         core.map = map;
         core.google = google;
 
-        var styleNoLabels = new google.maps.StyledMapType(mapStyles.noLabelsStyle, {
-            name: 'No Labels'
-        })
-        map.mapTypes.set('nolabels_style', styleNoLabels)
+        mapStyles.initStyles();
+        mapStyles.watchStyleChange();
 
-        var styleDark = new google.maps.StyledMapType(mapStyles.darkStyle, {
-            name: 'Dark'
-        })
-        map.mapTypes.set('dark_style', styleDark)
-
-        var styleLight2 = new google.maps.StyledMapType(mapStyles.light2Style, {
-            name: 'Light2'
-        })
-        map.mapTypes.set('style_light2', styleLight2)
-
-        var stylePgo = new google.maps.StyledMapType(mapStyles.pGoStyle, {
-            name: 'PokemonGo'
-        })
-        map.mapTypes.set('style_pgo', stylePgo)
-
-        var styleDarkNl = new google.maps.StyledMapType(mapStyles.darkStyleNoLabels, {
-            name: 'Dark (No Labels)'
-        })
-        map.mapTypes.set('dark_style_nl', styleDarkNl)
-
-        var styleLight2Nl = new google.maps.StyledMapType(mapStyles.light2StyleNoLabels, {
-            name: 'Light2 (No Labels)'
-        })
-        map.mapTypes.set('style_light2_nl', styleLight2Nl)
-
-        var stylePgoNl = new google.maps.StyledMapType(mapStyles.pGoStyleNoLabels, {
-            name: 'PokemonGo (No Labels)'
-        })
-        map.mapTypes.set('style_pgo_nl', stylePgoNl)
-
-        map.addListener('maptypeid_changed', function (s) {
-            store.Store.set('map_style', this.mapTypeId)
-        })
-
-        map.setMapTypeId(store.Store.get('map_style'))
         google.maps.event.addListener(map, 'idle', function () {
             if (history.pushState) {
                 var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname +
