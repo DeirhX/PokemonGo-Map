@@ -1704,7 +1704,7 @@
       // var infoWindow = new google.maps.InfoWindow({map: map, content: 'Detected location'});
 
       // Try HTML5 geolocation.
-      if (navigator.geolocation) {
+      if (navigator.geolocation && !centerOverride) {
         navigator.geolocation.getCurrentPosition(function(position) {
           var pos = {
             lat: position.coords.latitude,
