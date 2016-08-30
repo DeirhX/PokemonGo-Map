@@ -1,3 +1,4 @@
+/// <reference path="../../../../typings/globals/jquery/index.d.ts" />
 import {pad} from "../../utils";
 
 function getTypeSpan(type) {

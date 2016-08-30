@@ -40,7 +40,7 @@ function toggleMarkerWindow(marker, newState) {
 
 
 
-function updateAllLabelsDiffTime() {
+export function updateAllLabelsDiffTime() {
     $(".label-countdown").each(function (index, element) {
         if (!$(element).hasClass("disabled")) {
             updateLabelDiffTime(element);
