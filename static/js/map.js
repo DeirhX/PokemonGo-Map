@@ -358,25 +358,41 @@ define(function (require) {
         }
     }
 
+    var updateQueue = [];
     function updateMap (incremental) {
-        loadRawData(incremental)
-            .done(function (result) {
-                $.each(result.pokemons, processPokemons)
-                $.each(result.pokestops, processPokestops)
-                $.each(result.gyms, processGyms)
-                $.each(result.scanned, processScanned)
-                $.each(result.spawns, processSpawns)
-                showInBoundsMarkers(mapData.pokemons)
-                showInBoundsMarkers(mapData.lurePokemons)
-                showInBoundsMarkers(mapData.gyms)
-                showInBoundsMarkers(mapData.pokestops)
-                showInBoundsMarkers(mapData.scanned)
-                showInBoundsMarkers(mapData.spawnpoints)
-                clearStaleMarkers()
-                if ($('#stats').hasClass('visible')) {
-                    countMarkers()
-                }
-            });
+        if (!incremental) {
+            incremental = false;
+        }
+        function doRequest () {
+            loadRawData(incremental)
+                .done(function (result) {
+                    $.each(result.pokemons, processPokemons)
+                    $.each(result.pokestops, processPokestops)
+                    $.each(result.gyms, processGyms)
+                    $.each(result.scanned, processScanned)
+                    $.each(result.spawns, processSpawns)
+                    showInBoundsMarkers(mapData.pokemons)
+                    showInBoundsMarkers(mapData.lurePokemons)
+                    showInBoundsMarkers(mapData.gyms)
+                    showInBoundsMarkers(mapData.pokestops)
+                    showInBoundsMarkers(mapData.scanned)
+                    showInBoundsMarkers(mapData.spawnpoints)
+                    clearStaleMarkers()
+                    if ($('#stats').hasClass('visible')) {
+                        countMarkers()
+                    }
+                })
+                .then(function () {
+                    updateQueue.shift(); // Remove this from queue
+                    if (updateQueue.length > 0) { // Fire again if queued
+                        doRequest(updateQueue[0]);
+                    }
+                });
+        }
+        updateQueue.push(incremental);
+        if (updateQueue.length === 1) { // Fire request only if the queue was empty
+            doRequest();
+        }
     }
 
     function redrawPokemon (pokemonList) {
