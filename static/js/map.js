@@ -389,6 +389,9 @@ define(function (require) {
                     }
                 });
         }
+        if (updateQueue.length > 15) {
+            return; // Throw it away, queue too long
+        }
         updateQueue.push(incremental);
         if (updateQueue.length === 1) { // Fire request only if the queue was empty
             doRequest();
