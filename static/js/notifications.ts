@@ -2,9 +2,14 @@ import {centerMap} from "./map/core";
 
 declare var Notification; // TODO: Get api typing
 
+export let notifiedPokemon = [];
+export let notifiedRarity = [];
+
+const notifySound = new Audio("static/sounds/ding.mp3");
+
 export function initNotifications() {
     if (!Notification) {
-        console.log("could not load notifications")
+        console.log("could not load notifications");
         return;
     }
 
@@ -25,13 +30,17 @@ export function sendNotification (title, text, icon, lat, lng) {
             icon,
             body: text,
             sound: "sounds/ding.mp3",
-        })
+        });
 
         notification.onclick = () => {
-            window.focus()
-            notification.close()
+            window.focus();
+            notification.close();
 
             centerMap(lat, lng, 20);
         };
     }
+}
+
+export function playNotifySound() {
+    notifySound.play();
 }

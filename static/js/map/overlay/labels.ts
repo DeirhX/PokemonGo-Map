@@ -1,20 +1,34 @@
-function pad(num: number, len: number) {
-    let iter = 1;
-    let maxNum = 10;
-    let outStr = "";
-    while (iter < len) {
-        if (num < maxNum) {
-            outStr += "0";
-        }
-        iter++;
-        maxNum *= 10;
-    }
-    return outStr + num;
-}
+import {pad} from "../../utils";
 
 function getTypeSpan(type) {
     return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
 }
+
+export function updateLabelDiffTime(element) {
+    var disappearsAt = new Date(parseInt(element.getAttribute("disappears-at")));
+    var now = new Date();
+
+    var difference = Math.abs(disappearsAt - now)
+    var hours = Math.floor(difference / 36e5)
+    var minutes = Math.floor((difference - (hours * 36e5)) / 6e4)
+    var seconds = Math.floor((difference - (hours * 36e5) - (minutes * 6e4)) / 1e3)
+    var timestring = ""
+
+    if (disappearsAt < now) {
+        timestring = "(expired)"
+    } else {
+        timestring = "(";
+        if (hours > 0) {
+            timestring = hours + "h";
+        }
+
+        timestring += ("0" + minutes).slice(-2) + "m"
+        timestring += ("0" + seconds).slice(-2) + "s"
+        timestring += ")"
+    }
+
+    $(element).text(timestring)
+};
 
 export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId): string {
     const disappearDate = new Date(disappearTime);

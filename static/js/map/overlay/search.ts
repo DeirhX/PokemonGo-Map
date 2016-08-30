@@ -1,8 +1,8 @@
-/// <reference path="../../../typings/globals/require/index.d.ts" />
-/// <reference path="../../../typings/globals/jquery/index.d.ts" />
+/// <reference path="../../../../typings/globals/require/index.d.ts" />
+/// <reference path="../../../../typings/globals/jquery/index.d.ts" />
 
-import {Store} from "../store";
-import {google, map} from "./core";
+import {Store} from "../../store";
+import {google, map} from "../core";
 
 export let searchMarker;
 let searchMarkerStyles;
