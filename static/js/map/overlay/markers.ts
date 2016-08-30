@@ -7,7 +7,7 @@ import {getGoogleSprite} from "../../utils";
 import {Store} from "../../store";
 import {pad} from "../../utils";
 import {sendNotification, playNotifySound, notifiedPokemon, notifiedRarity} from "../../notifications";
-import {updateLabelDiffTime} from "./labels";
+import {updateDisappearTime} from "./labels";
 
 let infoWindowsOpen = [];
 let highlightedMarker;
@@ -43,7 +43,7 @@ function toggleMarkerWindow(marker, newState) {
 export function updateAllLabelsDiffTime() {
     $(".label-countdown").each(function (index, element) {
         if (!$(element).hasClass("disabled")) {
-            updateLabelDiffTime(element);
+            updateDisappearTime(element);
         }
     });
 };

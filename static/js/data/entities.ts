@@ -1,5 +1,5 @@
 /// <reference path="../../../typings/globals/jquery/index.d.ts" />
-import {updateLabelDiffTime} from "../map/overlay/labels";
+import {updateDisappearTime} from "../map/overlay/labels";
 import {pad} from "../utils";
 
 export const gymTypes = ['Uncontested', 'Mystic', 'Valor', 'Instinct'];
@@ -74,8 +74,8 @@ export function updateSpawnCycle (element, first = null) {
     if (justAppeared || justDisappeared) { // Immediately update countdowns if state has changed
         activeContent.find('.disappear-countdown').attr('disappears-at', spawn.disappearsAt.getTime());
         inactiveContent.find('.appear-countdown').attr('disappears-at', spawn.appearsAt.getTime());
-        updateLabelDiffTime(activeContent.find('.disappear-countdown')[0]);
-        updateLabelDiffTime(inactiveContent.find('.appear-countdown')[0]);
+        updateDisappearTime(activeContent.find('.disappear-countdown')[0]);
+        updateDisappearTime(inactiveContent.find('.appear-countdown')[0]);
     }
 }
 

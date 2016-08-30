@@ -1,34 +1,35 @@
 /// <reference path="../../../../typings/globals/jquery/index.d.ts" />
+
 import {pad} from "../../utils";
 
 function getTypeSpan(type) {
     return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
 }
 
-export function updateLabelDiffTime(element) {
-    var disappearsAt = new Date(parseInt(element.getAttribute("disappears-at")));
-    var now = new Date();
+export function updateDisappearTime(element) {
+    const disappearsAt = new Date(parseInt(element.getAttribute("disappears-at"), 10));
+    const now = new Date();
 
-    var difference = Math.abs(disappearsAt - now)
-    var hours = Math.floor(difference / 36e5)
-    var minutes = Math.floor((difference - (hours * 36e5)) / 6e4)
-    var seconds = Math.floor((difference - (hours * 36e5) - (minutes * 6e4)) / 1e3)
-    var timestring = ""
+    const difference = Math.abs(disappearsAt.getTime() - now.getTime());
+    const hours = Math.floor(difference / 36e5);
+    const minutes = Math.floor((difference - (hours * 36e5)) / 6e4);
+    const seconds = Math.floor((difference - (hours * 36e5) - (minutes * 6e4)) / 1e3);
+    let timestring = "";
 
     if (disappearsAt < now) {
-        timestring = "(expired)"
+        timestring = "(expired)";
     } else {
         timestring = "(";
         if (hours > 0) {
             timestring = hours + "h";
         }
 
-        timestring += ("0" + minutes).slice(-2) + "m"
-        timestring += ("0" + seconds).slice(-2) + "s"
-        timestring += ")"
+        timestring += ("0" + minutes).slice(-2) + "m";
+        timestring += ("0" + seconds).slice(-2) + "s";
+        timestring += ")";
     }
 
-    $(element).text(timestring)
+    $(element).text(timestring);
 };
 
 export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId): string {
@@ -38,7 +39,7 @@ export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, l
     for (let type of types) {
         typesDisplay += getTypeSpan(type);
     }
-    const contentstring = `
+    return `
       <div>
         <b>${name}</b>
         <span> - </span>
@@ -61,9 +62,7 @@ export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, l
         <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
         <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
         <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
-      </div>`
-
-    return contentstring;
+      </div>`;
 }
 
 export function spawnLabel(id, latitude, longitude, spawnTime) {
