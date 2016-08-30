@@ -25,5 +25,5 @@ export const pokemonSprites = {
         spriteHeight: 1430,
         filename: "static/icons-shuffle-sprite.png",
         name: "Shuffle",
-    };
-}
+    },
+};

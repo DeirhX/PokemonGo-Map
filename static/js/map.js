@@ -107,7 +107,7 @@ define(function (require) {
 
         addMyLocationButton();
         sidebar.initSidebar();
-        google.maps.event.addListenerOnce(map, 'idle', function () {
+        google.maps.event.addListener(map, 'idle', function () {
             updateMap()
         })
 
@@ -781,10 +781,10 @@ define(function (require) {
 
     function deirhExtensions (map) {
         map.addListener('click', function (e) {
-            markers.searchMarker.setPosition(e.latLng);
+            search.searchMarker.setPosition(e.latLng);
             $('button.home-map-scan div.status small')[0].innerHTML = 'Click to scan [' +
-                Math.round(markers.searchMarker.getPosition().lat() * 10000) / 10000 + ',' +
-                Math.round(markers.searchMarker.getPosition().lng() * 10000) / 10000 + '] ';
+                Math.round(search.searchMarker.getPosition().lat() * 10000) / 10000 + ',' +
+                Math.round(search.searchMarker.getPosition().lng() * 10000) / 10000 + '] ';
             if ($('.home-map-scan').hasClass('started').length) {
                 $('.home-map-scan').removeClass('started');
             }
@@ -800,7 +800,7 @@ define(function (require) {
         });
 
         $('.home-map-scan').click(function () {
-            if (markers.searchMarker == null) {
+            if (search.searchMarker == null) {
                 return;
             }
 
@@ -809,15 +809,15 @@ define(function (require) {
             $('.home-map-scan').removeClass('failed');
 
             $('button.home-map-scan div.status small')[0].innerHTML = 'Scanning of [' +
-                Math.round(markers.searchMarker.getPosition().lat() * 10000) / 10000 + ',' +
-                Math.round(markers.searchMarker.getPosition().lng() * 10000) / 10000 + '] started';
+                Math.round(search.searchMarker.getPosition().lat() * 10000) / 10000 + ',' +
+                Math.round(search.searchMarker.getPosition().lng() * 10000) / 10000 + '] started';
 
             $.ajax({
                 url: "scan",
                 type: 'GET',
                 data: {
-                    'lat': markers.searchMarker.getPosition().lat(),
-                    'lon': markers.searchMarker.getPosition().lng(),
+                    'lat': search.searchMarker.getPosition().lat(),
+                    'lon': search.searchMarker.getPosition().lng(),
                     'key': 'dontspam'
                 },
                 dataType: "json"
