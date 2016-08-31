@@ -645,5 +645,8 @@ export function watchStyleChange() {
     core.map.addListener('maptypeid_changed', function (s) {
         Store.set('map_style', this.mapTypeId)
     })
+}
 
+export function setStyle(mapStyle) {
+    core.map.setMapTypeId(mapStyle);
 }

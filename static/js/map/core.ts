@@ -21,3 +21,13 @@ export function onCenterChange(centerChangedCallback: (lat: number, lng: number)
     core.google.maps.event.addListener(core.map, "idle", () => {
         centerChangedCallback(core.map.getCenter().lat(), core.map.getCenter().lng()); });
 }
+
+export function onZoomChange(zoomChangedCallback: (zoomLevel: number) => void) {
+    core.google.maps.event.addListener(core.map, "zoom_changed", () => {
+        zoomChangedCallback(core.map.getZoom()); });
+}
+
+export function onFinishedMove( finishedMoveCallback: () => void ) {
+    core.google.maps.event.addListener(core.map, 'idle', () => {
+        finishedMoveCallback(); }) ;
+}

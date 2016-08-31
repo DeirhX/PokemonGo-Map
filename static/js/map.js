@@ -12,27 +12,22 @@ define(function (require) {
     var sprites = require("assets/sprites");
     var sidebar = require("interface/sidebar");
     var myLocation = require("map/overlay/mylocation");
+    var strings = require("assets/strings");
 
     var $selectExclude
     var $selectPokemonNotify
     var $selectRarityNotify
-    var $selectStyle
     var $selectIconResolution
     var $selectIconSize
     var $selectLuredPokestopsOnly
 
-    var language = document.documentElement.lang === '' ? 'en' : document.documentElement.lang
     var idToPokemon = {}
-    var i8lnDictionary = {}
-    var languageLookups = 0
-    var languageLookupThreshold = 3
 
     var excludedPokemon = []
 
     var map
     var rawDataIsLoading = false
 
-    var selectedStyle = 'light'
 
     var mapData = {
         pokemons: {},
@@ -60,6 +55,7 @@ define(function (require) {
         ).trigger('change')
     }
 
+    strings.setLanguage(document.documentElement.lang === '' ? 'en' : document.documentElement.lang);
 
     function initMap () { // eslint-disable-line no-unused-vars
         map = new google.maps.Map(document.getElementById('map'), {
@@ -106,18 +102,62 @@ define(function (require) {
 
         myLocation.addMyLocationButton(centerLat, centerLng);
         sidebar.initSidebar();
-        google.maps.event.addListener(map, 'idle', function () {
-            updateMap()
+
+        core.onFinishedMove(() => updateMap());
+
+        notifications.initNotifications();
+
+        sidebar.setupStylePicker();
+
+        $selectIconResolution = $('#pokemon-icons')
+
+        $selectIconResolution.select2({
+            placeholder: 'Select Icon Resolution',
+            minimumResultsForSearch: Infinity
         })
 
-        initPage()
-        initPage2()
-
-        google.maps.event.addListener(map, 'zoom_changed', function () {
+        $selectIconResolution.on('change', function () {
+            store.Store.set('pokemonIcons', this.value)
             redrawPokemon(mapData.pokemons)
             redrawPokemon(mapData.lurePokemons)
         })
+
+        $selectIconSize = $('#pokemon-icon-size')
+
+        $selectIconSize.select2({
+            placeholder: 'Select Icon Size',
+            minimumResultsForSearch: Infinity
+        })
+
+        $selectIconSize.on('change', function () {
+            store.Store.set('iconSizeModifier', this.value)
+            redrawPokemon(mapData.pokemons)
+            redrawPokemon(mapData.lurePokemons)
+        })
+
+        $selectLuredPokestopsOnly = $('#lured-pokestops-only-switch')
+
+        $selectLuredPokestopsOnly.select2({
+            placeholder: 'Only Show Lured Pokestops',
+            minimumResultsForSearch: Infinity
+        })
+
+        $selectLuredPokestopsOnly.on('change', function () {
+            store.Store.set('showLuredPokestopsOnly', this.value)
+            updateMap()
+        })
+
+        search.loadSearchMarkerStyles($('#iconmarker-style'));
+
+        initPage2()
+
+        core.onZoomChange((lat, lng, zoom) => {
+            redrawPokemon(mapData.pokemons)
+            redrawPokemon(mapData.lurePokemons)
+        });
+
         deirhExtensions(map);
+
         var updateTimer = window.setInterval(updateMap, 5000, true);
         $(window).blur(function () {
             // window.clearInterval(updateTimer);
@@ -427,108 +467,13 @@ define(function (require) {
 
 
 
-    function i8ln (word) {
-        if ($.isEmptyObject(i8lnDictionary) && language !== 'en' && languageLookups < languageLookupThreshold) {
-            $.ajax({
-                url: 'static/dist/locales/' + language + '.min.json',
-                dataType: 'json',
-                async: false,
-                success: function (data) {
-                    i8lnDictionary = data
-                },
-                error: function (jqXHR, status, error) {
-                    console.log('Error loading i8ln dictionary: ' + error)
-                    languageLookups++
-                }
-            })
-        }
-        if (word in i8lnDictionary) {
-            return i8lnDictionary[word]
-        } else {
-            // Word doesn't exist in dictionary return it as is
-            return word
-        }
-    }
-
 
     //
     // Page Ready Exection
     //
 
     function initPage () {
-        notifications.initNotifications();
 
-        // populate Navbar Style menu
-        $selectStyle = $('#map-style')
-
-        // Load Stylenames, translate entries, and populate lists
-        $.getJSON('static/dist/data/mapstyle.min.json').done(function (data) {
-            var styleList = []
-
-            $.each(data, function (key, value) {
-                styleList.push({
-                    id: key,
-                    text: i8ln(value)
-                })
-            })
-
-            // setup the stylelist
-            $selectStyle.select2({
-                placeholder: 'Select Style',
-                data: styleList,
-                minimumResultsForSearch: Infinity
-            })
-
-            // setup the list change behavior
-            $selectStyle.on('change', function (e) {
-                selectedStyle = $selectStyle.val()
-                map.setMapTypeId(selectedStyle)
-                store.Store.set('map_style', selectedStyle)
-            })
-
-            // recall saved mapstyle
-            $selectStyle.val(store.Store.get('map_style')).trigger('change')
-        })
-
-        $selectIconResolution = $('#pokemon-icons')
-
-        $selectIconResolution.select2({
-            placeholder: 'Select Icon Resolution',
-            minimumResultsForSearch: Infinity
-        })
-
-        $selectIconResolution.on('change', function () {
-            store.Store.set('pokemonIcons', this.value)
-            redrawPokemon(mapData.pokemons)
-            redrawPokemon(mapData.lurePokemons)
-        })
-
-        $selectIconSize = $('#pokemon-icon-size')
-
-        $selectIconSize.select2({
-            placeholder: 'Select Icon Size',
-            minimumResultsForSearch: Infinity
-        })
-
-        $selectIconSize.on('change', function () {
-            store.Store.set('iconSizeModifier', this.value)
-            redrawPokemon(mapData.pokemons)
-            redrawPokemon(mapData.lurePokemons)
-        })
-
-        $selectLuredPokestopsOnly = $('#lured-pokestops-only-switch')
-
-        $selectLuredPokestopsOnly.select2({
-            placeholder: 'Only Show Lured Pokestops',
-            minimumResultsForSearch: Infinity
-        })
-
-        $selectLuredPokestopsOnly.on('change', function () {
-            store.Store.set('showLuredPokestopsOnly', this.value)
-            updateMap()
-        })
-
-        search.loadSearchMarkerStyles($('#iconmarker-style'));
     };
 
     function initPage2 () {
