@@ -129,15 +129,16 @@ def configure(app):
         # if args.num_threads <= 1:
         #    location_list.append(position)
         rings = int(math.ceil(math.sqrt(args.num_threads / 3.0))) # beehive me!
-        steps = args.step_limit / (2 * rings - 1)
-        location_list = map(lambda x: (x.lat.decimal_degree, x.lon.decimal_degree, 0), generate_hive_cells(position, rings, steps))
+        diam_each = round((2 * args.step_limit - 1) / (2 * rings - 1))
+        steps_each = (diam_each + 1) / 2
+        location_list = map(lambda x: (x.lat.decimal_degree, x.lon.decimal_degree, 0), generate_hive_cells(position, rings, steps_each))
 
         # Gather the pokemons!
         if not args.mock:
             log.debug('Starting a real search thread')
             # search_thread = Thread(target=search_loop, args=(args,search_control,))
             search_thread = Thread(target=search_overseer_thread, name='Search overseer',
-                                   args=(args, location_list, steps, pause_bit, encryption_lib_path))
+                                   args=(args, location_list, steps_each, pause_bit, encryption_lib_path))
         else:
             log.debug('Starting a fake search thread')
             insert_mock_data(position)
