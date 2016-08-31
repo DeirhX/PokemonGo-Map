@@ -1,4 +1,7 @@
 /// <reference path="../../../../typings/globals/jquery/index.d.ts" />
+/// <reference path="../../../../typings/globals/googlemaps/index.d.ts" />
+
+
 import core from "../core";
 import {gymTypes, updateSpawnCycle, fastForwardSpawnTimes} from "../../data/entities";
 import * as labels from "./labels";
@@ -8,40 +11,149 @@ import {Store} from "../../store";
 import {pad} from "../../utils";
 import {sendNotification, playNotifySound, notifiedPokemon, notifiedRarity} from "../../notifications";
 import {updateDisappearTime} from "./labels";
+import LatLng = google.maps.LatLng;
+import LatLngBounds = google.maps.LatLngBounds;
 
 let infoWindowsOpen = [];
 let highlightedMarker;
 
-function openMarkerWindow(marker) {
-    toggleMarkerWindow(marker, true);
+interface IMarker {
+    openWindow();
+    closeWindow();
+    toggleWindow(isOpen: boolean);
+    isShown(): boolean;
+    show();
+    hide();
+    setColor(color);
+    getBounds(): LatLngBounds;
+    getPosition(): LatLng;
+
+    canAnimate(): boolean;
+    isAnimated(): boolean;
+    setAnimation(animation: google.maps.Animation);
+    startAnimation(animation: google.maps.Animation);
+    pauseAnimation();
+    stopAnimation();
+    resumeAnimation();
 }
 
-function closeMarkerWindow(marker) {
-    toggleMarkerWindow(marker, false);
+interface IMapObject {
+    setMap(map: google.maps.Map);
 }
 
-function toggleMarkerWindow(marker, newState) {
-    // var wasOpen = false;
-    for (let i = 0; i < infoWindowsOpen.length; ++i) {
-        infoWindowsOpen[i].close();
-        if (infoWindowsOpen[i] === marker.infoWindow) {
-            // wasOpen = true;
+class Marker implements IMarker {
+
+    private marker: google.maps.Marker;
+    private circle: google.maps.Circle;
+
+    private mapObject: IMapObject;
+    private infoWindow: google.maps.InfoWindow;
+
+    private oldAnimation: googlem.maps.Animation;
+
+    constructor(marker: google.maps.Marker, infoWindow: google.maps.InfoWindow) {
+        this.marker = marker;
+        this.mapObject = marker;
+        this.infoWindow = infoWindow;
+    }
+    constructor(circle: google.maps.Circle, infoWindow: google.maps.InfoWindow) {
+        this.circle = circle;
+        this.mapObject = circle;
+        this.infoWindow = infoWindow;
+    }
+    public openWindow() { this.toggleWindow(true); }
+    public closeWindow() { this.toggleWindow(false); };
+    public toggleWindow(isOpen: boolean) {
+        for (let i = 0; i < infoWindowsOpen.length; ++i) {
+            infoWindowsOpen[i].close();
+            if (infoWindowsOpen[i] === this.infoWindow) {
+                // wasOpen = true;
+            }
+        }
+
+        infoWindowsOpen = [];
+        if (isOpen) {
+            this.infoWindow.open(core.map, this.marker);
+            infoWindowsOpen.push(this.infoWindow);
+        } else if (this.infoWindow) {
+            this.infoWindow.close();
         }
     }
-
-    infoWindowsOpen = [];
-    if (newState) {
-        marker.infoWindow.open(core.map, marker);
-        infoWindowsOpen.push(marker.infoWindow);
-    } else if (marker.infoWindow) {
-        marker.infoWindow.close();
+    public show() {
+        this.marker.setMap(core.map);
+    }
+    public hide() {
+        this.marker.setMap(null);
+    }
+    public isShown(): boolean {
+        return !!this.marker.getMap();
+    }
+    public setColor(color) {
+        if (!this.circle) {
+            throw "Can chance color only of polygons";
+        }
+        this.circle.setOptions({
+            fillColor: color,
+        });
+    }
+    public getPosition(): LatLng {
+        if (this.marker) {
+            return this.marker.getPosition();
+        }
+        return null;
+    }
+    public getBounds(): LatLngBounds {
+        if (this.circle) {
+            return this.circle.getBounds();
+        }
+        return null;
+    }
+    public canAnimate(): boolean {
+        return !!this.marker;
+    }
+    public isAnimated(): boolean {
+        if (!this.marker) {
+            throw "Cannot animate this";
+        }
+        return !!this.marker.getAnimation();
+    }
+    public setAnimation(animation: google.maps.Animation) {
+        if (!this.marker) {
+            throw "Cannot animate this";
+        }
+        this.oldAnimation = animation;
+    }
+    public startAnimation(animation: google.maps.Animation)
+    {
+        if (!this.marker) {
+            throw "Cannot animate this";
+        }
+        this.marker.setAnimation(animation);
+    }
+    public stopAnimation() {
+        if (!this.marker) {
+            throw "Cannot animate this";
+        }
+        this.oldAnimation = null;
+        this.marker.setAnimation(null);
+    }
+    public pauseAnimation() {
+        if (!this.marker) {
+            throw "Cannot animate this";
+        }
+        this.oldAnimation = this.marker.getAnimation();
+        this.marker.setAnimation(null);
+    }
+    public resumeAnimation() {
+        if (!this.marker) {
+            throw "Cannot animate this";
+        }
+        this.marker.setAnimation(this.oldAnimation);
     }
 }
 
-
-
 export function updateAllLabelsDiffTime() {
-    $(".label-countdown").each(function (index, element) {
+    $(".label-countdown").each((index, element) => {
         if (!$(element).hasClass("disabled")) {
             updateDisappearTime(element);
         }
@@ -151,7 +263,7 @@ export function updateGymMarker(item, marker) {
 
 
 export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounceDisabled) {
-    var marker = new core.google.maps.Marker({
+    let marker = new core.google.maps.Marker({
         position: {
             lat: item.latitude,
             lng: item.longitude,
@@ -167,11 +279,11 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
     item.disappearsAt = new Date(item.last_disappear);
     updateSpawnIcon(item);
 
-    marker.infoWindow = new core.google.maps.InfoWindow({
+    let infoWindow = new core.google.maps.InfoWindow({
         content: labels.spawnLabel(item.id, item.latitude, item.longitude),
         disableAutoPan: true,
     });
-    marker.infoWindow.addListener('domready', function () {
+    infoWindow.addListener('domready', function () {
         $.ajax({
             url: "spawn_detail",
             type: 'GET',
@@ -246,11 +358,11 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
                 var html = $dom.html();
 
                 closeMarkerWindow(marker.infoWindow);
-                marker.infoWindow = new core.google.maps.InfoWindow({
+                infoWindow = new core.google.maps.InfoWindow({
                     content: html,
                     disableAutoPan: true
                 });
-                marker.infoWindow.addListener('domready', function (element) {
+                infoWindow.addListener('domready', function (element) {
                     /* var iwOuter = */
                     $('.gm-style-iw').find('.spawn-timing').each(function (index, element) {
                         $(element).data('spawn', item);
@@ -274,11 +386,6 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
     var sprite = pokemonSprites[Store.get('pokemonIcons')] || pokemonSprites['highres']
     var icon = getGoogleSprite(pokemonIndex, sprite, iconSize)
 
-    var animationDisabled = false
-    if (isBounceDisabled === true) {
-        animationDisabled = true
-    }
-
     var marker = new core.google.maps.Marker({
         position: {
             lat: item['latitude'],
@@ -287,7 +394,7 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
         map: core.map,
         icon: icon,
         zIndex: 10,
-        animationDisabled: animationDisabled
+        animationDisabled: isBounceDisabled === true,
     })
 
     marker.addListener('click', function () {

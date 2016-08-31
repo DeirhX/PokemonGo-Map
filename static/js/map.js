@@ -182,7 +182,7 @@ define(function (require) {
         $.each(mapData.pokemons, function (key, value) {
             if (mapData.pokemons[key]['disappear_time'] < new Date().getTime() ||
                 excludedPokemon.indexOf(mapData.pokemons[key]['pokemon_id']) >= 0) {
-                mapData.pokemons[key].marker.setMap(null)
+                mapData.pokemons[key].marker.remove()
                 delete mapData.pokemons[key]
             }
         })
@@ -190,7 +190,7 @@ define(function (require) {
         $.each(mapData.lurePokemons, function (key, value) {
             if (mapData.lurePokemons[key]['lure_expiration'] < new Date().getTime() ||
                 excludedPokemon.indexOf(mapData.lurePokemons[key]['pokemon_id']) >= 0) {
-                mapData.lurePokemons[key].marker.setMap(null)
+                mapData.lurePokemons[key].marker.remove()
                 delete mapData.lurePokemons[key]
             }
         })
@@ -198,13 +198,11 @@ define(function (require) {
         $.each(mapData.scanned, function (key, value) {
             // If older than 15mins remove
             if (mapData.scanned[key]['last_update'] < (new Date().getTime() - 15 * 60 * 1000)) {
-                mapData.scanned[key].marker.setMap(null)
+                mapData.scanned[key].marker.remove()
                 delete mapData.scanned[key]
             } else {
                 // Update color
-                mapData.scanned[key].marker.setOptions({
-                    fillColor: markers.getColorByDate(mapData.scanned[key]['last_update'])
-                });
+                mapData.scanned[key].marker.setColor(markers.getColorByDate(mapData.scanned[key]['last_update']));
             }
         })
     }
@@ -214,29 +212,33 @@ define(function (require) {
             var marker = markers[key].marker
             var show = false
             if (!markers[key].hidden) {
-                if (typeof marker.getBounds === 'function') {
+                var bounds = marker.getBounds();
+                if (bounds) {
                     if (map.getBounds().intersects(marker.getBounds())) {
                         show = true
                     }
-                } else if (typeof marker.getPosition === 'function') {
-                    if (map.getBounds().contains(marker.getPosition())) {
-                        show = true
+                } else {
+                    var position = marker.getPosition();
+                    if (position) {
+                        if (map.getBounds().contains(marker.getPosition())) {
+                            show = true
+                        }
                     }
                 }
             }
 
-            if (show && !marker.getMap()) {
-                marker.setMap(map)
+            if (show && !marker.isShown()) {
+                marker.show()
                 // Not all markers can be animated (ex: scan locations)
-                if (marker.setAnimation && marker.oldAnimation) {
-                    marker.setAnimation(marker.oldAnimation)
+                if (marker.canAnimate()) {
+                    marker.resumeAnimation();
                 }
-            } else if (!show && marker.getMap()) {
+            } else if (!show && marker.isShown()) {
                 // Not all markers can be animated (ex: scan locations)
-                if (marker.getAnimation) {
-                    marker.oldAnimation = marker.getAnimation()
+                if (marker.canAnimate()) {
+                    marker.pauseAnimation();
                 }
-                marker.setMap(null)
+                marker.hide();
             }
         })
     }
@@ -305,7 +307,7 @@ define(function (require) {
             excludedPokemon.indexOf(item['pokemon_id']) < 0) {
             // add marker to map and item to dict
             if (item.marker) {
-                item.marker.setMap(null)
+                item.marker.hide()
             }
             if (!item.hidden) {
                 item.marker = markers.setupPokemonMarker(item, sprites.pokemonSprites)
@@ -321,7 +323,7 @@ define(function (require) {
 
         if (!(item.id in mapData.spawnpoints)) {
             // add marker to map and item to dict
-            if (item.marker) item.marker.setMap(null);
+            if (item.marker) item.marker.hide();
             if (!item.hidden) {
                 item.marker = markers.setupSpawnMarker(item, sprites.pokemonSprites);
                 mapData.spawnpoints[item.id] = item;
@@ -337,7 +339,7 @@ define(function (require) {
 
         if (store.Store.get('showLuredPokestopsOnly') && !item['lure_expiration']) {
             if (mapData.pokestops[item['pokestop_id']] && mapData.pokestops[item['pokestop_id']].marker) {
-                mapData.pokestops[item['pokestop_id']].marker.setMap(null)
+                mapData.pokestops[item['pokestop_id']].marker.hide()
                 delete mapData.pokestops[item['pokestop_id']]
             }
             return true
@@ -346,14 +348,14 @@ define(function (require) {
         if (!mapData.pokestops[item['pokestop_id']]) { // add marker to map and item to dict
             // add marker to map and item to dict
             if (item.marker) {
-                item.marker.setMap(null)
+                item.marker.hide()
             }
             item.marker = markers.setupPokestopMarker(item)
             mapData.pokestops[item['pokestop_id']] = item
         } else {
             var item2 = mapData.pokestops[item['pokestop_id']]
             if (!!item['lure_expiration'] !== !!item2['lure_expiration']) {
-                item2.marker.setMap(null)
+                item2.marker.hide()
                 item.marker = markers.setupPokestopMarker(item)
                 mapData.pokestops[item['pokestop_id']] = item
             }
@@ -361,7 +363,7 @@ define(function (require) {
     }
 
     function removePokemonMarker (encounterId) { // eslint-disable-line no-unused-vars
-        mapData.pokemons[encounterId].marker.setMap(null)
+        mapData.pokemons[encounterId].marker.hide()
         mapData.pokemons[encounterId].hidden = true
     }
 
@@ -387,12 +389,10 @@ define(function (require) {
 
         if (scanId in mapData.scanned) {
             mapData.scanned[scanId].last_update = item['last_update']
-            mapData.scanned[scanId].marker.setOptions({
-                fillColor: markers.getColorByDate(item['last_update'])
-            })
+            mapData.scanned[scanId].marker.setColor(markers.getColorByDate(item['last_update']));
         } else { // add marker to map and item to dict
             if (item.marker) {
-                item.marker.setMap(null)
+                item.marker.hide()
             }
             item.marker = markers.setupScannedMarker(item)
             mapData.scanned[scanId] = item
@@ -444,8 +444,8 @@ define(function (require) {
         $.each(pokemonList, function (key, value) {
             var item = pokemonList[key]
             if (!item.hidden) {
-                var newMarker = markers.setupPokemonMarker(item, sprites.pokemonSprites, skipNotification, this.marker.animationDisabled)
-                item.marker.setMap(null)
+                var newMarker = markers.setupPokemonMarker(item, sprites.pokemonSprites, skipNotification, this.marker.isAnimated())
+                item.marker.hide()
                 pokemonList[key].marker = newMarker
             }
         })
@@ -579,7 +579,7 @@ define(function (require) {
                 } else {
                     $.each(dataType, function (d, dType) {
                         $.each(data[dType], function (key, value) {
-                            data[dType][key].marker.setMap(null)
+                            data[dType][key].marker.hide()
                         })
                         data[dType] = {}
                     })
