@@ -403,7 +403,7 @@ define(function (require) {
         $.each(pokemonList, function (key, value) {
             var item = pokemonList[key]
             if (!item.hidden) {
-                var newMarker = setupPokemonMarker(item, sprites.pokemonSprites, skipNotification, this.marker.animationDisabled)
+                var newMarker = markers.setupPokemonMarker(item, sprites.pokemonSprites, skipNotification, this.marker.animationDisabled)
                 item.marker.setMap(null)
                 pokemonList[key].marker = newMarker
             }

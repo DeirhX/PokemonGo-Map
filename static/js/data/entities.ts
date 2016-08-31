@@ -2,7 +2,7 @@
 import {updateDisappearTime} from "../map/overlay/labels";
 import {pad} from "../utils";
 
-export const gymTypes = ['Uncontested', 'Mystic', 'Valor', 'Instinct'];
+export const gymTypes = ["Uncontested", "Mystic", "Valor", "Instinct"];
 
 const entities = {
 
@@ -12,20 +12,20 @@ const entities = {
 export function fastForwardSpawnTimes (spawnTemplate) {
     var now = new Date();
     if (now > spawnTemplate.disappearsAt) {
-        var hourDiff = Math.floor(Math.abs(now - spawnTemplate.disappearsAt) / 36e5) + 1;
+        var hourDiff = Math.floor(Math.abs(now.getTime() - spawnTemplate.disappearsAt) / 36e5) + 1;
         spawnTemplate.appearsAt.setHours(spawnTemplate.appearsAt.getHours() + hourDiff);
         spawnTemplate.disappearsAt.setHours(spawnTemplate.disappearsAt.getHours() + hourDiff);
     }
 }
 
 export function updateSpawnCycle (element, first = null) {
-    var spawn = $(element).data('spawn');
+    var spawn = $(element).data("spawn");
     if (!spawn) {
         return;
     }
-    var marker = $(element).data('marker');
-    var inactiveContent = $(element).find('.spawn-inactive');
-    var activeContent = $(element).find('.spawn-active');
+    var marker = $(element).data("marker");
+    var inactiveContent = $(element).find(".spawn-inactive");
+    var activeContent = $(element).find(".spawn-active");
     var now = new Date();
     var justAppeared, justDisappeared;
 
@@ -50,7 +50,7 @@ export function updateSpawnCycle (element, first = null) {
         }
     }
 
-    if (justAppeared) { // Switch to 'active' state
+    if (justAppeared) { // Switch to "active" state
         inactiveContent.hide();
         activeContent.show();
         activeContent.find(".disappear-countdown").removeClass("disabled");
@@ -65,24 +65,21 @@ export function updateSpawnCycle (element, first = null) {
         activeContent.find(".disappear-countdown").addClass("disabled");
 
         inactiveContent.find(".label-nextspawn")[0].innerHTML = pad(spawn.appearsAt.getHours(), 2) +
-            ':' + pad(spawn.appearsAt.getMinutes(), 2) + ':' + pad(spawn.appearsAt.getSeconds(), 2);
+            ":" + pad(spawn.appearsAt.getMinutes(), 2) + ":" + pad(spawn.appearsAt.getSeconds(), 2);
         if (marker) {
             marker.setOpacity(0.3);
         }
     }
 
     if (justAppeared || justDisappeared) { // Immediately update countdowns if state has changed
-        activeContent.find('.disappear-countdown').attr('disappears-at', spawn.disappearsAt.getTime());
-        inactiveContent.find('.appear-countdown').attr('disappears-at', spawn.appearsAt.getTime());
-        updateDisappearTime(activeContent.find('.disappear-countdown')[0]);
-        updateDisappearTime(inactiveContent.find('.appear-countdown')[0]);
+        activeContent.find(".disappear-countdown").attr("disappears-at", spawn.disappearsAt.getTime());
+        inactiveContent.find(".appear-countdown").attr("disappears-at", spawn.appearsAt.getTime());
+        updateDisappearTime(activeContent.find(".disappear-countdown")[0]);
+        updateDisappearTime(inactiveContent.find(".appear-countdown")[0]);
     }
 }
 
-export var updateAllSpawnCycles = function () {
-    $('.spawn-timing').each(function (index, element) {
-        updateSpawnCycle($(element));
-    });
-};
+export var updateAllSpawnCycles = () => $(".spawn-timing").each(
+    (index, element) => updateSpawnCycle($(element)));
 
 
