@@ -107,7 +107,7 @@ define(function (require) {
 
         notifications.initNotifications();
 
-        sidebar.setupStylePicker();
+        // sidebar.setupStylePicker();
 
         $selectIconResolution = $('#pokemon-icons')
 
@@ -507,13 +507,13 @@ define(function (require) {
                 var _types = []
                 pokeList.push({
                     id: key,
-                    text: i8ln(value['name']) + ' - #' + key
+                    text: strings.i8ln(value['name']) + ' - #' + key
                 })
-                value['name'] = i8ln(value['name'])
-                value['rarity'] = i8ln(value['rarity'])
+                value['name'] = strings.i8ln(value['name'])
+                value['rarity'] = strings.i8ln(value['rarity'])
                 $.each(value['types'], function (key, pokemonType) {
                     _types.push({
-                        'type': i8ln(pokemonType['type']),
+                        'type': strings.i8ln(pokemonType['type']),
                         'color': pokemonType['color']
                     })
                 })
@@ -523,18 +523,18 @@ define(function (require) {
 
             // setup the filter lists
             $selectExclude.select2({
-                placeholder: i8ln('Select Pokémon'),
+                placeholder: strings.i8ln('Select Pokémon'),
                 data: pokeList,
                 templateResult: formatState
             })
             $selectPokemonNotify.select2({
-                placeholder: i8ln('Select Pokémon'),
+                placeholder: strings.i8ln('Select Pokémon'),
                 data: pokeList,
                 templateResult: formatState
             })
             $selectRarityNotify.select2({
-                placeholder: i8ln('Select Rarity'),
-                data: [i8ln('Common'), i8ln('Uncommon'), i8ln('Rare'), i8ln('Very Rare'), i8ln('Ultra Rare')],
+                placeholder: strings.i8ln('Select Rarity'),
+                data: [strings.i8ln('Common'), strings.i8ln('Uncommon'), strings.i8ln('Rare'), strings.i8ln('Very Rare'), strings.i8ln('Ultra Rare')],
                 templateResult: formatState
             })
 
