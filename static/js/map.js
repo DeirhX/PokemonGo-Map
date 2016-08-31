@@ -107,33 +107,35 @@ define(function (require) {
 
         notifications.initNotifications();
 
-        // sidebar.setupStylePicker();
+        function setupIconStylePicker () {
+            let $selectIconResolution = $('#pokemon-icons')
 
-        $selectIconResolution = $('#pokemon-icons')
+            $selectIconResolution.select2({
+                placeholder: 'Select Icon Resolution',
+                minimumResultsForSearch: Infinity
+            })
 
-        $selectIconResolution.select2({
-            placeholder: 'Select Icon Resolution',
-            minimumResultsForSearch: Infinity
-        })
+            $selectIconResolution.on('change', function () {
+                store.Store.set('pokemonIcons', this.value)
+                redrawPokemon(mapData.pokemons)
+                redrawPokemon(mapData.lurePokemons)
+            })
 
-        $selectIconResolution.on('change', function () {
-            store.Store.set('pokemonIcons', this.value)
-            redrawPokemon(mapData.pokemons)
-            redrawPokemon(mapData.lurePokemons)
-        })
+            let $selectIconSize = $('#pokemon-icon-size')
 
-        $selectIconSize = $('#pokemon-icon-size')
+            $selectIconSize.select2({
+                placeholder: 'Select Icon Size',
+                minimumResultsForSearch: Infinity
+            })
 
-        $selectIconSize.select2({
-            placeholder: 'Select Icon Size',
-            minimumResultsForSearch: Infinity
-        })
+            $selectIconSize.on('change', function () {
+                store.Store.set('iconSizeModifier', this.value)
+                redrawPokemon(mapData.pokemons)
+                redrawPokemon(mapData.lurePokemons)
+            })
+        }
 
-        $selectIconSize.on('change', function () {
-            store.Store.set('iconSizeModifier', this.value)
-            redrawPokemon(mapData.pokemons)
-            redrawPokemon(mapData.lurePokemons)
-        })
+        setupIconStylePicker();
 
         $selectLuredPokestopsOnly = $('#lured-pokestops-only-switch')
 
@@ -472,10 +474,6 @@ define(function (require) {
     // Page Ready Exection
     //
 
-    function initPage () {
-
-    };
-
     function initPage2 () {
         function formatState (state) {
             if (!state.id) {
@@ -485,10 +483,6 @@ define(function (require) {
                 '<span><i class="pokemon-sprite n' + state.element.value.toString() + '"></i> ' + state.text + '</span>'
             )
             return $state
-        }
-
-        if (store.Store.get('startAtUserLocation')) {
-            centerMapMyOnLocation()
         }
 
         $selectExclude = $('#exclude-pokemon')

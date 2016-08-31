@@ -44,7 +44,7 @@ export function initSidebar() {
     setupStylePicker();
 };
 
- function setupStylePicker () {
+function setupStylePicker () {
     // populate Navbar Style menu
     let $selectStyle = $("#map-style")
     let selectedStyle = "light"
@@ -78,3 +78,5 @@ export function initSidebar() {
         $selectStyle.val(Store.get("map_style")).trigger("change");
     });
 }
+
+
