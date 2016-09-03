@@ -234,6 +234,9 @@ export class Marker implements IMarker {
     }
 
     private unregisterPopupWindowListeners() {
+        if (!this.infoWindow) {
+            return;
+        }
         this.listeners.click.remove();
         this.listeners.closeClick.remove();
         this.listeners.mouseOver.remove();
