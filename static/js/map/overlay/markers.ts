@@ -101,7 +101,7 @@ export class Marker implements IMarker {
         }
     }
     public setWindowContent(htmlContent: string) {
-        this.infoWindow.setContent(string);
+        this.infoWindow.setContent(htmlContent);
     }
     public show() {
         this.marker.setMap(core.map);
@@ -215,35 +215,15 @@ export class Marker implements IMarker {
             }
             highlightedMarker = null;
         });
-    }}
-
+    }
+}
+// -- UTILS
 export function updateAllLabelsDiffTime() {
     $(".label-countdown").each((index, element) => {
         if (!$(element).hasClass("disabled")) {
             updateDisappearTime(element);
         }
     });
-};
-
-
-
-export var updatePokestopIcon = (pokestop) => {
-    pokestop.marker.setIcon(sprites.getPokestopIcon(pokestop));
-};
-
-export function updateSpawnIcon (spawn) {
-    fastForwardSpawnTimes(spawn);
-    if (new Date() >= spawn.appearsAt && new Date() <= spawn.disappearsAt) {
-        spawn.marker.setOpacity(1.0);
-    } else {
-        spawn.marker.setOpacity(0.3);
-    }
-};
-
-export function updateGymMarker(item, marker) {
-    marker.setIcon("static/forts/" + gymTypes[item["team_id"]] + ".png")
-    marker.infoWindow.setContent(labels.gymLabel(gymTypes[item["team_id"]], item["team_id"], item["gym_points"], item["latitude"], item["longitude"]))
-    return marker;
 }
 
 export function getColorByDate (value) {
@@ -259,7 +239,30 @@ export function getColorByDate (value) {
     return ['hsl(', hue, ',100%,50%)'].join('')
 }
 
-export function setupGymMarker(item): Marker {
+// --- Marker updators
+
+export function updatePokestopIcon(pokestop) {
+    pokestop.marker.setIcon(sprites.getPokestopIcon(pokestop));
+}
+
+export function updateSpawnIcon (spawn) {
+    fastForwardSpawnTimes(spawn);
+    if (new Date() >= spawn.appearsAt && new Date() <= spawn.disappearsAt) {
+        spawn.marker.setOpacity(1.0);
+    } else {
+        spawn.marker.setOpacity(0.3);
+    }
+}
+
+export function updateGymMarker(item, marker) {
+    marker.setIcon("static/forts/" + gymTypes[item["team_id"]] + ".png")
+    marker.infoWindow.setContent(labels.gymLabel(gymTypes[item["team_id"]], item["team_id"], item["gym_points"], item["latitude"], item["longitude"]))
+    return marker;
+}
+
+// -- Marker creators
+
+export function createGymMarker(item): Marker {
     let mapObject = new core.google.maps.Marker({
         position: {
             lat: item["latitude"],
@@ -278,7 +281,7 @@ export function setupGymMarker(item): Marker {
     return marker;
 }
 
-export function setupPokestopMarker (item): Marker {
+export function createPokestopMarker (item): Marker {
     var mapObject = new core.google.maps.Marker({
         position: {
             lat: item["latitude"],
@@ -296,7 +299,7 @@ export function setupPokestopMarker (item): Marker {
     return marker;
 }
 
-export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounceDisabled): Marker {
+export function createSpawnMarker(item, pokemonSprites, skipNotification, isBounceDisabled): Marker {
     let mapObject = new core.google.maps.Marker({
         position: {
             lat: item.latitude,
@@ -330,7 +333,7 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
             dataType: "json",
             cache: false,
             complete: function (data) {
-                if (highlightedMarker !== mapObject) {
+                if (highlightedMarker !== marker) {
                     return;
                 }
                 if (data && data.responseJSON && data.responseJSON['rank'] && data.responseJSON['chances']) {
@@ -415,7 +418,7 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
     return marker;
 }
 
-export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBounceDisabled): Marker {
+export function createPokemonMarker(item, pokemonSprites, skipNotification, isBounceDisabled): Marker {
     // Scale icon size up with the map exponentially
     var iconSize = 2 + (core.map.getZoom() - 3) * (core.map.getZoom() - 3) * 0.2 + Store.get('iconSizeModifier')
     var pokemonIndex = item['pokemon_id'] - 1
@@ -458,7 +461,7 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
     return new Marker(marker, infoWindow);
 }
 
-export function setupScannedMarker (item): Marker {
+export function createScannedMarker (item): Marker {
     const circleCenter = new core.google.maps.LatLng(item['latitude'], item['longitude'])
 
     let marker = new core.google.maps.Circle({

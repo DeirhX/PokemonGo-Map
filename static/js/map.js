@@ -310,7 +310,7 @@ define(function (require) {
                 item.marker.hide()
             }
             if (!item.hidden) {
-                item.marker = markers.setupPokemonMarker(item, sprites.pokemonSprites)
+                item.marker = markers.createPokemonMarker(item, sprites.pokemonSprites)
                 mapData.pokemons[item['encounter_id']] = item
             }
         }
@@ -325,7 +325,7 @@ define(function (require) {
             // add marker to map and item to dict
             if (item.marker) item.marker.hide();
             if (!item.hidden) {
-                item.marker = markers.setupSpawnMarker(item, sprites.pokemonSprites);
+                item.marker = markers.createSpawnMarker(item, sprites.pokemonSprites);
                 mapData.spawnpoints[item.id] = item;
             }
         }
@@ -350,13 +350,13 @@ define(function (require) {
             if (item.marker) {
                 item.marker.hide()
             }
-            item.marker = markers.setupPokestopMarker(item)
+            item.marker = markers.createPokestopMarker(item)
             mapData.pokestops[item['pokestop_id']] = item
         } else {
             var item2 = mapData.pokestops[item['pokestop_id']]
             if (!!item['lure_expiration'] !== !!item2['lure_expiration']) {
                 item2.marker.hide()
-                item.marker = markers.setupPokestopMarker(item)
+                item.marker = markers.createPokestopMarker(item)
                 mapData.pokestops[item['pokestop_id']] = item
             }
         }
@@ -375,7 +375,7 @@ define(function (require) {
         if (item['gym_id'] in mapData.gyms) {
             item.marker = markers.updateGymMarker(item, mapData.gyms[item['gym_id']].marker)
         } else { // add marker to map and item to dict
-            item.marker = markers.setupGymMarker(item)
+            item.marker = markers.createGymMarker(item)
         }
         mapData.gyms[item['gym_id']] = item
     }
@@ -394,7 +394,7 @@ define(function (require) {
             if (item.marker) {
                 item.marker.hide()
             }
-            item.marker = markers.setupScannedMarker(item)
+            item.marker = markers.createScannedMarker(item)
             mapData.scanned[scanId] = item
         }
     }
@@ -444,7 +444,7 @@ define(function (require) {
         $.each(pokemonList, function (key, value) {
             var item = pokemonList[key]
             if (!item.hidden) {
-                var newMarker = markers.setupPokemonMarker(item, sprites.pokemonSprites, skipNotification, this.marker.isAnimated())
+                var newMarker = markers.createPokemonMarker(item, sprites.pokemonSprites, skipNotification, this.marker.isAnimated())
                 item.marker.hide()
                 pokemonList[key].marker = newMarker
             }
