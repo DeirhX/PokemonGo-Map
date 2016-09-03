@@ -18,7 +18,7 @@ let infoWindowsOpen = [];
 let highlightedMarker;
 
 interface IMarker {
-    openWindow();
+    openWindow(overrideWindow?: google.maps.InfoWindow);
     closeWindow();
     toggleWindow(isOpen: boolean);
     isShown(): boolean;
@@ -49,21 +49,31 @@ class Marker implements IMarker {
     private mapObject: IMapObject;
     private infoWindow: google.maps.InfoWindow;
 
-    private oldAnimation: googlem.maps.Animation;
+    private oldAnimation: google.maps.Animation;
 
-    constructor(marker: google.maps.Marker, infoWindow: google.maps.InfoWindow) {
-        this.marker = marker;
-        this.mapObject = marker;
+    constructor(marker: google.maps.Marker, infoWindow: google.maps.InfoWindow);
+    constructor(circle: google.maps.Circle, infoWindow: google.maps.InfoWindow);
+    constructor(mapObject: IMapObject, infoWindow: google.maps.InfoWindow) {
+        if (mapObject as google.maps.Marker) {
+            this.marker = <google.maps.Marker> mapObject;
+        } else if (mapObject as google.maps.Circle) {
+            this.circle = <google.maps.Circle> mapObject;
+        } else {
+            throw "Not supported";
+        }
+        this.mapObject = mapObject;
         this.infoWindow = infoWindow;
     }
-    constructor(circle: google.maps.Circle, infoWindow: google.maps.InfoWindow) {
-        this.circle = circle;
-        this.mapObject = circle;
-        this.infoWindow = infoWindow;
+    public openWindow(overrideWindow?: google.maps.InfoWindow) {
+        if (overrideWindow)
+            this.infoWindow = overrideWindow;
+        this.toggleWindow(true);
     }
-    public openWindow() { this.toggleWindow(true); }
     public closeWindow() { this.toggleWindow(false); };
     public toggleWindow(isOpen: boolean) {
+        if (!this.infoWindow)
+            return;
+
         for (let i = 0; i < infoWindowsOpen.length; ++i) {
             infoWindowsOpen[i].close();
             if (infoWindowsOpen[i] === this.infoWindow) {
@@ -123,8 +133,7 @@ class Marker implements IMarker {
         }
         this.oldAnimation = animation;
     }
-    public startAnimation(animation: google.maps.Animation)
-    {
+    public startAnimation(animation: google.maps.Animation) {
         if (!this.marker) {
             throw "Cannot animate this";
         }
@@ -193,8 +202,8 @@ function addMarkerListeners(marker) {
     return marker
 }
 
-export function setupGymMarker(item) {
-    let marker = new core.google.maps.Marker({
+export function setupGymMarker(item): Marker {
+    let mapObject = new core.google.maps.Marker({
         position: {
             lat: item["latitude"],
             lng: item["longitude"],
@@ -204,23 +213,23 @@ export function setupGymMarker(item) {
         icon: "static/forts/" + gymTypes[item["team_id"]] + ".png"
     })
 
-    marker.infoWindow = new core.google.maps.InfoWindow({
+    let infoWindow = new core.google.maps.InfoWindow({
         content: labels.gymLabel(gymTypes[item["team_id"]], item["team_id"], item["gym_points"], item["latitude"], item["longitude"]),
         disableAutoPan: true,
     })
-
-    addMarkerListeners(marker)
+    let marker = new Marker(mapObject, infoWindow);
+    addMarkerListeners(mapObject)
     return marker;
 }
 
-function getPokestopIcon(item) {
+function getPokestopIcon(item)  {
     var isLured = item["lure_expiration"] && item["lure_expiration"] > new Date().getTime()
     var imagename = isLured ? "PstopLured" : "Pstop"
     return "static/forts/" + imagename + ".png"
 }
 
-export function setupPokestopMarker (item) {
-    var marker = new core.google.maps.Marker({
+export function setupPokestopMarker (item): Marker {
+    var mapObject = new core.google.maps.Marker({
         position: {
             lat: item["latitude"],
             lng: item["longitude"]
@@ -228,13 +237,13 @@ export function setupPokestopMarker (item) {
         map: core.map,
         zIndex: 2,
     })
-    marker.setIcon(getPokestopIcon(item))
-    marker.infoWindow = new core.google.maps.InfoWindow({
+    mapObject.setIcon(getPokestopIcon(item))
+    let infoWindow = new core.google.maps.InfoWindow({
         content: labels.pokestopLabel(item["lure_expiration"], item["latitude"], item["longitude"]),
         disableAutoPan: true
     })
-
-    addMarkerListeners(marker)
+    let marker = new Marker(mapObject, infoWindow);
+    addMarkerListeners(mapObject)
     return marker;
 }
 
@@ -262,8 +271,8 @@ export function updateGymMarker(item, marker) {
 }
 
 
-export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounceDisabled) {
-    let marker = new core.google.maps.Marker({
+export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounceDisabled): Marker {
+    let mapObject = new core.google.maps.Marker({
         position: {
             lat: item.latitude,
             lng: item.longitude,
@@ -273,16 +282,19 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
         icon: 'static/images/spawn-tall.png'
     });
 
-    marker.spawnData = item;
-    item.marker = marker;
-    item.appearsAt = new Date(item.last_appear);
-    item.disappearsAt = new Date(item.last_disappear);
-    updateSpawnIcon(item);
+    mapObject.spawnData = item;
 
     let infoWindow = new core.google.maps.InfoWindow({
         content: labels.spawnLabel(item.id, item.latitude, item.longitude),
         disableAutoPan: true,
     });
+
+    let marker = new Marker(mapObject, infoWindow);
+    item.marker = marker;
+    item.appearsAt = new Date(item.last_appear);
+    item.disappearsAt = new Date(item.last_disappear);
+    updateSpawnIcon(item);
+
     infoWindow.addListener('domready', function () {
         $.ajax({
             url: "spawn_detail",
@@ -293,8 +305,8 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
             dataType: "json",
             cache: false,
             complete: function (data) {
-                if (highlightedMarker !== marker) {
-                    return
+                if (highlightedMarker !== mapObject) {
+                    return;
                 }
                 if (data && data.responseJSON && data.responseJSON['rank'] && data.responseJSON['chances']) {
                     item.rank = data.responseJSON['rank'];
@@ -353,33 +365,33 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
 
                 var $dom = $(str);
                 $dom.data('spawn', item);
-                $dom.data('marker', marker);
+                $dom.data('marker', mapObject);
                 updateSpawnCycle($dom, true);
                 var html = $dom.html();
 
-                closeMarkerWindow(marker.infoWindow);
-                infoWindow = new core.google.maps.InfoWindow({
+                marker.closeWindow();
+                let newInfoWindow = new core.google.maps.InfoWindow({
                     content: html,
-                    disableAutoPan: true
+                    disableAutoPan: true,
                 });
-                infoWindow.addListener('domready', function (element) {
+                newInfoWindow.addListener('domready', function (element) {
                     /* var iwOuter = */
                     $('.gm-style-iw').find('.spawn-timing').each(function (index, element) {
                         $(element).data('spawn', item);
-                        $(element).data('marker', marker);
+                        $(element).data('marker', mapObject);
                         updateSpawnCycle(element);
                     });
                 });
-                openMarkerWindow(marker);
+                marker.openWindow(newInfoWindow);
             }
         });
     });
 
-    addMarkerListeners(marker);
+    addMarkerListeners(mapObject);
     return marker;
 }
 
-export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBounceDisabled) {
+export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBounceDisabled): Marker {
     // Scale icon size up with the map exponentially
     var iconSize = 2 + (core.map.getZoom() - 3) * (core.map.getZoom() - 3) * 0.2 + Store.get('iconSizeModifier')
     var pokemonIndex = item['pokemon_id'] - 1
@@ -402,7 +414,7 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
         this.animationDisabled = true
     })
 
-    marker.infoWindow = new core.google.maps.InfoWindow({
+    let infoWindow = new core.google.maps.InfoWindow({
         content: labels.pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id']),
         disableAutoPan: true
     })
@@ -420,7 +432,7 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
     }
 
     addMarkerListeners(marker)
-    return marker
+    return new Marker(marker, infoWindow);
 }
 
 
@@ -438,10 +450,10 @@ export function getColorByDate (value) {
     return ['hsl(', hue, ',100%,50%)'].join('')
 }
 
-export function setupScannedMarker (item) {
-    var circleCenter = new core.google.maps.LatLng(item['latitude'], item['longitude'])
+export function setupScannedMarker (item): Marker {
+    const circleCenter = new core.google.maps.LatLng(item['latitude'], item['longitude'])
 
-    var marker = new core.google.maps.Circle({
+    let marker = new core.google.maps.Circle({
         map: core.map,
         center: circleCenter,
         radius: 60, // metres
@@ -451,5 +463,5 @@ export function setupScannedMarker (item) {
         clickable: false,
     })
 
-    return marker;
+    return new Marker(marker, null);
 }
