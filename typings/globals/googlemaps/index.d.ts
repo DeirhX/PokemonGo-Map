@@ -1600,7 +1600,7 @@ declare namespace google.maps {
         fullscreenControlOptions?: FullscreenControlOptions;
         imageDateControl?: boolean;
         linksControl?: boolean;
-        mode?: "html4" | "html5" |"webgl";
+        mode?: string;//"html4" | "html5" |"webgl";
         panControl?: boolean;
         panControlOptions?: PanControlOptions;
         pano?: string;
