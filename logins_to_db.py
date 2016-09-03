@@ -1,4 +1,5 @@
 import peewee
+import time
 
 from pogom import config
 from pogom.utils import get_args
@@ -19,9 +20,14 @@ with open('accounts.txt', 'r') as f :
     for line in alist:
         user, password = line.split(' ')
         sql = "INSERT INTO login (type, username, password, `use`) VALUES (1, '{0}', '{1}', '{2}')".format(user, password,      1)
-        try:
-            db.execute_sql(sql)
-        except peewee.IntegrityError:
-            pass
+        while True:
+            try:
+                db.execute_sql(sql)
+                break
+            except peewee.IntegrityError:
+                break
+            except peewee.InternalError as e:
+                print "Problem: " + str(e)
+                time.sleep(1)
 
 
