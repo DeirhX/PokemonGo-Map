@@ -13,6 +13,7 @@ import {sendNotification, playNotifySound, notifiedPokemon, notifiedRarity} from
 import {updateDisappearTime} from "./labels";
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
+import * as sprites from "../../assets/sprites";
 
 let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
@@ -21,10 +22,13 @@ export interface IMarker {
     openWindow(overrideWindow?: google.maps.InfoWindow);
     closeWindow();
     toggleWindow(isOpen: boolean);
+    setWindowContent(htmlContent: string);
     isShown(): boolean;
     show();
     hide();
+    setIcon(icon: string);
     setColor(color);
+    setOpacity(opacity: number);
     getBounds(): LatLngBounds;
     getPosition(): LatLng;
 
@@ -39,6 +43,7 @@ export interface IMarker {
 
 interface IMapObject {
     setMap(map: google.maps.Map);
+    // setOpacity(opacity: number);
     addListener(name: string, callback);
 }
 
@@ -71,14 +76,14 @@ export class Marker implements IMarker {
     }
 
     public openWindow(overrideWindow?: google.maps.InfoWindow) {
-        if (overrideWindow)
+        if (overrideWindow) {
             this.infoWindow = overrideWindow;
+        }
         this.toggleWindow(true);
     }
     public closeWindow() { this.toggleWindow(false); };
     public toggleWindow(isOpen: boolean) {
-        if (!this.infoWindow)
-            return;
+        if (!this.infoWindow) { return; }
 
         for (let i = 0; i < infoWindowsOpen.length; ++i) {
             infoWindowsOpen[i].close();
@@ -95,6 +100,9 @@ export class Marker implements IMarker {
             this.infoWindow.close();
         }
     }
+    public setWindowContent(htmlContent: string) {
+        this.infoWindow.setContent(string);
+    }
     public show() {
         this.marker.setMap(core.map);
     }
@@ -104,6 +112,12 @@ export class Marker implements IMarker {
     public isShown(): boolean {
         return !!this.marker.getMap();
     }
+    public setIcon(icon: string) {
+        if (!this.marker){
+            throw "Not implemented";
+        }
+        this.marker.setIcon(icon);
+    }
     public setColor(color) {
         if (!this.circle) {
             throw "Can chance color only of polygons";
@@ -111,6 +125,12 @@ export class Marker implements IMarker {
         this.circle.setOptions({
             fillColor: color,
         });
+    }
+    public setOpacity(opacity: number) {
+        if (!this.marker){
+            throw "Not implemented";
+        }
+        this.marker.setOpacity(opacity);
     }
     public getPosition(): LatLng {
         if (this.marker) {
@@ -207,6 +227,38 @@ export function updateAllLabelsDiffTime() {
 
 
 
+export var updatePokestopIcon = (pokestop) => {
+    pokestop.marker.setIcon(sprites.getPokestopIcon(pokestop));
+};
+
+export function updateSpawnIcon (spawn) {
+    fastForwardSpawnTimes(spawn);
+    if (new Date() >= spawn.appearsAt && new Date() <= spawn.disappearsAt) {
+        spawn.marker.setOpacity(1.0);
+    } else {
+        spawn.marker.setOpacity(0.3);
+    }
+};
+
+export function updateGymMarker(item, marker) {
+    marker.setIcon("static/forts/" + gymTypes[item["team_id"]] + ".png")
+    marker.infoWindow.setContent(labels.gymLabel(gymTypes[item["team_id"]], item["team_id"], item["gym_points"], item["latitude"], item["longitude"]))
+    return marker;
+}
+
+export function getColorByDate (value) {
+    // Changes the color from red to green over 15 mins
+    var diff = (Date.now() - value) / 1000 / 60 / 15
+
+    if (diff > 1) {
+        diff = 1
+    }
+
+    // value from 0 to 1 - Green to Red
+    var hue = ((1 - diff) * 120).toString(10)
+    return ['hsl(', hue, ',100%,50%)'].join('')
+}
+
 export function setupGymMarker(item): Marker {
     let mapObject = new core.google.maps.Marker({
         position: {
@@ -226,12 +278,6 @@ export function setupGymMarker(item): Marker {
     return marker;
 }
 
-function getPokestopIcon(item)  {
-    var isLured = item["lure_expiration"] && item["lure_expiration"] > new Date().getTime()
-    var imagename = isLured ? "PstopLured" : "Pstop"
-    return "static/forts/" + imagename + ".png"
-}
-
 export function setupPokestopMarker (item): Marker {
     var mapObject = new core.google.maps.Marker({
         position: {
@@ -241,38 +287,14 @@ export function setupPokestopMarker (item): Marker {
         map: core.map,
         zIndex: 2,
     })
-    mapObject.setIcon(getPokestopIcon(item))
+    mapObject.setIcon(sprites.getPokestopIcon(item))
     let infoWindow = new core.google.maps.InfoWindow({
         content: labels.pokestopLabel(item["lure_expiration"], item["latitude"], item["longitude"]),
-        disableAutoPan: true
+        disableAutoPan: true,
     })
     let marker = new Marker(mapObject, infoWindow);
     return marker;
 }
-
-export var updatePokestopIcon = function (pokestop) {
-    var currentIcon = pokestop.marker.getIcon()
-    var newIcon = getPokestopIcon(pokestop)
-    if (newIcon !== currentIcon) {
-        pokestop.marker.setIcon(newIcon);
-    }
-};
-
-export function updateSpawnIcon (spawn) {
-    fastForwardSpawnTimes(spawn);
-    if (new Date() >= spawn.appearsAt && new Date() <= spawn.disappearsAt) {
-        spawn.marker.setOpacity(1.0);
-    } else {
-        spawn.marker.setOpacity(0.3);
-    }
-};
-
-export function updateGymMarker(item, marker) {
-    marker.setIcon("static/forts/" + gymTypes[item["team_id"]] + ".png")
-    marker.infoWindow.setContent(labels.gymLabel(gymTypes[item["team_id"]], item["team_id"], item["gym_points"], item["latitude"], item["longitude"]))
-    return marker;
-}
-
 
 export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounceDisabled): Marker {
     let mapObject = new core.google.maps.Marker({
@@ -434,21 +456,6 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
     }
 
     return new Marker(marker, infoWindow);
-}
-
-
-
-export function getColorByDate (value) {
-    // Changes the color from red to green over 15 mins
-    var diff = (Date.now() - value) / 1000 / 60 / 15
-
-    if (diff > 1) {
-        diff = 1
-    }
-
-    // value from 0 to 1 - Green to Red
-    var hue = ((1 - diff) * 120).toString(10)
-    return ['hsl(', hue, ',100%,50%)'].join('')
 }
 
 export function setupScannedMarker (item): Marker {
