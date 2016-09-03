@@ -27,3 +27,9 @@ export const pokemonSprites = {
         name: "Shuffle",
     },
 };
+
+export function getPokestopIcon(item): string  {
+    const isLured = item["lure_expiration"] && item["lure_expiration"] > new Date().getTime()
+    const imagename = isLured ? "PstopLured" : "Pstop"
+    return "static/forts/" + imagename + ".png";
+}

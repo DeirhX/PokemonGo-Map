@@ -1,9 +1,13 @@
 /// <reference path="../../../typings/globals/jquery/index.d.ts" />
+/// <reference path="../../../typings/globals/select2/index.d.ts" />
+
 
 import {Store} from "../store";
 import core from "../map/core";
 import {pokemonSprites} from "../assets/sprites";
 import {centerMap} from "../map/core";
+import * as mapStyles from "../map/styles";
+import {i8ln} from "../assets/strings";
 
 export function initSidebar() {
     $("#gyms-switch").prop("checked", Store.get("showGyms"));
@@ -36,4 +40,43 @@ export function initSidebar() {
         icons.append($("<option></option>").attr("value", key).text(value.name)));
     icons.val((pokemonSprites[Store.get("pokemonIcons")]) ? Store.get("pokemonIcons") : "highres");
     $("#pokemon-icon-size").val(Store.get("iconSizeModifier"));
+
+    setupStylePicker();
 };
+
+function setupStylePicker () {
+    // populate Navbar Style menu
+    let $selectStyle = $("#map-style")
+    let selectedStyle = "light"
+
+    // Load Stylenames, translate entries, and populate lists
+    $.getJSON("static/dist/data/mapstyle.min.json").done((data) => {
+        let styleList = []
+
+        $.each(data, (key, value) => {
+            styleList.push({
+                id: key,
+                text: i8ln(value),
+            });
+        })
+
+        // setup the stylelist
+        $selectStyle.select2({
+            placeholder: "Select Style",
+            data: styleList,
+            minimumResultsForSearch: Infinity,
+        });
+
+        // setup the list change behavior
+        $selectStyle.on("change", (e) => {
+            selectedStyle = $selectStyle.val();
+            mapStyles.setStyle(selectedStyle);
+            Store.set("map_style", selectedStyle);
+        });
+
+        // recall saved mapstyle
+        $selectStyle.val(Store.get("map_style")).trigger("change");
+    });
+}
+
+

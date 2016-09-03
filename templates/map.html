@@ -200,7 +200,7 @@
             <center><h1 id="stats-pkmn-label">Loading...</h1></center>
           </div>
           <div id="pokemonList" style="color: black;"></div>
-          <div><a href="stats">Full Stats</a></div>
+          <!-- <div><a href="stats">Full Stats</a></div> -->
           <div class="switch-container">
             <center><h1 id="stats-gym-label"></h1></center>
           </div>
@@ -239,9 +239,6 @@
     <script src="{{ url_for('static', filename='js/vendor/classie.js').lstrip('/') }}"></script>
     <script src="{{ url_for('static', filename='js/vendor/require.js').lstrip('/') }}" data-main="{{ url_for('static', filename=script_url('main')).lstrip('/') }}"></script>
     <script src="{{ url_for('static', filename=script_url('app')).lstrip('/') }}"></script>
-
-    <!--<script src="{{ url_for('static', filename=script_url('map')).lstrip('/') }}"></script>-->
-    <script src="{{ url_for('static', filename=script_url('stats')).lstrip('/') }}"></script>
     <script src="https://apis.google.com/js/platform.js" async defer></script>
   </body>
 </html>

@@ -386,7 +386,7 @@ function processAppearance (i, item) {
     item['count'] = 1
     item['times'] = [saw]
     item['uuid'] = uuid
-    item['marker'] = setupPokemonMarker(item, true)
+    item['marker'] = createPokemonMarker(item, true)
 
     mapData.appearances[item['uuid']] = item
   } else {
@@ -402,7 +402,7 @@ function redrawAppearances (appearances) {
   $.each(appearances, function (key, value) {
     var item = appearances[key]
     if (!item['hidden']) {
-      var newMarker = setupPokemonMarker(item, true)
+      var newMarker = createPokemonMarker(item, true)
       item['marker'].setMap(null)
       appearances[key].marker = newMarker
     }
