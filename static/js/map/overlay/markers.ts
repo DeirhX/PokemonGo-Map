@@ -15,9 +15,9 @@ import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 
 let infoWindowsOpen = [];
-let highlightedMarker;
+let highlightedMarker; // Global focused marker
 
-interface IMarker {
+export interface IMarker {
     openWindow(overrideWindow?: google.maps.InfoWindow);
     closeWindow();
     toggleWindow(isOpen: boolean);
@@ -39,9 +39,10 @@ interface IMarker {
 
 interface IMapObject {
     setMap(map: google.maps.Map);
+    addListener(name: string, callback);
 }
 
-class Marker implements IMarker {
+export class Marker implements IMarker {
 
     private marker: google.maps.Marker;
     private circle: google.maps.Circle;
@@ -50,6 +51,8 @@ class Marker implements IMarker {
     private infoWindow: google.maps.InfoWindow;
 
     private oldAnimation: google.maps.Animation;
+
+    private persistWindow: boolean;
 
     constructor(marker: google.maps.Marker, infoWindow: google.maps.InfoWindow);
     constructor(circle: google.maps.Circle, infoWindow: google.maps.InfoWindow);
@@ -63,7 +66,10 @@ class Marker implements IMarker {
         }
         this.mapObject = mapObject;
         this.infoWindow = infoWindow;
+
+        this.registerMouseListeners();
     }
+
     public openWindow(overrideWindow?: google.maps.InfoWindow) {
         if (overrideWindow)
             this.infoWindow = overrideWindow;
@@ -159,7 +165,37 @@ class Marker implements IMarker {
         }
         this.marker.setAnimation(this.oldAnimation);
     }
-}
+
+    private registerMouseListeners() {
+        this.mapObject.addListener("click", () => {
+            if (!this.persistWindow) {
+                this.openWindow();
+                this.persistWindow = true;
+            } else {
+                this.closeWindow();
+                this.persistWindow = false;
+            }
+
+            utils.clearSelection();
+            updateAllLabelsDiffTime();
+        });
+
+        core.google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false)
+
+        this.mapObject.addListener("mouseover", () => {
+            this.openWindow();
+            utils.clearSelection();
+            updateAllLabelsDiffTime();
+            highlightedMarker = this;
+        });
+
+        this.mapObject.addListener("mouseout", () => {
+            if (!this.persistWindow) {
+                this.closeWindow();
+            }
+            highlightedMarker = null;
+        });
+    }}
 
 export function updateAllLabelsDiffTime() {
     $(".label-countdown").each((index, element) => {
@@ -169,38 +205,7 @@ export function updateAllLabelsDiffTime() {
     });
 };
 
-function addMarkerListeners(marker) {
-    marker.addListener("click", () => {
-        if (!marker.persist) {
-            openMarkerWindow(marker);
-            marker.persist = true;
-        } else {
-            closeMarkerWindow(marker);
-            marker.persist = false;
-        }
 
-        utils.clearSelection();
-        updateAllLabelsDiffTime();
-    });
-
-    core.google.maps.event.addListener(marker.infoWindow, "closeclick", () => marker.persist = null)
-
-    marker.addListener("mouseover", () => {
-        openMarkerWindow(marker);
-        utils.clearSelection()
-        updateAllLabelsDiffTime();
-        highlightedMarker = marker;
-    })
-
-    marker.addListener("mouseout", function () {
-        if (!marker.persist) {
-            closeMarkerWindow(marker.infoWindow);
-        }
-        highlightedMarker = null
-    })
-
-    return marker
-}
 
 export function setupGymMarker(item): Marker {
     let mapObject = new core.google.maps.Marker({
@@ -218,7 +223,6 @@ export function setupGymMarker(item): Marker {
         disableAutoPan: true,
     })
     let marker = new Marker(mapObject, infoWindow);
-    addMarkerListeners(mapObject)
     return marker;
 }
 
@@ -243,7 +247,6 @@ export function setupPokestopMarker (item): Marker {
         disableAutoPan: true
     })
     let marker = new Marker(mapObject, infoWindow);
-    addMarkerListeners(mapObject)
     return marker;
 }
 
@@ -387,7 +390,6 @@ export function setupSpawnMarker(item, pokemonSprites, skipNotification, isBounc
         });
     });
 
-    addMarkerListeners(mapObject);
     return marker;
 }
 
@@ -431,7 +433,6 @@ export function setupPokemonMarker(item, pokemonSprites, skipNotification, isBou
         }
     }
 
-    addMarkerListeners(marker)
     return new Marker(marker, infoWindow);
 }
 
