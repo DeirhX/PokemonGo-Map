@@ -19,6 +19,7 @@ let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
 
 export interface IMarker {
+    delete();
     openWindow(overrideWindow?: google.maps.InfoWindow);
     closeWindow();
     toggleWindow(isOpen: boolean);
@@ -42,12 +43,21 @@ export interface IMarker {
 }
 
 interface IMapObject {
-    setMap(map: google.maps.Map);
+    setMap(map: google.maps.Map|google.maps.StreetViewPanorama);
+    getMap(): google.maps.Map|google.maps.StreetViewPanorama;
     // setOpacity(opacity: number);
     addListener(name: string, callback);
 }
 
 export class Marker implements IMarker {
+
+    private static Listeners = class {
+        public click: google.maps.MapsEventListener;
+        public closeClick: google.maps.MapsEventListener;
+        public mouseOver: google.maps.MapsEventListener;
+        public mouseOut: google.maps.MapsEventListener;
+    };
+    private listeners = new Marker.Listeners();
 
     private marker: google.maps.Marker;
     private circle: google.maps.Circle;
@@ -62,17 +72,16 @@ export class Marker implements IMarker {
     constructor(marker: google.maps.Marker, infoWindow: google.maps.InfoWindow);
     constructor(circle: google.maps.Circle, infoWindow: google.maps.InfoWindow);
     constructor(mapObject: IMapObject, infoWindow: google.maps.InfoWindow) {
-        if (mapObject as google.maps.Marker) {
+        if (mapObject instanceof google.maps.Marker) {
             this.marker = <google.maps.Marker> mapObject;
-        } else if (mapObject as google.maps.Circle) {
+        } else if (mapObject instanceof google.maps.Circle) {
             this.circle = <google.maps.Circle> mapObject;
         } else {
             throw "Not supported";
         }
         this.mapObject = mapObject;
         this.infoWindow = infoWindow;
-
-        this.registerMouseListeners();
+        this.registerPopupWindowListeners();
     }
 
     public openWindow(overrideWindow?: google.maps.InfoWindow) {
@@ -104,30 +113,34 @@ export class Marker implements IMarker {
         this.infoWindow.setContent(htmlContent);
     }
     public show() {
-        this.marker.setMap(core.map);
+        this.mapObject.setMap(core.map);
     }
     public hide() {
-        this.marker.setMap(null);
+        this.mapObject.setMap(null);
+    }
+    public delete() {
+        this.unregisterPopupWindowListeners();
+        this.hide();
     }
     public isShown(): boolean {
-        return !!this.marker.getMap();
+        return this.mapObject.getMap() != null;
     }
     public setIcon(icon: string) {
-        if (!this.marker){
+        if (!this.marker) {
             throw "Not implemented";
         }
         this.marker.setIcon(icon);
     }
     public setColor(color) {
         if (!this.circle) {
-            throw "Can chance color only of polygons";
+            throw "Can change color only of polygons";
         }
         this.circle.setOptions({
             fillColor: color,
         });
     }
     public setOpacity(opacity: number) {
-        if (!this.marker){
+        if (!this.marker) {
             throw "Not implemented";
         }
         this.marker.setOpacity(opacity);
@@ -186,8 +199,11 @@ export class Marker implements IMarker {
         this.marker.setAnimation(this.oldAnimation);
     }
 
-    private registerMouseListeners() {
-        this.mapObject.addListener("click", () => {
+    private registerPopupWindowListeners() {
+        if (!this.infoWindow) {
+            return;
+        }
+        this.listeners.click = this.marker.addListener("click", () => {
             if (!this.persistWindow) {
                 this.openWindow();
                 this.persistWindow = true;
@@ -200,21 +216,28 @@ export class Marker implements IMarker {
             updateAllLabelsDiffTime();
         });
 
-        core.google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false)
+        this.listeners.closeClick = core.google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false)
 
-        this.mapObject.addListener("mouseover", () => {
+        this.listeners.mouseOver = this.marker.addListener("mouseover", () => {
             this.openWindow();
             utils.clearSelection();
             updateAllLabelsDiffTime();
             highlightedMarker = this;
         });
 
-        this.mapObject.addListener("mouseout", () => {
+        this.listeners.mouseOut = this.marker.addListener("mouseout", () => {
             if (!this.persistWindow) {
                 this.closeWindow();
             }
             highlightedMarker = null;
         });
+    }
+
+    private unregisterPopupWindowListeners() {
+        this.listeners.click.remove();
+        this.listeners.closeClick.remove();
+        this.listeners.mouseOver.remove();
+        this.listeners.mouseOut.remove();
     }
 }
 // -- UTILS

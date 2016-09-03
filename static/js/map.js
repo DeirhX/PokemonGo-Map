@@ -182,7 +182,7 @@ define(function (require) {
         $.each(mapData.pokemons, function (key, value) {
             if (mapData.pokemons[key]['disappear_time'] < new Date().getTime() ||
                 excludedPokemon.indexOf(mapData.pokemons[key]['pokemon_id']) >= 0) {
-                mapData.pokemons[key].marker.remove()
+                mapData.pokemons[key].marker.delete()
                 delete mapData.pokemons[key]
             }
         })
@@ -190,7 +190,7 @@ define(function (require) {
         $.each(mapData.lurePokemons, function (key, value) {
             if (mapData.lurePokemons[key]['lure_expiration'] < new Date().getTime() ||
                 excludedPokemon.indexOf(mapData.lurePokemons[key]['pokemon_id']) >= 0) {
-                mapData.lurePokemons[key].marker.remove()
+                mapData.lurePokemons[key].marker.delete()
                 delete mapData.lurePokemons[key]
             }
         })
@@ -198,7 +198,7 @@ define(function (require) {
         $.each(mapData.scanned, function (key, value) {
             // If older than 15mins remove
             if (mapData.scanned[key]['last_update'] < (new Date().getTime() - 15 * 60 * 1000)) {
-                mapData.scanned[key].marker.remove()
+                mapData.scanned[key].marker.delete()
                 delete mapData.scanned[key]
             } else {
                 // Update color
