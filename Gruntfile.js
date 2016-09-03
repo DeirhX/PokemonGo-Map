@@ -177,7 +177,7 @@ module.exports = function(grunt) {
   grunt.registerTask('ts-build', ['newer:typescript']);
   grunt.registerTask('rs-build', ['newer:requirejs']);
 
-  grunt.registerTask('build', ['clean', 'ts-build', 'js-build', 'rs-build', 'css-build', 'json']);
+  grunt.registerTask('build', ['clean', 'ts-build', 'js-uglybuild', 'rs-build', 'css-build', 'json']);
   grunt.registerTask('lint', ['ts-lint', 'js-lint']);
   grunt.registerTask('default', ['build', 'watch']);
 

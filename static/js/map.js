@@ -13,6 +13,7 @@ define(function (require) {
     var sidebar = require("interface/sidebar");
     var myLocation = require("map/overlay/mylocation");
     var strings = require("assets/strings");
+    var stats = require("stats");
 
     var $selectExclude
     var $selectPokemonNotify
@@ -420,7 +421,7 @@ define(function (require) {
                     showInBoundsMarkers(mapData.spawnpoints)
                     clearStaleMarkers()
                     if ($('#stats').hasClass('visible')) {
-                        countMarkers()
+                        stats.countMarkers(mapData);
                     }
                 })
                 .then(function () {
