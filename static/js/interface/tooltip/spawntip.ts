@@ -37,7 +37,7 @@ export function generateSpawnTooltip(spawnDetail: ISpawnDetail): string {
             </div>`;
 }
 
-function nextSpawnProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: number = 100): string {
+export function nextSpawnProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: number = 100): string {
     const rankChanceMod = 1 - (0.75 / spawnDetail.rank);
     let table = "";
     let chances = spawnDetail.chances.slice();

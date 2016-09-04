@@ -16,6 +16,7 @@ import spawnBar from "../../interface/bar/spawnbar";
 import {generateSpawnTooltip, updateSpawnTooltip, updateAllSpawnTooltips} from "../../interface/tooltip/spawntip";
 import {updateAllLabelsDisappearTime} from "./labels";
 import {SpawnState, ISpawn, ISpawnDetail, SpawnDetail} from "../../data/spawn";
+import spawnBar from "../../interface/bar/spawnbar";
 
 let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
@@ -355,8 +356,7 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
                 let spawnDetail = new SpawnDetail(item, data.responseJSON);
 
                 // Initialize sidebar
-                $(spawnBar.getRoot()).find(".spawn-detail").data("spawn", spawnDetail);
-                updateSpawnTooltip(spawnDetail, spawnBar.getRoot(), true);
+                spawnBar.displaySpawn(spawnDetail);
 
                 // Initialize tooltip
                 let str = generateSpawnTooltip(spawnDetail);
