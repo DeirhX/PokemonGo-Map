@@ -9,7 +9,8 @@ import * as mapStyles from "../map/styles";
 import {i8ln} from "../assets/strings";
 import {Bar} from "./bar";
 
-let navBar = new Bar("nav");
+let sideBar = new Bar("nav");
+export default sideBar;
 
 export function initSidebar() {
     $("#gyms-switch").prop("checked", Store.get("showGyms"));

@@ -40,7 +40,7 @@ export class Bar {
         // Event: Hide on ESC.
         window.addEventListener("keydown", event => {
             if (event.keyCode === 27) {
-                this.$nav.classList.remove("visible");
+                this.close();
             }
         });
 
@@ -49,7 +49,7 @@ export class Bar {
             this.$toggle.addEventListener("click", event => {
                 event.preventDefault();
                 event.stopPropagation();
-                this.$nav.classList.toggle("visible");
+                this.toggle();
             });
         }
 
@@ -57,7 +57,17 @@ export class Bar {
         this.$close.addEventListener("click", event => {
             event.preventDefault();
             event.stopPropagation();
-            this.$nav.classList.remove("visible");
+            this.close();
         });
+    }
+
+    public open() {
+        this.$nav.classList.add("visible");
+    }
+    public close() {
+        this.$nav.classList.remove("visible");
+    }
+    public toggle() {
+        this.$nav.classList.toggle("visible");
     }
 }
