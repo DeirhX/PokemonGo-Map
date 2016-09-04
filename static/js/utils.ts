@@ -42,3 +42,10 @@ export function getGoogleSprite (index, sprite, displayHeight) {
         anchor: scaledIconCenterOffset,
     };
 }
+
+export function addEventsListener(obj, events, callback) {
+    const names = events.split(" ");
+    for (let name of names) {
+        obj.addEventListener(name, callback);
+    }
+}

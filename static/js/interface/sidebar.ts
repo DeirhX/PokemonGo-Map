@@ -1,13 +1,15 @@
 /// <reference path="../../../typings/globals/jquery/index.d.ts" />
 /// <reference path="../../../typings/globals/select2/index.d.ts" />
 
-
 import {Store} from "../store";
 import core from "../map/core";
 import {pokemonSprites} from "../assets/sprites";
 import {centerMap} from "../map/core";
 import * as mapStyles from "../map/styles";
 import {i8ln} from "../assets/strings";
+import {Bar} from "./bar";
+
+let navBar = new Bar("nav");
 
 export function initSidebar() {
     $("#gyms-switch").prop("checked", Store.get("showGyms"));
@@ -42,23 +44,23 @@ export function initSidebar() {
     $("#pokemon-icon-size").val(Store.get("iconSizeModifier"));
 
     setupStylePicker();
-};
+}
 
 function setupStylePicker () {
     // populate Navbar Style menu
-    let $selectStyle = $("#map-style")
-    let selectedStyle = "light"
+    let $selectStyle = $("#map-style");
+    let selectedStyle = "light";
 
     // Load Stylenames, translate entries, and populate lists
     $.getJSON("static/dist/data/mapstyle.min.json").done((data) => {
-        let styleList = []
+        let styleList = [];
 
         $.each(data, (key, value) => {
             styleList.push({
                 id: key,
                 text: i8ln(value),
             });
-        })
+        });
 
         // setup the stylelist
         $selectStyle.select2({
