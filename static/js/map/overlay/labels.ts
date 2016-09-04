@@ -6,6 +6,19 @@ function getTypeSpan(type) {
     return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
 }
 
+export function getColorByDate (value) {
+    // Changes the color from red to green over 15 mins
+    let diff = (Date.now() - value) / 1000 / 60 / 15;
+
+    if (diff > 1) {
+        diff = 1;
+    }
+
+    // value from 0 to 1 - Green to Red
+    const hue = ((1 - diff) * 120).toString(10);
+    return ['hsl(', hue, ',100%,50%)'].join('');
+}
+
 export function updateDisappearTime(element) {
     const disappearsAt = new Date(parseInt(element.getAttribute("disappears-at"), 10));
     const now = new Date();
@@ -31,6 +44,14 @@ export function updateDisappearTime(element) {
 
     $(element).text(timestring);
 };
+
+export function updateAllLabelsDisappearTime() {
+    $(".label-countdown").each((index, element) => {
+        if (!$(element).hasClass("disabled")) {
+            updateDisappearTime(element);
+        }
+    });
+}
 
 export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId): string {
     const disappearDate = new Date(disappearTime);

@@ -10,8 +10,9 @@ define(function (require) {
     var core = require("map/core");
     var entities = require("data/entities");
     var sprites = require("assets/sprites");
-    var sidebar = require("interface/sidebar");
+    var sidebar = require("interface/bar/sidebar");
     var myLocation = require("map/overlay/mylocation");
+    var labels = require("map/overlay/labels");
     var strings = require("assets/strings");
     var stats = require("stats");
 
@@ -203,7 +204,7 @@ define(function (require) {
                 delete mapData.scanned[key]
             } else {
                 // Update color
-                mapData.scanned[key].marker.setColor(markers.getColorByDate(mapData.scanned[key]['last_update']));
+                mapData.scanned[key].marker.setColor(labels.getColorByDate(mapData.scanned[key]['last_update']));
             }
         })
     }
@@ -390,7 +391,7 @@ define(function (require) {
 
         if (scanId in mapData.scanned) {
             mapData.scanned[scanId].last_update = item['last_update']
-            mapData.scanned[scanId].marker.setColor(markers.getColorByDate(item['last_update']));
+            mapData.scanned[scanId].marker.setColor(labels.getColorByDate(item['last_update']));
         } else { // add marker to map and item to dict
             if (item.marker) {
                 item.marker.hide()

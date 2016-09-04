@@ -6,7 +6,7 @@
 		-webkit-overflow-scrolling: touch;
 		background: #F8F8F8;
 		box-shadow: none;
-		color: _palette(accent2, fg-bold);
+		color: darken(_palette(accent2, bg), 12);
 		height: 100%;
 		max-width: 80%;
 		overflow-y: auto;

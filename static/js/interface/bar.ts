@@ -2,6 +2,15 @@ import {addEventsListener} from "../utils";
 
 let $body = document.querySelector("body");
 
+export interface IBar {
+    open(): void;
+    close(): void;
+    toggle(): void;
+    stayOpenOnce(): void;
+
+    getRoot(): Element;
+}
+
 export class Bar {
     public $nav: Element;
     public $toggle: Element;
@@ -76,5 +85,8 @@ export class Bar {
     }
     public stayOpenOnce() {
         this.ignoreNextClick = true;
+    }
+    public getRoot(): Element {
+        return this.$nav;
     }
 }

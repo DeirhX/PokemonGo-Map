@@ -1,13 +1,13 @@
-/// <reference path="../../../typings/globals/jquery/index.d.ts" />
-/// <reference path="../../../typings/globals/select2/index.d.ts" />
+/// <reference path="../../../../typings/globals/jquery/index.d.ts" />
+/// <reference path="../../../../typings/globals/select2/index.d.ts" />
 
-import {Store} from "../store";
-import core from "../map/core";
-import {pokemonSprites} from "../assets/sprites";
-import {centerMap} from "../map/core";
-import * as mapStyles from "../map/styles";
-import {i8ln} from "../assets/strings";
-import {Bar} from "./bar";
+import {Store} from "../../store";
+import core from "../../map/core";
+import {pokemonSprites} from "../../assets/sprites";
+import {centerMap} from "../../map/core";
+import * as mapStyles from "../../map/styles";
+import {i8ln} from "../../assets/strings";
+import {Bar} from "../bar";
 
 let sideBar = new Bar("nav");
 export default sideBar;
