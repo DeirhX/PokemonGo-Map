@@ -228,20 +228,19 @@
   </nav>
   <nav id="spawn" class="sidebar">
     <div class="switch-container">
-      <h1 id="spawn-caption">This is the spawn</h1>
+      <h1 id="spawn-caption">Spawn Analysis</h1>
       <div>
-        <div class="spawn-window">
+        <div class="spawn-detail">
           <div>
             <div class="header">Most likely to appear:</div>
             <div class="spawn-table">
-              ${table}
+
             </div>
           </div>
-
           <div class="spawn-timing">
             <div class="spawn-inactive" spawns-at=''>
               Next spawn at:
-              <span class='label-nextspawn'>${pad(spawnTime.getHours(), 2)}:${pad(spawnTime.getMinutes(), 2)}:${pad(spawnTime.getSeconds(), 2)}</span>
+              <span class='label-nextspawn'></span>
               <span class='label-countdown appear-countdown' disappears-at=''>(00m00s)</span>
             </div>
             <div class="spawn-active" despawns-at=''>

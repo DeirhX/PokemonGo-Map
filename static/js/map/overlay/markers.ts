@@ -333,7 +333,6 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
     marker.onClick( () => {
         spawnBar.open();
         spawnBar.stayOpenOnce();
-        // updateSpawnTooltip(spawnBar.getRoot());
     } );
     marker.onOpen(updateAllLabelsDisappearTime);
 
@@ -353,10 +352,14 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
                 if (highlightedMarker !== marker) {
                     return;
                 }
-                let str = "";
-                let spawnDetail = new SpawnDetail(data.responseJSON);
-                str = generateSpawnTooltip(spawnDetail);
+                let spawnDetail = new SpawnDetail(item, data.responseJSON);
 
+                // Initialize sidebar
+                $(spawnBar.getRoot()).find(".spawn-detail").data("spawn", spawnDetail);
+                updateSpawnTooltip(spawnDetail, spawnBar.getRoot(), true);
+
+                // Initialize tooltip
+                let str = generateSpawnTooltip(spawnDetail);
                 let $dom = $(str);
                 let $root = $dom.find(".spawn-detail");
                 $root.data("spawn", spawnDetail);
@@ -364,6 +367,7 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
                 updateSpawnTooltip(spawnDetail, $root[0], true);
                 let html = $dom.html();
 
+                // Close 'loading' tooltip
                 marker.closeWindow();
                 let newInfoWindow = new core.google.maps.InfoWindow({
                     content: html,
@@ -373,7 +377,7 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
                     /* var iwOuter = */
                     // Again since data items have been lost by using .html()
                     $(".gm-style-iw").find(".spawn-detail").each((index, el) => {
-                        $(el).data("spawn", item);
+                        $(el).data("spawn", spawnDetail);
                         $(el).data("marker", mapObject);
                         // updateSpawnTooltip(spawnDetail, $(el), true);
                     });

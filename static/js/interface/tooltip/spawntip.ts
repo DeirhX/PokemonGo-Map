@@ -8,6 +8,7 @@ import {updateDisappearTime} from "../../map/overlay/labels";
 
 export function generateSpawnTooltip(spawnDetail: ISpawnDetail): string {
     let table = nextSpawnProbabilityTable(spawnDetail, 5);
+    let spawn = spawnDetail.spawn;
     return `
            <div>
              <div class="spawn-detail">
@@ -19,18 +20,18 @@ export function generateSpawnTooltip(spawnDetail: ISpawnDetail): string {
               </div>
               
               <div class="spawn-timing">
-                  <div class="spawn-inactive" spawns-at='${spawnDetail.nextSpawn.getTime()}'>
+                  <div class="spawn-inactive" spawns-at='${spawn.nextSpawn.getTime()}'>
                       Next spawn at: 
-                      <span class='label-nextspawn'>${pad(spawnDetail.nextSpawn.getHours(), 2)}:${pad(spawnDetail.nextSpawn.getMinutes(), 2)}:${pad(spawnDetail.nextSpawn.getSeconds(), 2)}</span> 
-                      <span class='label-countdown appear-countdown' disappears-at='${spawnDetail.nextSpawn.getTime()}'>(00m00s)</span>
+                      <span class='label-nextspawn'>${pad(spawn.nextSpawn.getHours(), 2)}:${pad(spawn.nextSpawn.getMinutes(), 2)}:${pad(spawn.nextSpawn.getSeconds(), 2)}</span> 
+                      <span class='label-countdown appear-countdown' disappears-at='${spawn.nextSpawn.getTime()}'>(00m00s)</span>
                   </div>
-                  <div class="spawn-active" despawns-at='${spawnDetail.nextDespawn.getTime()}'>
+                  <div class="spawn-active" despawns-at='${spawn.nextDespawn.getTime()}'>
                       Disappears in: 
-                      <span class='label-countdown disappear-countdown' disappears-at='${spawnDetail.nextDespawn.getTime()}'>(00m00s)</span>
+                      <span class='label-countdown disappear-countdown' disappears-at='${spawn.nextDespawn.getTime()}'>(00m00s)</span>
                   </div>
               </div>
               <div>
-                <a href='https://www.google.com/maps/dir/Current+Location/${spawnDetail.latitude},${spawnDetail.longitude}' target='_blank' title='View in Maps'>Get directions</a>
+                <a href='https://www.google.com/maps/dir/Current+Location/${spawn.latitude},${spawn.longitude}' target='_blank' title='View in Maps'>Get directions</a>
               </div>
              </div>
             </div>`;
@@ -57,17 +58,17 @@ function nextSpawnProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: number
     return table;
 }
 
-export function updateSpawnTooltip (spawn: ISpawnDetail, element: Element, forceUpdate: boolean = false) {
+export function updateSpawnTooltip (detail: ISpawnDetail, element: Element, forceUpdate: boolean = false) {
 
-    let justAppeared = spawn.state === SpawnState.Spawning && (spawn.state !== spawn.prevState || forceUpdate);
-    let justDisappeared = spawn.state === SpawnState.Waiting && (spawn.state !== spawn.prevState || forceUpdate);
+    let justAppeared = detail.spawn.state === SpawnState.Spawning && (detail.spawn.state !== detail.spawn.prevState || forceUpdate);
+    let justDisappeared = detail.spawn.state === SpawnState.Waiting && (detail.spawn.state !== detail.spawn.prevState || forceUpdate);
 
     let inactiveContent = $(element).find(".spawn-inactive");
     let activeContent = $(element).find(".spawn-active");
 
     if (justAppeared || justDisappeared) {
-        activeContent.attr("despawns-at", spawn.nextDespawn.getTime());
-        inactiveContent.attr("spawns-at", spawn.nextSpawn.getTime());
+        activeContent.attr("despawns-at", detail.spawn.nextDespawn.getTime());
+        inactiveContent.attr("spawns-at", detail.spawn.nextSpawn.getTime());
     }
 
     if (justAppeared) { // Switch to "active" state
@@ -81,13 +82,13 @@ export function updateSpawnTooltip (spawn: ISpawnDetail, element: Element, force
         inactiveContent.find(".appear-countdown").removeClass("disabled");
         activeContent.find(".disappear-countdown").addClass("disabled");
 
-        inactiveContent.find(".label-nextspawn")[0].innerHTML = pad(spawn.nextSpawn.getHours(), 2) +
-            ":" + pad(spawn.nextSpawn.getMinutes(), 2) + ":" + pad(spawn.nextSpawn.getSeconds(), 2);
+        inactiveContent.find(".label-nextspawn")[0].innerHTML = pad(detail.spawn.nextSpawn.getHours(), 2) +
+            ":" + pad(detail.spawn.nextSpawn.getMinutes(), 2) + ":" + pad(detail.spawn.nextSpawn.getSeconds(), 2);
     }
 
     if (justAppeared || justDisappeared) { // Immediately update countdowns if state has changed
-        activeContent.find(".disappear-countdown").attr("disappears-at", spawn.nextDespawn.getTime());
-        inactiveContent.find(".appear-countdown").attr("disappears-at", spawn.nextSpawn.getTime());
+        activeContent.find(".disappear-countdown").attr("disappears-at", detail.spawn.nextDespawn.getTime());
+        inactiveContent.find(".appear-countdown").attr("disappears-at", detail.spawn.nextSpawn.getTime());
         updateDisappearTime(activeContent.find(".disappear-countdown")[0]);
         updateDisappearTime(inactiveContent.find(".appear-countdown")[0]);
     }

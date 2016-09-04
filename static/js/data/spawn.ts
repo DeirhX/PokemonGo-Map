@@ -20,7 +20,8 @@ export interface ISpawnChance {
     pokemonId: number;
 }
 
-export interface ISpawnDetail extends ISpawn {
+export interface ISpawnDetail {
+    spawn: ISpawn;
     rank: number;
     chances: ISpawnChance[];
 }
@@ -73,12 +74,13 @@ export class Spawn implements ISpawn {
     }
 }
 
-export class SpawnDetail extends Spawn implements ISpawnDetail {
+export class SpawnDetail implements ISpawnDetail {
+    public spawn: ISpawn;
     public rank: number;
     public chances: ISpawnChance[];
 
-    constructor(json: any) {
-        super(json);
+    constructor(spawn: ISpawn, json: any) {
+        this.spawn = spawn;
         this.rank = json.rank;
         this.chances = json.chances;
     }
