@@ -14,24 +14,28 @@ import {updateDisappearTime} from "./labels";
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import * as sprites from "../../assets/sprites";
+import spawnBar from "../../interface/spawnbar";
 
 let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
 
 export interface IMarker {
+    isShown(): boolean;
+    show();
+    hide();
     delete();
+
     openWindow(overrideWindow?: google.maps.InfoWindow);
     closeWindow();
     toggleWindow(isOpen: boolean);
     setWindowContent(htmlContent: string);
-    isShown(): boolean;
-    show();
-    hide();
+
+    getBounds(): LatLngBounds;
+    getPosition(): LatLng;
     setIcon(icon: string);
     setColor(color);
     setOpacity(opacity: number);
-    getBounds(): LatLngBounds;
-    getPosition(): LatLng;
+    onClick(callback: () => void);
 
     canAnimate(): boolean;
     isAnimated(): boolean;
@@ -51,13 +55,7 @@ interface IMapObject {
 
 export class Marker implements IMarker {
 
-    private static Listeners = class {
-        public click: google.maps.MapsEventListener;
-        public closeClick: google.maps.MapsEventListener;
-        public mouseOver: google.maps.MapsEventListener;
-        public mouseOut: google.maps.MapsEventListener;
-    };
-    private listeners = new Marker.Listeners();
+    private listeners: google.maps.MapsEventListener[] = [];
 
     private marker: google.maps.Marker;
     private circle: google.maps.Circle;
@@ -124,6 +122,9 @@ export class Marker implements IMarker {
     }
     public isShown(): boolean {
         return this.mapObject.getMap() != null;
+    }
+    public onClick(callback: () => void) {
+        this.listeners.push(this.marker.addListener("click", callback));
     }
     public setIcon(icon: string) {
         if (!this.marker) {
@@ -203,7 +204,7 @@ export class Marker implements IMarker {
         if (!this.infoWindow) {
             return;
         }
-        this.listeners.click = this.marker.addListener("click", () => {
+        this.listeners.push(this.marker.addListener("click", () => {
             if (!this.persistWindow) {
                 this.openWindow();
                 this.persistWindow = true;
@@ -214,33 +215,29 @@ export class Marker implements IMarker {
 
             utils.clearSelection();
             updateAllLabelsDiffTime();
-        });
+        }));
 
-        this.listeners.closeClick = core.google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false)
+        this.listeners.push(core.google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false))
 
-        this.listeners.mouseOver = this.marker.addListener("mouseover", () => {
+        this.listeners.push(this.marker.addListener("mouseover", () => {
             this.openWindow();
             utils.clearSelection();
             updateAllLabelsDiffTime();
             highlightedMarker = this;
-        });
+        }));
 
-        this.listeners.mouseOut = this.marker.addListener("mouseout", () => {
+        this.listeners.push(this.marker.addListener("mouseout", () => {
             if (!this.persistWindow) {
                 this.closeWindow();
             }
             highlightedMarker = null;
-        });
+        }));
     }
 
     private unregisterPopupWindowListeners() {
-        if (!this.infoWindow) {
-            return;
+        for (let listener of this.listeners) {
+            listener.remove();
         }
-        this.listeners.click.remove();
-        this.listeners.closeClick.remove();
-        this.listeners.mouseOver.remove();
-        this.listeners.mouseOut.remove();
     }
 }
 // -- UTILS
@@ -344,6 +341,11 @@ export function createSpawnMarker(item, pokemonSprites, skipNotification, isBoun
     });
 
     let marker = new Marker(mapObject, infoWindow);
+    marker.onClick( () => {
+        spawnBar.open();
+        spawnBar.stayOpenOnce();
+    } );
+
     item.marker = marker;
     item.appearsAt = new Date(item.last_appear);
     item.disappearsAt = new Date(item.last_disappear);

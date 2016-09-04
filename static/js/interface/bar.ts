@@ -8,6 +8,7 @@ export class Bar {
     public $close: HTMLAnchorElement;
 
     private linkSelect: string;
+    private ignoreNextClick: boolean;
 
     constructor(id: string) {
         this.$nav = document.querySelector(`#${id}`);
@@ -34,7 +35,10 @@ export class Bar {
             if (event.target.matches(this.linkSelect)) {
                 return;
             }
-            this.$nav.classList.remove("visible");
+            if (!this.ignoreNextClick) {
+                this.close();
+            }
+            this.ignoreNextClick = false;
         });
 
         // Event: Hide on ESC.
@@ -69,5 +73,8 @@ export class Bar {
     }
     public toggle() {
         this.$nav.classList.toggle("visible");
+    }
+    public stayOpenOnce() {
+        this.ignoreNextClick = true;
     }
 }
