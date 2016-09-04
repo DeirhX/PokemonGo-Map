@@ -567,7 +567,7 @@ define(function (require) {
         updateMessageOfTheDay();
 
         // run interval timers to regularly update map and timediffs
-        setTimeout(window.setInterval(markers.updateAllLabelsDiffTime, 1000), 100)
+        setTimeout(window.setInterval(labels.updateAllLabelsDisappearTime, 1000), 100)
         setTimeout(window.setInterval(entities.updateAllSpawnCycles, 1000), 400)
         setTimeout(window.setInterval(updateAllSpawnIcons, 1000), 500)
         setTimeout(window.setInterval(updateAllPokestopIcons, 1000), 800)
