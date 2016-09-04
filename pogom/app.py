@@ -157,7 +157,9 @@ class Pogom(Flask):
         if request.args.get('spawnpoints', 'false') == 'true':
             d['spawns'] = Spawn.get_spawns(swLat, swLng, neLat, neLng, last_spawn)
             for spawn in d['spawns']:
-                spawn['last_appear'] = spawn['last_disappear'] - timedelta(minutes=15)
+                spawn['nextSpawn'] = spawn['last_disappear'] - timedelta(minutes=15)
+                spawn['nextDespawn'] = spawn['last_disappear']
+                del spawn['last_disappear']
 
         mark_refresh(request, user)
         return jsonify(d)
@@ -356,9 +358,9 @@ class Pogom(Flask):
                                     next_despawn.hour, last_despawn.minute, last_despawn.second)
             next_spawn = next_despawn - timedelta(minutes=15)
             chances = []
-            d = {'rank': total, 'spawn': next_spawn, 'despawn': next_despawn,'chances': chances}
+            d = {'rank': total, 'nextSpawn': next_spawn, 'nextDespawn': next_despawn,'chances': chances}
             for entry in details:
-                chances.append({'pokemon_id': entry.id.pokemon_id, 'chance': round(100 * entry.count / float(total)) })
+                chances.append({'pokemonId': entry.id.pokemon_id, 'chance': round(100 * entry.count / float(total)) })
         else: d = {}
         return jsonify(d)
 

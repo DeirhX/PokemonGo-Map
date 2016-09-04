@@ -15,6 +15,9 @@ define(function (require) {
     var labels = require("map/overlay/labels");
     var strings = require("assets/strings");
     var stats = require("stats");
+    var spawns = require("data/spawn");
+    var mapData = require("data/entities").mapData;
+    var spawntip = require("interface/tooltip/spawntip");
 
     var $selectExclude
     var $selectPokemonNotify
@@ -31,14 +34,7 @@ define(function (require) {
     var rawDataIsLoading = false
 
 
-    var mapData = {
-        pokemons: {},
-        gyms: {},
-        pokestops: {},
-        lurePokemons: {},
-        scanned: {},
-        spawnpoints: {}
-    }
+
 
 
     //
@@ -318,17 +314,17 @@ define(function (require) {
         }
     }
 
-    function processSpawns (i, item) {
+    function processSpawns (i, rawItem) {
         if (!store.Store.get('showSpawnpoints')) {
             return false; // in case the checkbox was unchecked in the meantime.
         }
+        let spawn = new spawns.Spawn(rawItem);
 
-        if (!(item.id in mapData.spawnpoints)) {
+        if (!(spawn.id in mapData.spawnpoints)) {
             // add marker to map and item to dict
-            if (item.marker) item.marker.hide();
-            if (!item.hidden) {
-                item.marker = markers.createSpawnMarker(item, sprites.pokemonSprites);
-                mapData.spawnpoints[item.id] = item;
+            if (!rawItem.hidden) {
+                markers.createSpawnMarker(spawn, sprites.pokemonSprites);
+                mapData.spawnpoints[rawItem.id] = spawn;
             }
         }
     }
@@ -453,9 +449,12 @@ define(function (require) {
         })
     }
 
-    var updateAllSpawnIcons = function () {
+    var updateAllSpawns = function () {
+        var now = new Date();
         for (var spawnId in mapData.spawnpoints) {
-            markers.updateSpawnIcon(mapData.spawnpoints[spawnId]);
+            var spawn = mapData.spawnpoints[spawnId]
+            spawn.update(now);
+            markers.updateSpawnIcon(spawn);
         }
     };
 
@@ -568,8 +567,8 @@ define(function (require) {
 
         // run interval timers to regularly update map and timediffs
         setTimeout(window.setInterval(labels.updateAllLabelsDisappearTime, 1000), 100)
-        setTimeout(window.setInterval(entities.updateAllSpawnCycles, 1000), 400)
-        setTimeout(window.setInterval(updateAllSpawnIcons, 1000), 500)
+        setTimeout(window.setInterval(spawntip.updateAllSpawnTooltips, 1000), 400)
+        setTimeout(window.setInterval(updateAllSpawns, 1000), 500)
         setTimeout(window.setInterval(updateAllPokestopIcons, 1000), 800)
 
         // Wipe off/restore map icons when switches are toggled

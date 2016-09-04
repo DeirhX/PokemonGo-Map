@@ -3,19 +3,19 @@
 
 
 import core from "../core";
-import {gymTypes, updateSpawnCycle, fastForwardSpawnTimes} from "../../data/entities";
+import {gymTypes} from "../../data/entities";
 import * as labels from "./labels";
 import * as utils from "../../utils";
 import {getGoogleSprite} from "../../utils";
 import {Store} from "../../store";
 import {sendNotification, playNotifySound, notifiedPokemon, notifiedRarity} from "../../notifications";
-import {updateDisappearTime} from "./labels";
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import * as sprites from "../../assets/sprites";
 import spawnBar from "../../interface/bar/spawnbar";
-import {generateSpawnTooltip, ISpawnDetail} from "../../interface/tooltip/spawntip";
+import {generateSpawnTooltip, updateSpawnTooltip, updateAllSpawnTooltips} from "../../interface/tooltip/spawntip";
 import {updateAllLabelsDisappearTime} from "./labels";
+import {SpawnState, ISpawn, ISpawnDetail, SpawnDetail} from "../../data/spawn";
 
 let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
@@ -225,7 +225,7 @@ export class Marker implements IMarker {
             }
         }));
 
-        this.listeners.push(core.google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false))
+        this.listeners.push(core.google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false));
 
         this.listeners.push(this.marker.addListener("mouseover", () => {
             this.openWindow();
@@ -256,9 +256,8 @@ export function updatePokestopIcon(pokestop) {
     pokestop.marker.setIcon(sprites.getPokestopIcon(pokestop));
 }
 
-export function updateSpawnIcon (spawn) {
-    fastForwardSpawnTimes(spawn);
-    if (new Date() >= spawn.appearsAt && new Date() <= spawn.disappearsAt) {
+export function updateSpawnIcon (spawn: ISpawn) {
+    if (spawn.state === SpawnState.Spawning) {
         spawn.marker.setOpacity(1.0);
     } else {
         spawn.marker.setOpacity(0.3);
@@ -266,8 +265,8 @@ export function updateSpawnIcon (spawn) {
 }
 
 export function updateGymMarker(item, marker) {
-    marker.setIcon("static/forts/" + gymTypes[item["team_id"]] + ".png")
-    marker.infoWindow.setContent(labels.gymLabel(gymTypes[item["team_id"]], item["team_id"], item["gym_points"], item["latitude"], item["longitude"]))
+    marker.setIcon("static/forts/" + gymTypes[item.team_id] + ".png");
+    marker.infoWindow.setContent(labels.gymLabel(gymTypes[item.team_id], item.team_id, item.gym_points, item.latitude, item.longitude));
     return marker;
 }
 
@@ -276,43 +275,43 @@ export function updateGymMarker(item, marker) {
 export function createGymMarker(item): Marker {
     let mapObject = new core.google.maps.Marker({
         position: {
-            lat: item["latitude"],
-            lng: item["longitude"],
+            lat: item.latitude,
+            lng: item.longitude,
         },
         zIndex: 5,
         map: core.map,
-        icon: "static/forts/" + gymTypes[item["team_id"]] + ".png"
-    })
+        icon: "static/forts/" + gymTypes[item.team_id] + ".png",
+    });
 
     let infoWindow = new core.google.maps.InfoWindow({
-        content: labels.gymLabel(gymTypes[item["team_id"]], item["team_id"], item["gym_points"], item["latitude"], item["longitude"]),
+        content: labels.gymLabel(gymTypes[item.team_id], item.team_id, item.gym_points, item.latitude, item.longitude),
         disableAutoPan: true,
-    })
+    });
     let marker = new Marker(mapObject, infoWindow);
     marker.onOpen(updateAllLabelsDisappearTime);
     return marker;
 }
 
 export function createPokestopMarker (item): Marker {
-    var mapObject = new core.google.maps.Marker({
+    let mapObject = new core.google.maps.Marker({
         position: {
-            lat: item["latitude"],
-            lng: item["longitude"]
+            lat: item.latitude,
+            lng: item.longitude,
         },
         map: core.map,
         zIndex: 2,
-    })
-    mapObject.setIcon(sprites.getPokestopIcon(item))
+    });
+    mapObject.setIcon(sprites.getPokestopIcon(item));
     let infoWindow = new core.google.maps.InfoWindow({
-        content: labels.pokestopLabel(item["lure_expiration"], item["latitude"], item["longitude"]),
+        content: labels.pokestopLabel(item.lure_expiration, item.latitude, item.longitude),
         disableAutoPan: true,
-    })
+    });
     let marker = new Marker(mapObject, infoWindow);
     marker.onClick(updateAllLabelsDisappearTime);
     return marker;
 }
 
-export function createSpawnMarker(item, pokemonSprites, skipNotification, isBounceDisabled): Marker {
+export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification, isBounceDisabled): Marker {
     let mapObject = new core.google.maps.Marker({
         position: {
             lat: item.latitude,
@@ -320,7 +319,7 @@ export function createSpawnMarker(item, pokemonSprites, skipNotification, isBoun
         },
         zIndex: 3,
         map: core.map,
-        icon: 'static/images/spawn-tall.png'
+        icon: "static/images/spawn-tall.png",
     });
 
     mapObject.spawnData = item;
@@ -334,21 +333,19 @@ export function createSpawnMarker(item, pokemonSprites, skipNotification, isBoun
     marker.onClick( () => {
         spawnBar.open();
         spawnBar.stayOpenOnce();
-        updateSpawnCycle(spawnBar.getRoot());
+        // updateSpawnTooltip(spawnBar.getRoot());
     } );
     marker.onOpen(updateAllLabelsDisappearTime);
 
     item.marker = marker;
-    item.appearsAt = new Date(item.last_appear);
-    item.disappearsAt = new Date(item.last_disappear);
     updateSpawnIcon(item);
 
-    infoWindow.addListener('domready', function () {
+    infoWindow.addListener("domready", () => {
         $.ajax({
             url: "spawn_detail",
-            type: 'GET',
+            type: "GET",
             data: {
-                'id': item.id
+                id: item.id,
             },
             dataType: "json",
             cache: false,
@@ -357,33 +354,33 @@ export function createSpawnMarker(item, pokemonSprites, skipNotification, isBoun
                     return;
                 }
                 let str = "";
-                if (data && data.responseJSON && data.responseJSON['rank'] && data.responseJSON['chances']) {
-                    str = generateSpawnTooltip(<ISpawnDetail> data.responseJSON);
-                } else {
-                    str = "Error retrieving data";
-                }
+                let spawnDetail = new SpawnDetail(data.responseJSON);
+                str = generateSpawnTooltip(spawnDetail);
 
-                var $dom = $(str);
-                $dom.data('spawn', item);
-                $dom.data('marker', mapObject);
-                updateSpawnCycle($dom, true);
-                var html = $dom.html();
+                let $dom = $(str);
+                let $root = $dom.find(".spawn-detail");
+                $root.data("spawn", spawnDetail);
+                $root.data("marker", mapObject);
+                updateSpawnTooltip(spawnDetail, $root[0], true);
+                let html = $dom.html();
 
                 marker.closeWindow();
                 let newInfoWindow = new core.google.maps.InfoWindow({
                     content: html,
                     disableAutoPan: true,
                 });
-                newInfoWindow.addListener('domready', function (element) {
+                newInfoWindow.addListener("domready", element => {
                     /* var iwOuter = */
-                    $('.gm-style-iw').find('.spawn-timing').each(function (index, element) {
-                        $(element).data('spawn', item);
-                        $(element).data('marker', mapObject);
-                        updateSpawnCycle(element);
+                    // Again since data items have been lost by using .html()
+                    $(".gm-style-iw").find(".spawn-detail").each((index, el) => {
+                        $(el).data("spawn", item);
+                        $(el).data("marker", mapObject);
+                        // updateSpawnTooltip(spawnDetail, $(el), true);
                     });
+
                 });
                 marker.openWindow(newInfoWindow);
-            }
+            },
         });
     });
 
@@ -392,15 +389,15 @@ export function createSpawnMarker(item, pokemonSprites, skipNotification, isBoun
 
 export function createPokemonMarker(item, pokemonSprites, skipNotification, isBounceDisabled): Marker {
     // Scale icon size up with the map exponentially
-    var iconSize = 2 + (core.map.getZoom() - 3) * (core.map.getZoom() - 3) * 0.2 + Store.get('iconSizeModifier');
-    var pokemonIndex = item['pokemon_id'] - 1;
-    var sprite = pokemonSprites[Store.get('pokemonIcons')] || pokemonSprites['highres'];
-    var icon = getGoogleSprite(pokemonIndex, sprite, iconSize);
+    const iconSize = 2 + (core.map.getZoom() - 3) * (core.map.getZoom() - 3) * 0.2 + Store.get("iconSizeModifier");
+    const pokemonIndex = item.pokemon_id - 1;
+    const sprite = pokemonSprites[Store.get("pokemonIcons")] || pokemonSprites.highres;
+    const icon = getGoogleSprite(pokemonIndex, sprite, iconSize);
 
-    var mapObject = new core.google.maps.Marker({
+    let mapObject = new core.google.maps.Marker({
         position: {
-            lat: item['latitude'],
-            lng: item['longitude']
+            lat: item.latitude,
+            lng: item.longitude,
         },
         map: core.map,
         icon: icon,
@@ -408,25 +405,25 @@ export function createPokemonMarker(item, pokemonSprites, skipNotification, isBo
         animationDisabled: isBounceDisabled === true,
     });
 
-    mapObject.addListener('click', function () {
+    mapObject.addListener("click", () => {
         this.setAnimation(null);
         this.animationDisabled = true;
     });
 
     let infoWindow = new core.google.maps.InfoWindow({
-        content: labels.pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id']),
-        disableAutoPan: true
+        content: labels.pokemonLabel(item.pokemon_name, item.pokemon_rarity, item.pokemon_types, item.disappear_time, item.pokemon_id, item.latitude, item.longitude, item.encounter_id),
+        disableAutoPan: true,
     });
 
-    if (notifiedPokemon.indexOf(item['pokemon_id']) > -1 || notifiedRarity.indexOf(item['pokemon_rarity']) > -1) {
+    if (notifiedPokemon.indexOf(item.pokemon_id) > -1 || notifiedRarity.indexOf(item.pokemon_rarity) > -1) {
         if (!skipNotification) {
-            if (Store.get('playSound')) {
+            if (Store.get("playSound")) {
                 playNotifySound();
             }
-            sendNotification('A wild ' + item['pokemon_name'] + ' appeared!', 'Click to load map', 'static/icons/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
+            sendNotification("A wild " + item.pokemon_name + " appeared!", "Click to load map", "static/icons/" + item.pokemon_id + ".png", item.latitude, item.longitude);
         }
         if (mapObject.animationDisabled !== true) {
-            mapObject.setAnimation(core.google.maps.Animation.BOUNCE)
+            mapObject.setAnimation(core.google.maps.Animation.BOUNCE);
         }
     }
 
@@ -436,17 +433,17 @@ export function createPokemonMarker(item, pokemonSprites, skipNotification, isBo
 }
 
 export function createScannedMarker (item): Marker {
-    const circleCenter = new core.google.maps.LatLng(item['latitude'], item['longitude'])
+    const circleCenter = new core.google.maps.LatLng(item.latitude, item.longitude);
 
     let marker = new core.google.maps.Circle({
         map: core.map,
         center: circleCenter,
         radius: 60, // metres
-        fillColor: labels.getColorByDate(item['last_update']),
+        fillColor: labels.getColorByDate(item.last_update),
         strokeWeight: 1,
         zIndex: 1,
         clickable: false,
-    })
+    });
 
     return new Marker(marker, null);
 }
