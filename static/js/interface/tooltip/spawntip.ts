@@ -38,9 +38,8 @@ export function generateSpawnTooltip(spawnDetail: ISpawnDetail): string {
 }
 
 export function nextSpawnProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: number = 100): string {
-    const rankChanceMod = 1 - (0.75 / spawnDetail.rank);
     let table = "";
-    let chances = spawnDetail.chances.slice();
+    let chances = spawnDetail.overall.slice();
     chances.sort((a, b) => ((a.chance < b.chance) ? +1 : ((a.chance > b.chance) ? -1 : 0)));
     for (let i = 0; i < Math.min(chances.length, maxEntries); ++i) {
         const entry = chances[i];
@@ -52,7 +51,7 @@ export function nextSpawnProbabilityTable(spawnDetail: ISpawnDetail, maxEntries:
           <span class="spawn-entry"><div><a href='http://www.pokemon.com/us/pokedex/${entry.pokemonId}' target='_blank' title='View in Pokedex'>
               <icon style='width: ${icon.size.width}px; height: ${icon.size.height}px; background-image: url("${icon.url}"); 
               background-size: ${icon.scaledSize.width}px ${icon.scaledSize.height}px; background-position: -${icon.origin.x}px -${icon.origin.y}px; background-repeat: no-repeat;'></icon></a>
-          </div><div class="chance">${Math.round(entry.chance * rankChanceMod)}%</div></span>`;
+          </div><div class="chance">${Math.round(100 * entry.chance)}%</div></span>`;
         // <span>${entry.chance}%</span>
     }
     return table;

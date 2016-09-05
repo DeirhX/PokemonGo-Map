@@ -404,7 +404,7 @@ class Pogom(Flask):
                     hour_stats.append({'pokemonId': pokemon_id, 'chance': round(percent_chance_incomplete_set(count, hourly_count), 2)})
                 hourly_stats.append({'hour': hour, 'stats': hour_stats})
             d = {'rank': len(details), 'nextSpawn': next_spawn, 'nextDespawn': next_despawn,
-                 'stats': overall_stats, 'hourly': hourly_stats}
+                 'overall': overall_stats, 'hourly': hourly_stats}
             return jsonify(d)
 
     def auth(self):

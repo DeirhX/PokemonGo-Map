@@ -20,10 +20,17 @@ export interface ISpawnChance {
     pokemonId: number;
 }
 
+export interface IHourlyChances {
+    hour: number;
+    chances: ISpawnChance[];
+}
+
+
 export interface ISpawnDetail {
     spawn: ISpawn;
     rank: number;
-    chances: ISpawnChance[];
+    overall: ISpawnChance[];
+    hourly: IHourlyChances[];
 }
 
 export class Spawn implements ISpawn {
@@ -77,11 +84,13 @@ export class Spawn implements ISpawn {
 export class SpawnDetail implements ISpawnDetail {
     public spawn: ISpawn;
     public rank: number;
-    public chances: ISpawnChance[];
+    public overall: ISpawnChance[];
+    public hourly: IHourlyChances[];
 
     constructor(spawn: ISpawn, json: any) {
         this.spawn = spawn;
         this.rank = json.rank;
-        this.chances = json.chances;
+        this.overall = json.overall;
+        this.hourly = json.hourly;
     }
 }
