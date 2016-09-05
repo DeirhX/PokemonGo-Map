@@ -19,7 +19,7 @@ from extend.member import member_scan_pool_max, member_scan_pool_remain_user, \
     member_scan_pool_remain_ip
 from extend.stats import get_guests_seen, get_members_seen, get_requests_made, get_scans_made, mark_refresh, mark_scan
 from extend.user import verify_token
-from pogom.utils import get_args
+from pogom.utils import get_args, percent_chance_incomplete_set
 from . import config
 from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn, dispatch_upsert
 from .search import scan_enqueue
@@ -370,9 +370,9 @@ class Pogom(Flask):
             return jsonify({'result' : 'failed'})
 
         id = request.args.get('id')
-        total = 0
         details = Spawn.get_spawn_raw(id)
-        if not len(details):
+        total = len(details)
+        if not total:
             return '{}'
         else:
             last_despawn = details[0].id.disappear_time.time()
@@ -386,19 +386,22 @@ class Pogom(Flask):
                 if entry.id.pokemon_id not in overall:
                     overall[entry.id.pokemon_id] = 0
                 overall[entry.id.pokemon_id] += 1
-                if entry.disappear_time.hour not in hourly:
-                    hourly[entry.disappear_time.hour] = {}
-                if entry.id.pokemon_id not in hourly[entry.disappear_time.hour]:
-                    hourly[entry.disappear_time.hour][entry.id.pokemon_id] = 0
-                hourly[entry.disappear_time.hour][entry.id.pokemon_id] += 1
+                if entry.id.disappear_time.hour not in hourly:
+                    hourly[entry.id.disappear_time.hour] = {}
+                if entry.id.pokemon_id not in hourly[entry.id.disappear_time.hour]:
+                    hourly[entry.id.disappear_time.hour][entry.id.pokemon_id] = 0
+                hourly[entry.id.disappear_time.hour][entry.id.pokemon_id] += 1
             overall_stats = []
             hourly_stats = []
-            for pokemon_id, count in overall:
-                overall_stats.append({'pokemonId': pokemon_id, 'chance': round(100 * count / float(total)) })
-            for hour, entry in hourly:
+            for pokemon_id, count in overall.iteritems():
+                overall_stats.append({'pokemonId': pokemon_id, 'chance': round(percent_chance_incomplete_set(count, total), 2)})
+            for hour, entry in hourly.iteritems():
                 hour_stats = []
-                for pokemon_id, count in entry:
-                    hour_stats.append({'pokemonId': pokemon_id, 'chance': round(100 * count / float(total))})
+                hourly_count = 0
+                for pokemon_id, count in entry.iteritems():
+                    hourly_count += count
+                for pokemon_id, count in entry.iteritems():
+                    hour_stats.append({'pokemonId': pokemon_id, 'chance': round(percent_chance_incomplete_set(count, hourly_count), 2)})
                 hourly_stats.append({'hour': hour, 'stats': hour_stats})
             d = {'rank': len(details), 'nextSpawn': next_spawn, 'nextDespawn': next_despawn,
                  'stats': overall_stats, 'hourly': hourly_stats}

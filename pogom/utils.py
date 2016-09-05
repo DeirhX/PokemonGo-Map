@@ -17,6 +17,9 @@ from . import config
 
 log = logging.getLogger(__name__)
 
+def percent_chance_incomplete_set(occur, count):
+    real = occur / float(count)
+    return real * (1 - 1.5 / (count + 1))
 
 def parse_unicode(bytestring):
     decoded_string = bytestring.decode(sys.getfilesystemencoding())
