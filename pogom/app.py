@@ -341,14 +341,14 @@ class Pogom(Flask):
             'memberScanPool': member_scan_pool_max(user),
         })
 
-    def spawn_detail(self):
+    def spawn_stats(self):
         user = session['email'] if 'email' in session else None
         if not request.args:
             return jsonify({'result' : 'failed'})
 
         id = request.args.get('id')
         total = 0
-        details = Spawn.get_detail(id)
+        details = Spawn.get_spawn_stats(id)
         if (len(details)):
             for entry in details:
                 total += entry.count
@@ -363,6 +363,40 @@ class Pogom(Flask):
                 chances.append({'pokemonId': entry.id.pokemon_id, 'chance': round(100 * entry.count / float(total)) })
         else: d = {}
         return jsonify(d)
+
+    def spawn_detail(self):
+        user = session['email'] if 'email' in session else None
+        if not request.args:
+            return jsonify({'result' : 'failed'})
+
+        id = request.args.get('id')
+        total = 0
+        details = Spawn.get_spawn_stats(id)
+        if not len(details):
+            return '{}'
+        else:
+            last_despawn = details[0].disappear_time.time()
+            next_despawn = datetime.utcnow()
+            next_despawn = datetime(next_despawn.year, next_despawn.month, next_despawn.day,
+                                    next_despawn.hour, last_despawn.minute, last_despawn.second)
+            next_spawn = next_despawn - timedelta(minutes=15)
+            overall = {}
+            hourly = {}
+            for entry in details:
+                overall[entry.id.pokemon_id] += 1
+                hourly[entry.disappear_time.hour][entry.id.pokemon_id] += 1
+            overall_stats = []
+            hourly_stats = []
+            for pokemon_id, count in overall:
+                overall.append({'pokemonId': pokemon_id, 'chance': round(100 * count / float(total)) })
+            for hour, entry in hourly:
+                hour_stats = []
+                for pokemon_id, count in entry:
+                    hour_stats.append({'pokemonId': pokemon_id, 'chance': round(100 * count / float(total))})
+                hourly_stats.append({'hour': hour, 'stats': hour_stats})
+            d = {'rank': len(details), 'nextSpawn': next_spawn, 'nextDespawn': next_despawn,
+                 'stats': overall_stats, 'hourly': hourly_stats}
+            return jsonify(d)
 
     def auth(self):
         try:

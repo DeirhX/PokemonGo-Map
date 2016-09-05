@@ -607,7 +607,7 @@ class Spawn(BaseModel):
         return spawns
 
     @classmethod
-    def get_detail(cls, id):
+    def get_spawn_stats(cls, id):
         query = (Spawn
                 .select(Spawn.id, Pokemon.pokemon_id, fn.Count(Pokemon.pokemon_id).alias('count'),
                         fn.MAX(Pokemon.disappear_time).alias('max_disappear'))
@@ -615,6 +615,20 @@ class Spawn(BaseModel):
                 .where(Spawn.id == id)
                 .group_by(Pokemon.pokemon_id))
 
+
+        pokestats = []
+        for s in query:
+            pokestats.append(s)
+
+        return pokestats
+
+
+    @classmethod
+    def get_spawn_raw(cls, id):
+        query = (Spawn
+                .select(Spawn.id, Pokemon.pokemon_id, Pokemon.disappear_time)
+                .join(Pokemon, on=(Spawn.id == Pokemon.spawnpoint_id)).alias('pokemon')
+                .where(Spawn.id == id))
 
         pokestats = []
         for s in query:
