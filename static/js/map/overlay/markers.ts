@@ -333,8 +333,13 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
     marker.onClick( () => {
         spawnBar.open();
         spawnBar.stayOpenOnce();
+        if (item.detail) {
+            spawnBar.displaySpawn(item.detail);
+        }
     } );
-    marker.onOpen(updateAllLabelsDisappearTime);
+    marker.onOpen( () => {
+        updateAllLabelsDisappearTime();
+    });
 
     item.marker = marker;
     updateSpawnIcon(item);

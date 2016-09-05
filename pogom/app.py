@@ -402,7 +402,7 @@ class Pogom(Flask):
                     hourly_count += count
                 for pokemon_id, count in entry.iteritems():
                     hour_stats.append({'pokemonId': pokemon_id, 'chance': round(percent_chance_incomplete_set(count, hourly_count), 2)})
-                hourly_stats.append({'hour': hour, 'stats': hour_stats})
+                hourly_stats.append({'hour': hour, 'chances': hour_stats})
             d = {'rank': len(details), 'nextSpawn': next_spawn, 'nextDespawn': next_despawn,
                  'overall': overall_stats, 'hourly': hourly_stats}
             return jsonify(d)

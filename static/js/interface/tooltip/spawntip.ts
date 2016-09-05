@@ -7,14 +7,14 @@ import {ISpawnDetail, SpawnState} from "../../data/spawn";
 import {updateDisappearTime} from "../../map/overlay/labels";
 
 export function generateSpawnTooltip(spawnDetail: ISpawnDetail): string {
-    let table = nextSpawnProbabilityTable(spawnDetail, 5);
+    let table = overallProbabilityTable(spawnDetail, 5);
     let spawn = spawnDetail.spawn;
     return `
            <div>
              <div class="spawn-detail">
               <div>
                 <div class="header">Most likely to appear:</div>
-                <div class="spawn-table">
+                <div class="overall spawn-table">
                   ${table}
                 </div>
               </div>
@@ -37,7 +37,7 @@ export function generateSpawnTooltip(spawnDetail: ISpawnDetail): string {
             </div>`;
 }
 
-export function nextSpawnProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: number = 100): string {
+export function overallProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: number = 100): string {
     let table = "";
     let chances = spawnDetail.overall.slice();
     chances.sort((a, b) => ((a.chance < b.chance) ? +1 : ((a.chance > b.chance) ? -1 : 0)));
@@ -55,6 +55,40 @@ export function nextSpawnProbabilityTable(spawnDetail: ISpawnDetail, maxEntries:
         // <span>${entry.chance}%</span>
     }
     return table;
+}
+
+export function hourlyProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: number = 100): string {
+    let table = "";
+    const thisHour = new Date().getUTCHours();
+    let hourlySpawns = spawnDetail.hourly.slice();
+    hourlySpawns.sort((a, b) => {     // Sort so this hour is on top
+        if (a.hour > b.hour) {
+            return (a.hour >= thisHour && b.hour < thisHour) ? -1 : +1;
+        } else if (a.hour < b.hour) {
+            return (a.hour < thisHour && b.hour >= thisHour) ? +1 : -1;
+        }
+        return 0;
+    });
+    for (let hourly of hourlySpawns) {
+        let row = "";
+        let chances = hourly.chances.slice();
+        chances.sort((a, b) => ((a.chance < b.chance) ? +1 : ((a.chance > b.chance) ? -1 : 0)));
+        for (let i = 0; i < Math.min(chances.length, maxEntries); ++i) {
+            const entry = chances[i];
+            const pokemonIndex = entry.pokemonId - 1;
+            const sprite = pokemonSprites[Store.get("pokemonIcons")] || pokemonSprites.highres;
+            const iconSize = 32;
+            const icon = getGoogleSprite(pokemonIndex, sprite, iconSize);
+            row += `
+          <span class="spawn-entry"><div><a href='http://www.pokemon.com/us/pokedex/${entry.pokemonId}' target='_blank' title='View in Pokedex'>
+              <icon style='width: ${icon.size.width}px; height: ${icon.size.height}px; background-image: url("${icon.url}"); 
+              background-size: ${icon.scaledSize.width}px ${icon.scaledSize.height}px; background-position: -${icon.origin.x}px -${icon.origin.y}px; background-repeat: no-repeat;'></icon></a>
+          </div><div class="chance">${Math.round(100 * entry.chance)}%</div></span>`;
+            // <span>${entry.chance}%</span>
+        }
+        table += `<tr><td>${hourly.hour}</td><td>${row}</td></tr>`;
+    }
+    return `<table>${table}</table>`;
 }
 
 export function updateSpawnTooltip (detail: ISpawnDetail, element: Element, forceUpdate: boolean = false) {

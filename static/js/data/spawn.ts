@@ -13,6 +13,7 @@ export interface ISpawn {
     state: SpawnState;
     prevState: SpawnState;
     marker: Marker;
+    detail: ISpawnDetail;
 }
 
 export interface ISpawnChance {
@@ -42,6 +43,7 @@ export class Spawn implements ISpawn {
     public state: SpawnState;
     public prevState: SpawnState;
     public marker: Marker;
+    public detail: ISpawnDetail;
 
     constructor(json: any) {
         this.id = json.id;
@@ -92,5 +94,6 @@ export class SpawnDetail implements ISpawnDetail {
         this.rank = json.rank;
         this.overall = json.overall;
         this.hourly = json.hourly;
+        spawn.detail = this;
     }
 }
