@@ -12,7 +12,6 @@ import {sendNotification, playNotifySound, notifiedPokemon, notifiedRarity} from
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import * as sprites from "../../assets/sprites";
-import spawnBar from "../../interface/bar/spawnbar";
 import {generateSpawnTooltip, updateSpawnTooltip, updateAllSpawnTooltips} from "../../interface/tooltip/spawntip";
 import {updateAllLabelsDisappearTime} from "./labels";
 import {SpawnState, ISpawn, ISpawnDetail, SpawnDetail} from "../../data/spawn";

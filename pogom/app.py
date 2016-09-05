@@ -371,11 +371,11 @@ class Pogom(Flask):
 
         id = request.args.get('id')
         total = 0
-        details = Spawn.get_spawn_stats(id)
+        details = Spawn.get_spawn_raw(id)
         if not len(details):
             return '{}'
         else:
-            last_despawn = details[0].disappear_time.time()
+            last_despawn = details[0].id.disappear_time.time()
             next_despawn = datetime.utcnow()
             next_despawn = datetime(next_despawn.year, next_despawn.month, next_despawn.day,
                                     next_despawn.hour, last_despawn.minute, last_despawn.second)
@@ -383,12 +383,18 @@ class Pogom(Flask):
             overall = {}
             hourly = {}
             for entry in details:
+                if entry.id.pokemon_id not in overall:
+                    overall[entry.id.pokemon_id] = 0
                 overall[entry.id.pokemon_id] += 1
+                if entry.disappear_time.hour not in hourly:
+                    hourly[entry.disappear_time.hour] = {}
+                if entry.id.pokemon_id not in hourly[entry.disappear_time.hour]:
+                    hourly[entry.disappear_time.hour][entry.id.pokemon_id] = 0
                 hourly[entry.disappear_time.hour][entry.id.pokemon_id] += 1
             overall_stats = []
             hourly_stats = []
             for pokemon_id, count in overall:
-                overall.append({'pokemonId': pokemon_id, 'chance': round(100 * count / float(total)) })
+                overall_stats.append({'pokemonId': pokemon_id, 'chance': round(100 * count / float(total)) })
             for hour, entry in hourly:
                 hour_stats = []
                 for pokemon_id, count in entry:
