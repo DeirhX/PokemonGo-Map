@@ -59,8 +59,12 @@ export function overallProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: n
 
 export function hourlyProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: number = 100): string {
     let table = "";
-    const thisHour = new Date().getUTCHours();
+    const hourOffset = Math.round(new Date().getTimezoneOffset() / 60);
     let hourlySpawns = spawnDetail.hourly.slice();
+    for (let hourlySpawn of hourlySpawns) {
+        hourlySpawn.hour = (hourlySpawn.hour + hourOffset) % 24; // Convert to local time
+    }
+    const thisHour = new Date().getHours();
     hourlySpawns.sort((a, b) => {     // Sort so this hour is on top
         if (a.hour > b.hour) {
             return (a.hour >= thisHour && b.hour < thisHour) ? -1 : +1;
