@@ -413,11 +413,6 @@ export function createPokemonMarker(item, pokemonSprites, skipNotification, isBo
         animationDisabled: isBounceDisabled === true,
     });
 
-    mapObject.addListener("click", () => {
-        this.setAnimation(null);
-        this.animationDisabled = true;
-    });
-
     let infoWindow = new core.google.maps.InfoWindow({
         content: labels.pokemonLabel(item.pokemon_name, item.pokemon_rarity, item.pokemon_types, item.disappear_time, item.pokemon_id, item.latitude, item.longitude, item.encounter_id),
         disableAutoPan: true,
@@ -437,6 +432,10 @@ export function createPokemonMarker(item, pokemonSprites, skipNotification, isBo
 
     let marker = new Marker(mapObject, infoWindow);
     marker.onOpen(updateAllLabelsDisappearTime);
+    marker.onClick(() => {
+        this.setAnimation(null);
+        this.animationDisabled = true;
+    })
     return marker;
 }
 
