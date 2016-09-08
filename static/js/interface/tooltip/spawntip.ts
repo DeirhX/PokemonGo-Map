@@ -59,13 +59,14 @@ export function overallProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: n
 
 export function hourlyProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: number = 100): string {
     let table = "";
-    const hourOffset = Math.round(new Date().getTimezoneOffset() / 60);
+    const now = new Date();
+    const hourOffset = Math.round(now.getTimezoneOffset() / 60);
     let hourlySpawns = spawnDetail.hourly.slice();
     for (let hourlySpawn of hourlySpawns) {
         hourlySpawn.hour = (hourlySpawn.hour - hourOffset) % 24; // Convert to local time
     }
     const thisHour = new Date().getHours();
-    const minute = new Date().getMinutes();
+    const spawnMinute = spawnDetail.spawn.nextSpawn.getMinutes();
     hourlySpawns.sort((a, b) => {     // Sort so this hour is on top
         if (a.hour > b.hour) {
             return (a.hour >= thisHour && b.hour < thisHour) ? -1 : +1;
@@ -91,7 +92,7 @@ export function hourlyProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: nu
           </div><div class="chance">${Math.round(100 * entry.chance)}%</div></span>`;
             // <span>${entry.chance}%</span>
         }
-        table += `<tr><td><span>${hourly.hour}</span><span>:${pad(minute, 2)}</span></td><td>${row}</td></tr>`;
+        table += `<tr><td><span>${hourly.hour}</span><span>:${pad(spawnMinute, 2)}</span></td><td>${row}</td></tr>`;
     }
     return `<table>${table}</table>`;
 }
