@@ -3,7 +3,7 @@
 import {pad, getGoogleSprite} from "../../utils";
 import {pokemonSprites} from "../../assets/sprites";
 import {Store} from "../../store";
-import {ISpawnDetail, SpawnState} from "../../data/spawn";
+import {ISpawnDetail, SpawnState, HourlyChance} from "../../data/spawn";
 import {updateDisappearTime} from "../../map/overlay/labels";
 
 export function generateSpawnTooltip(spawnDetail: ISpawnDetail): string {
@@ -61,9 +61,11 @@ export function hourlyProbabilityTable(spawnDetail: ISpawnDetail, maxEntries: nu
     let table = "";
     const now = new Date();
     const hourOffset = Math.round(now.getTimezoneOffset() / 60);
-    let hourlySpawns = spawnDetail.hourly.slice();
-    for (let hourlySpawn of hourlySpawns) {
-        hourlySpawn.hour = (hourlySpawn.hour - hourOffset) % 24; // Convert to local time
+    let hourlySpawns: HourlyChance[] = [];
+    for (let hourlySpawn of spawnDetail.hourly) {
+        let hourlyCopy = new HourlyChance(hourlySpawn);
+        hourlyCopy.hour = (hourlyCopy.hour - hourOffset) % 24; // Convert to local time
+        hourlySpawns.push(hourlyCopy);
     }
     const thisHour = new Date().getHours();
     const spawnMinute = spawnDetail.spawn.nextSpawn.getMinutes();
