@@ -16,6 +16,7 @@ import {generateSpawnTooltip, updateSpawnTooltip, updateAllSpawnTooltips} from "
 import {updateAllLabelsDisappearTime} from "./labels";
 import {SpawnState, ISpawn, ISpawnDetail, SpawnDetail} from "../../data/spawn";
 import spawnBar from "../../interface/bar/spawnbar";
+import {isTouchDevice} from "../../environment";
 
 let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
@@ -331,8 +332,10 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
 
     let marker = new Marker(mapObject, infoWindow);
     marker.onClick( () => {
-        spawnBar.open();
-        spawnBar.stayOpenOnce();
+        if (!isTouchDevice()) {
+            spawnBar.open();
+            spawnBar.stayOpenOnce();
+        }
         if (item.detail) {
             spawnBar.displaySpawn(item.detail);
         }
