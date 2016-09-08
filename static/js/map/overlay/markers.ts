@@ -433,8 +433,7 @@ export function createPokemonMarker(item, pokemonSprites, skipNotification, isBo
     let marker = new Marker(mapObject, infoWindow);
     marker.onOpen(updateAllLabelsDisappearTime);
     marker.onClick(() => {
-        this.setAnimation(null);
-        this.animationDisabled = true;
+        marker.stopAnimation();
     })
     return marker;
 }

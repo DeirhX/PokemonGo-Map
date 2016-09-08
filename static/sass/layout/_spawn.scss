@@ -17,6 +17,9 @@
 		visibility: hidden;
 		width: 25em;
 		z-index: 500;
+		td {
+			padding-right: 0;
+		}
 		h3 {
 			font-size: 18px;
 			font-family: 'Muli', sans-serif;

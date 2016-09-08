@@ -625,6 +625,7 @@ class Spawn(BaseModel):
 
     @classmethod
     def get_spawn_raw(cls, id):
+        # min_date =
         query = (Spawn
                 .select(Spawn.id, Pokemon.pokemon_id, Pokemon.disappear_time)
                 .join(Pokemon, on=(Spawn.id == Pokemon.spawnpoint_id)).alias('pokemon')
