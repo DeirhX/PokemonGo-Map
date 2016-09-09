@@ -16,7 +16,8 @@ from extend.scan import begin_consume_queue
 from extend.stats import begin_share_receive_stats
 from pogom import config
 from pogom.models import init_database, create_tables
-from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop, scan_overseer_thread
+from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop, scan_overseer_thread, \
+    scan_radius, limit_locations_to_spawns
 from pogom.utils import get_encryption_lib_path, insert_mock_data, get_args
 
 log = logging.getLogger()

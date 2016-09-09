@@ -227,27 +227,6 @@ class Pokemon(BaseModel):
         return appearances
 
     @classmethod
-    def get_spawnpoints(cls, swLat, swLng, neLat, neLng):
-        query = Pokemon.select(Pokemon.latitude, Pokemon.longitude, Pokemon.spawnpoint_id)
-
-        if None not in (swLat, swLng, neLat, neLng):
-            query = (query
-                     .where((Pokemon.latitude >= swLat) &
-                            (Pokemon.longitude >= swLng) &
-                            (Pokemon.latitude <= neLat) &
-                            (Pokemon.longitude <= neLng)
-                            )
-                     )
-
-        # Sqlite doesn't support distinct on columns
-        if args.db_type == 'mysql':
-            query = query.distinct(Pokemon.spawnpoint_id)
-        else:
-            query = query.group_by(Pokemon.spawnpoint_id)
-
-        return list(query.dicts())
-
-    @classmethod
     def get_spawnpoints_in_hex(cls, center, steps):
         log.info('got {}steps'.format(steps))
         # work out hex bounding box
@@ -567,6 +546,7 @@ class Spawn(BaseModel):
     longitude = DoubleField(index=True)
     last_update = DateTimeField(index=True)
     last_disappear = DateTimeField()
+    duration_min = SmallIntegerField()
 
     @classmethod
     def get_latest(cls):
@@ -593,7 +573,7 @@ class Spawn(BaseModel):
                  .dicts())
         else:
             query = (Spawn
-                 .select(Spawn.id, Spawn.latitude, Spawn.longitude, Spawn.last_disappear)
+                 .select(Spawn.id, Spawn.latitude, Spawn.longitude, Spawn.last_disappear, Spawn.duration_min)
                  .where((Spawn.latitude >= swLat) &
                         (Spawn.longitude >= swLng) &
                         (Spawn.latitude <= neLat) &

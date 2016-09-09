@@ -44,10 +44,10 @@ from pgoapi import utilities as util
 from pgoapi.exceptions import AuthException
 
 from . import config
-from .models import parse_map, Login, args, flaskDb, Pokemon
+from .models import parse_map, Login, args, flaskDb, Pokemon, Spawn
 
 log = logging.getLogger(__name__)
-
+scan_radius = 0.07
 TIMESTAMP = '\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000'
 global_search_queue = Queue(config['SEARCH_QUEUE_DEPTH'])
 scan_queue = Queue(config['SCAN_QUEUE_DEPTH'])
@@ -112,6 +112,39 @@ def generate_location_steps(initial_loc, step_count, step_distance):
                 yield (loc[0], loc[1], random.random())
         ring += 1
 
+def limit_locations_to_spawns(locations, scan_diameter):
+    # We need to get all spawnpoints in range. This is a square 70m * step_limit * 2
+    minlat = reduce(lambda x,y: x if x < y else y, map(lambda loc: loc[0], locations))
+    minlng = reduce(lambda x,y: x if x < y else y, map(lambda loc: loc[1], locations))
+    maxlat = reduce(lambda x,y: x if x > y else y, map(lambda loc: loc[0], locations))
+    maxlng = reduce(lambda x,y: x if x > y else y, map(lambda loc: loc[1], locations))
+    # Extend each edge by scan circle radius so we don't ignore those spawns
+    south, west = get_new_coords((minlat, minlng), scan_diameter, 180), get_new_coords((minlat, minlng), scan_diameter, 270)
+    north, east = get_new_coords((maxlat, maxlng), scan_diameter, 0), get_new_coords((maxlat, maxlng), scan_diameter, 90)
+    # Use the midpoints to arrive at the corners
+    log.debug('Searching for spawnpoints between %f, %f and %f, %f', south[0], west[1], north[0], east[1])
+    spawnpoints = Spawn.get_spawns(south[0], west[1], north[0], east[1])
+    if len(spawnpoints) == 0:
+        log.warning(
+            'No spawnpoints found in the specified area! (Did you forget to run a normal scan in this area first?)')
+
+    spawnpoint_locs = set((d['latitude'], d['longitude']) for d in spawnpoints)
+    def any_spawnpoints_in_range(coords):
+        return any(geopy_distance.distance(coords, x).meters <= 1000 * scan_diameter for x in spawnpoints)
+
+    def closest_location(locs, point): # return distance, location
+        return reduce(lambda x,y: x if x[0] < y[0] else y,
+                      map(lambda loc: (math.sqrt((point[0] - loc[0]) ** 2 + (point[1] - loc[1]) ** 2), loc), locs))
+
+    locations_with_spawns = []
+    for spawn in spawnpoints:
+        spawn_loc = (spawn['latitude'], spawn['longitude'])
+        closest_loc = closest_location(locations, spawn_loc)[1]
+        if geopy_distance.distance(spawn_loc, (closest_loc[0], closest_loc[1])).meters <= (1000 * scan_diameter):
+            locations_with_spawns.append((closest_loc, spawn))
+
+    return locations_with_spawns
+
 #
 # A fake search loop which does....nothing!
 #
@@ -169,39 +202,11 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
     for i, current_location in enumerate(location_list):
 
         # update our list of coords
-        locations = list(generate_location_steps(current_location, steps, 0.07))
+        locations = list(generate_location_steps(current_location, steps, scan_radius))
 
         # repopulate for our spawn points
         if args.spawnpoints_only:
-            # We need to get all spawnpoints in range. This is a square 70m * step_limit * 2
-            sp_dist = 0.07 * 2 * args.steps
-            log.debug('Spawnpoint search radius: %f', sp_dist)
-            # generate coords of the midpoints of each edge of the square
-            south, west = get_new_coords(current_location, sp_dist, 180), get_new_coords(current_location, sp_dist, 270)
-            north, east = get_new_coords(current_location, sp_dist, 0), get_new_coords(current_location, sp_dist, 90)
-            # Use the midpoints to arrive at the corners
-            log.debug('Searching for spawnpoints between %f, %f and %f, %f', south[0], west[1], north[0], east[1])
-            spawnpoints = set(
-                (d['latitude'], d['longitude']) for d in Pokemon.get_spawnpoints(south[0], west[1], north[0], east[1]))
-            if len(spawnpoints) == 0:
-                log.warning(
-                    'No spawnpoints found in the specified area! (Did you forget to run a normal scan in this area first?)')
-
-            def any_spawnpoints_in_range(coords):
-                return any(geopy_distance.distance(coords, x).meters <= 70 for x in spawnpoints)
-
-            # if we are only scanning for pokestops/gyms, then increase step radius to visibility range
-            if args.no_pokemon:
-                step_distance = 0.9
-            else:
-                step_distance = 0.07
-
-            log.info('Scan Distance is %.2f km', step_distance)
-
-            locations = [coords for coords in locations if any_spawnpoints_in_range(coords)]
-
-        if len(locations) == 0:
-            log.warning('Nothing to scan!')
+            locations = limit_locations_to_spawns(locations, scan_radius)
 
         log.debug('Starting search worker thread %d', i)
         t = Thread(target=search_worker_thread,
@@ -267,7 +272,7 @@ def search_overseer_thread_ss(args, new_location_queue, pause_bit, encryption_li
 
 def steps_from_location(location, steps):
     list = []
-    for step, step_location in enumerate(generate_location_steps(location, steps), 1):
+    for step, step_location in enumerate(generate_location_steps(location, steps, scan_radius), 1):
         log.debug('Queueing step %d @ %f/%f/%f', step, step_location[0], step_location[1], step_location[2])
         search_args = (step, step_location)
         list.append(search_args)
