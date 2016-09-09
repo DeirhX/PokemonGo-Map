@@ -109,7 +109,7 @@ def generate_location_steps(initial_loc, step_count, step_distance):
                 if direction == 5:  # UP + RIGHT
                     loc = get_new_coords(loc, ydist, NORTH)
                     loc = get_new_coords(loc, xdist / 2, EAST)
-                yield (loc[0], loc[1], 0)
+                yield (loc[0], loc[1], random.random())
         ring += 1
 
 #
