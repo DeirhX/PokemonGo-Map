@@ -547,6 +547,7 @@ class Spawn(BaseModel):
     last_update = DateTimeField(index=True)
     last_disappear = DateTimeField()
     duration_min = SmallIntegerField()
+    missed_count = SmallIntegerField()
 
     @classmethod
     def get_latest(cls):
@@ -617,7 +618,11 @@ class Spawn(BaseModel):
 
         return pokestats
 
-
+    @staticmethod
+    def add_missed(id):
+        spawn = (Spawn.select().where(Spawn.id == id)).get()
+        spawn.missed_count += 1
+        spawn.save()
 
 
 class Versions(flaskDb.Model):
