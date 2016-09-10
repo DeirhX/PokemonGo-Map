@@ -55,6 +55,7 @@ def configure(app):
 
     # Turn these back up if debugging
     if args.debug:
+        logging.getLogger("search").setLevel(logging.DEBUG)
         logging.getLogger("requests").setLevel(logging.DEBUG)
         logging.getLogger("pgoapi").setLevel(logging.DEBUG)
         logging.getLogger("rpc_api").setLevel(logging.DEBUG)

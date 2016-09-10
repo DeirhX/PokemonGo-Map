@@ -570,7 +570,8 @@ class Spawn(BaseModel):
                         (Spawn.latitude >= swLat) &
                         (Spawn.longitude >= swLng) &
                         (Spawn.latitude <= neLat) &
-                        (Spawn.longitude <= neLng))
+                        (Spawn.longitude <= neLng) &
+                        (Spawn.missed_count < 2))
                  .dicts())
         else:
             query = (Spawn
@@ -578,7 +579,8 @@ class Spawn(BaseModel):
                  .where((Spawn.latitude >= swLat) &
                         (Spawn.longitude >= swLng) &
                         (Spawn.latitude <= neLat) &
-                        (Spawn.longitude <= neLng))
+                        (Spawn.longitude <= neLng) &
+                        (Spawn.missed_count < 2))
                  .dicts())
 
         spawns = []
@@ -803,7 +805,7 @@ def parse_map(map_dict, step_location):
              pokestops_upserted,
              gyms_upserted)
 
-    return [pokemons_upserted, pokestops_upserted, gyms_upserted]
+    return [pokemons, pokestops, gyms]
 
 
 def clean_database():

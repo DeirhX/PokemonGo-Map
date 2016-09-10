@@ -447,7 +447,7 @@ export function createScannedMarker (item): Marker {
     let marker = new core.google.maps.Circle({
         map: core.map,
         center: circleCenter,
-        radius: 60, // metres
+        radius: 70, // metres
         fillColor: labels.getColorByDate(item.last_update),
         strokeWeight: 1,
         zIndex: 1,

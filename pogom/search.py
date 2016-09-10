@@ -114,15 +114,15 @@ def generate_location_steps(initial_loc, step_count, step_distance):
                 yield (loc[0], loc[1], random.random())
         ring += 1
 
-def limit_locations_to_spawns(locations, scan_diameter):
+def limit_locations_to_spawns(locations, scan_radius):
     # We need to get all spawnpoints in range. This is a square 70m * step_limit * 2
     minlat = reduce(lambda x,y: x if x < y else y, map(lambda loc: loc[0], locations))
     minlng = reduce(lambda x,y: x if x < y else y, map(lambda loc: loc[1], locations))
     maxlat = reduce(lambda x,y: x if x > y else y, map(lambda loc: loc[0], locations))
     maxlng = reduce(lambda x,y: x if x > y else y, map(lambda loc: loc[1], locations))
     # Extend each edge by scan circle radius so we don't ignore those spawns
-    south, west = get_new_coords((minlat, minlng), scan_diameter, 180), get_new_coords((minlat, minlng), scan_diameter, 270)
-    north, east = get_new_coords((maxlat, maxlng), scan_diameter, 0), get_new_coords((maxlat, maxlng), scan_diameter, 90)
+    south, west = get_new_coords((minlat, minlng), scan_radius, 180), get_new_coords((minlat, minlng), scan_radius, 270)
+    north, east = get_new_coords((maxlat, maxlng), scan_radius, 0), get_new_coords((maxlat, maxlng), scan_radius, 90)
     # Use the midpoints to arrive at the corners
     log.debug('Searching for spawnpoints between %f, %f and %f, %f', south[0], west[1], north[0], east[1])
     spawnpoints = Spawn.get_spawns(south[0], west[1], north[0], east[1])
@@ -134,7 +134,7 @@ def limit_locations_to_spawns(locations, scan_diameter):
 
     spawnpoint_locs = set((d['latitude'], d['longitude']) for d in spawnpoints)
     def any_spawnpoints_in_range(coords):
-        return any(geopy_distance.distance(coords, x).meters <= 1000 * scan_diameter for x in spawnpoints)
+        return any(geopy_distance.distance(coords, x).meters <= 1000 * scan_radius for x in spawnpoints)
 
     # CAUTION: O(n*n)!
     def closest_location(locs, point): # return distance, location
@@ -146,8 +146,14 @@ def limit_locations_to_spawns(locations, scan_diameter):
     for spawn in spawnpoints:
         spawn_loc = (spawn['latitude'], spawn['longitude'])
         closest_loc = closest_location(locations, spawn_loc)[1]
-        if geopy_distance.distance(spawn_loc, (closest_loc[0], closest_loc[1])).meters <= (1000 * scan_diameter):
+        geo_distance = geopy_distance.distance(spawn_loc, (closest_loc[0], closest_loc[1]))
+        if geo_distance.meters <= (1000 * scan_radius):
             locations_with_spawns.append((closest_loc, spawn))
+            log.debug('Spawn {2} at [{0},{1}] added to scan'.format(
+                spawn_loc[0], spawn_loc[1], spawn['id']))
+        else:
+            log.debug('Spawn {2} at [{0},{1}] is not inside of any scan circle, closest distance is {3}'.format(
+                spawn_loc[0], spawn_loc[1], spawn['id'], geo_distance.meters))
 
     # Sort by appear time
     locations_with_spawns.sort(key=lambda loc_spawn:
@@ -304,7 +310,8 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
     loops_done = -1
 
     # When true, steps will be delayed until expected spawn time
-    wait_for_spawn = args.spawnpoints_only and True
+    first_spawn_loop = True
+    wait_for_spawn = args.spawnpoints_only
     advance_spawns = True
     spawn_wait_offset_secs = 30  # Wait this number of secs after spawn in ready before querying it
     spawn_appear_time = None
@@ -319,6 +326,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
 
         # Get current time
         loop_start_time = int(round(time.time() * 1000))
+
 
         # Grab the next thing to search (when available)
         if iterate_locations:
@@ -343,23 +351,29 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             spawn_disappear_time = spawn_appear_time + timedelta(minutes=spawn['duration_min'])
             now = datetime.now()
 
-            # Skip spawns that have already passed for first iteration and find first that didn't
-            if advance_spawns and now > spawn_appear_time:
-                continue                # Advance until we find a spawn in the future
+            if first_spawn_loop:  # Don't wait on first spawn loop
+                if loops_done:
+                    first_spawn_loop = False
+                    loops_done = 0  # First loop was special and now it's over
+                pass
             else:
-                advance_spawns = False  # Stop advancing once there is a spawn in the future
+                # Skip spawns that have already passed for first iteration and find first that didn't
+                if advance_spawns and now > spawn_appear_time:
+                    continue                # Advance until we find a spawn in the future
+                else:
+                    advance_spawns = False  # Stop advancing once there is a spawn in the future
 
-            if now > spawn_disappear_time - timedelta(seconds=60):
-                log.warn("Skipping spawn {0} since it's already past its disappear time {1}".format(
-                    spawn['id'], spawn_disappear_time.time()))
-                continue
+                if now > spawn_disappear_time - timedelta(seconds=60):
+                    log.warn("Skipping spawn {0} since it's already past its disappear time {1}".format(
+                        spawn['id'], spawn_disappear_time.time()))
+                    continue
 
-            # Compute next spawn time, adding up iterations of this list as hours passed
-            wait_time = spawn_appear_time - now if spawn_appear_time >= now else timedelta()
+                # Compute next spawn time, adding up iterations of this list as hours passed
+                wait_time = spawn_appear_time - now if spawn_appear_time >= now else timedelta()
 
-            log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
-                wait_time.seconds, spawn['id'],str(spawn_appear_time.time())))
-            time.sleep(max(0, wait_time.seconds)) # Wait for appearance of spawn
+                log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
+                    wait_time.seconds, spawn['id'],str(spawn_appear_time.time())))
+                time.sleep(max(0, wait_time.seconds)) # Wait for appearance of spawn
 
         step_location = step_location_info[0]
 
@@ -423,13 +437,14 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     # Got the response, lock for parsing and do so (or fail, whatever)
                     # with parse_lock: # no need for lock
                     try:
-                        upserted = parse_map(response_dict, step_location)
+                        found_pokemons = parse_map(response_dict, step_location)[0]
                         log.debug('Search step %s completed', step)
-                        if wait_for_spawn and upserted[0] == 0 and \
-                                        last_scan_time > spawn_appear_time and datetime.now() < spawn_disappear_time:
-                            log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
-                                step_location_info[1]['id'], spawn_disappear_time))
-                            Spawn.add_missed(step_location_info[1]['id'])
+                        if wait_for_spawn and spawn_appear_time and spawn_disappear_time and \
+                            last_scan_time > spawn_appear_time and datetime.now() < spawn_disappear_time and \
+                            not any (pokemon['spawnpoint_id'] == step_location_info[1]['id'] for pokemon in found_pokemons.values()):
+                                log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
+                                    step_location_info[1]['id'], spawn_disappear_time))
+                                Spawn.add_missed(step_location_info[1]['id'])
                         success = True
                         break  # All done, get out of the request-retry loop
                     except EmptyResponseException:
