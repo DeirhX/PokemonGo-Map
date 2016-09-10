@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import urllib2
+
 import configargparse
 import uuid
 import os
@@ -405,3 +407,11 @@ def json_ts_datetime(ts):
     if not ts:
         return None
     return datetime(1970, 1, 1) + timedelta(seconds=long(ts))#(milliseconds=long(ts))
+
+ip = None
+def check_ip_still_same():
+    global ip
+    ip_now = urllib2.urlopen("http://ipecho.net/plain").read()
+    if not ip:
+        ip = ip_now
+    return ip == ip_now

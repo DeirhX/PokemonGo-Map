@@ -326,7 +326,10 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
 
         # Get current time
         loop_start_time = int(round(time.time() * 1000))
-
+        if not check_ip_still_same():
+            log.error('IP change detected! Sleeping.')
+            time.sleep(60)
+            continue
 
         # Grab the next thing to search (when available)
         if iterate_locations:
