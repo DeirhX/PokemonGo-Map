@@ -342,12 +342,13 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                 now_second = datetime.utcnow().minute * 60 + datetime.utcnow().second
                 wait_time = next_spawn_second + spawn_wait_offset_secs - now_second
 
-            log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(wait_time, spawn['id'],
-                     str(timedelta(minutes=spawn['last_disappear'].minute, seconds=spawn['last_disappear'].second) -
-                         timedelta(minutes=spawn['duration_min']))))
+            spawn_time = timedelta(minutes=spawn['last_disappear'].minute, seconds=spawn['last_disappear'].second) \
+                         - timedelta(minutes=spawn['duration_min'])
+            log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
+                wait_time, spawn['id'],str(spawn_time)))
             time.sleep(max(0, wait_time)) # Wait for appearance of spawn
 
-        if len(step_location_info) > 1:
+        if isinstance(step_location_info, tuple):
             step_location = step_location_info[0]
         else:
             step_location = step_location_info
