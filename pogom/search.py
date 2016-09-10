@@ -339,6 +339,8 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             if location_i == 0 and wait_time < 0:  # Started a new 'hour', wait for it
                 log.info('Waiting %d seconds to begin new hour of spawn scan', )
                 time.sleep(3600 - now_second) # Wait until end of hour
+                now_second = datetime.utcnow().minute * 60 + datetime.utcnow().second
+                wait_time = next_spawn_second + spawn_wait_offset_secs - now_second
 
             log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(wait_time, spawn['id'],
                      str(timedelta(minutes=spawn['last_disappear'].minute, seconds=spawn['last_disappear'].second) -
