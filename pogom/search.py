@@ -301,7 +301,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
 
     # If iterating over private locations endlessly
     location_i = 0
-    loops_done = 0
+    loops_done = -1
 
     # When true, steps will be delayed until expected spawn time
     wait_for_spawn = args.spawnpoints_only and True
@@ -320,10 +320,10 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
         # Grab the next thing to search (when available)
         if iterate_locations:
             step_location_info = iterate_locations[location_i]
-            location_i = (location_i + 1) % len(iterate_locations)
-            if location_i == 0:
-                loops_done += 1
             step = location_i
+            if step == 0:
+                loops_done += 1
+            location_i = (location_i + 1) % len(iterate_locations)
             type = 1
             log.info('Location obtained from local queue, loop: %d, step: %d of %d', loops_done, step, len(iterate_locations))
         else:
@@ -413,8 +413,11 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     # Got the response, lock for parsing and do so (or fail, whatever)
                     # with parse_lock: # no need for lock
                     try:
-                        parse_map(response_dict, step_location)
+                        upserted = parse_map(response_dict, step_location)
                         log.debug('Search step %s completed', step)
+                        if wait_for_spawn and upserted[0] == 0:  # pokemons found == 0
+                            log.warn('Spawn {0} did not spawn anything'.format(step_location_info[1]['id']))
+                            Spawn.add_missed(step_location_info[1]['id'])
                         success = True
                         break  # All done, get out of the request-retry loop
                     except EmptyResponseException:
