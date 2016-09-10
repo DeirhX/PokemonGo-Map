@@ -33,6 +33,8 @@ from operator import itemgetter
 
 from Queue import Queue, PriorityQueue
 
+from datetime import timedelta, datetime
+
 from pogom.exceptions import NoAuthTicketException, EmptyResponseException, NoAvailableLogins
 from pogom.utils import json_datetime_iso
 from queuing.scan_queue import ScanQueueProducer
@@ -132,10 +134,12 @@ def limit_locations_to_spawns(locations, scan_diameter):
     def any_spawnpoints_in_range(coords):
         return any(geopy_distance.distance(coords, x).meters <= 1000 * scan_diameter for x in spawnpoints)
 
+    # CAUTION: O(n*n)!
     def closest_location(locs, point): # return distance, location
         return reduce(lambda x,y: x if x[0] < y[0] else y,
                       map(lambda loc: (math.sqrt((point[0] - loc[0]) ** 2 + (point[1] - loc[1]) ** 2), loc), locs))
 
+    # Get locations with some spawns
     locations_with_spawns = []
     for spawn in spawnpoints:
         spawn_loc = (spawn['latitude'], spawn['longitude'])
@@ -143,6 +147,10 @@ def limit_locations_to_spawns(locations, scan_diameter):
         if geopy_distance.distance(spawn_loc, (closest_loc[0], closest_loc[1])).meters <= (1000 * scan_diameter):
             locations_with_spawns.append((closest_loc, spawn))
 
+    # Sort by appear time
+    locations_with_spawns.sort(key=lambda loc_spawn:
+        ((loc_spawn[1]['last_disappear'].minute - loc_spawn[1]['duration_min']) % 60) * 60
+         + loc_spawn[1]['last_disappear'].second)
     return locations_with_spawns
 
 #
@@ -287,6 +295,12 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
 
     # If iterating over private locations endlessly
     location_i = 0
+
+    # When true, steps will be delayed until expected spawn time
+    wait_for_spawn = args.spawnpoints_only and True
+    advance_spawns = True
+    spawn_wait_offset_secs = 30  # Wait this number of secs after spawn in ready before querying it
+
     # The forever loop for the thread
     while True:
 
@@ -295,14 +309,40 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
 
         # Grab the next thing to search (when available)
         if iterate_locations:
-            step_location = iterate_locations[location_i]
+            step_location_info = iterate_locations[location_i]
             location_i = (location_i + 1) % len(iterate_locations)
             step = location_i
             type = 1
             log.info('Location obtained from local queue, step: %d of %d', step, len(iterate_locations))
         else:
-            step, step_location, type = global_search_queue.get()
+            step, step_location_info, type = global_search_queue.get()
             log.info('Location obtained from global queue, remaining: %d', global_search_queue.qsize())
+
+        # Wait for spawn if we have spawns attached
+        if wait_for_spawn and len(step_location_info) == 2:
+            spawn = step_location_info[1]
+            next_spawn_second = ((spawn['last_disappear'].minute - spawn['duration_min']) % 60 * 60) \
+                                + spawn['last_disappear'].second
+            now_second = datetime.utcnow().minute * 60 + datetime.utcnow().second
+            if advance_spawns \
+                    and now_second > next_spawn_second + spawn_wait_offset_secs \
+                    and location_i < len(iterate_locations) - 1:
+                continue                   # Advance until we find a spawn in the future
+            else:
+                advance_spawns = False  # Stop advancing once there is a spawn in the future
+
+            wait_time = next_spawn_second + spawn_wait_offset_secs - now_second
+            if location_i == 0 and wait_time < 0:  # Started a new 'hour', wait for it
+                log.info('Waiting %d seconds to begin new hour of spawn scan', 3600 - now_second)
+                time.sleep(3600 - now_second) # Wait until end of hour
+            else:
+                time.sleep(max(0, wait_time)) # Wait for appearance of spawn
+
+        if len(step_location_info) > 1:
+            step_location = step_location_info[0]
+        else:
+            step_location = step_location_info
+
 
         # Was the scan successful at last?
         success = False
