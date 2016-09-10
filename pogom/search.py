@@ -351,7 +351,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             spawn_time += timedelta(seconds=next_spawn_second) \
                           - timedelta(minutes=spawn_time.minute, seconds=spawn_time.second) \
                           + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs)
-            wait_time = spawn_time - now
+            wait_time = spawn_time - now if spawn_time >= now else timedelta()
 
             log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
                 wait_time.seconds, spawn['id'],str(spawn_time.time())))
