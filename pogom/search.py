@@ -307,9 +307,12 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
     wait_for_spawn = args.spawnpoints_only and True
     advance_spawns = True
     spawn_wait_offset_secs = 30  # Wait this number of secs after spawn in ready before querying it
+    spawn_appear_time = None
+    spawn_disappear_time = None
 
     start_time = datetime.now()
     start_hour = start_time - timedelta(minutes=start_time.minute, seconds=start_time.second)
+    last_scan_time = None
 
     # The forever loop for the thread
     while True:
@@ -336,20 +339,26 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             spawn = step_location_info[1]
             next_spawn_second = ((spawn['last_disappear'].minute - spawn['duration_min']) % 60 * 60) \
                                 + spawn['last_disappear'].second
-            spawn_time = start_hour + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs + next_spawn_second)
+            spawn_appear_time = start_hour + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs + next_spawn_second)
+            spawn_disappear_time = spawn_appear_time + timedelta(minutes=spawn['duration_min'])
             now = datetime.now()
 
             # Skip spawns that have already passed for first iteration and find first that didn't
-            if advance_spawns and now > spawn_time:
+            if advance_spawns and now > spawn_appear_time:
                 continue                # Advance until we find a spawn in the future
             else:
                 advance_spawns = False  # Stop advancing once there is a spawn in the future
 
+            if now > spawn_disappear_time - timedelta(seconds=60):
+                log.warn("Skipping spawn {0} since it's already past its disappear time {1}".format(
+                    spawn['id'], spawn_disappear_time.time()))
+                continue
+
             # Compute next spawn time, adding up iterations of this list as hours passed
-            wait_time = spawn_time - now if spawn_time >= now else timedelta()
+            wait_time = spawn_appear_time - now if spawn_appear_time >= now else timedelta()
 
             log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
-                wait_time.seconds, spawn['id'],str(spawn_time.time())))
+                wait_time.seconds, spawn['id'],str(spawn_appear_time.time())))
             time.sleep(max(0, wait_time.seconds)) # Wait for appearance of spawn
 
         step_location = step_location_info[0]
@@ -401,6 +410,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     api.activate_signature(encryption_lib_path)
 
                     # Make the actual request (finally!)
+                    last_scan_time = datetime.now()
                     response_dict = map_request(api, step_location)
 
                     # G'damnit, nothing back. Mark it up, sleep, carry on
@@ -415,8 +425,10 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     try:
                         upserted = parse_map(response_dict, step_location)
                         log.debug('Search step %s completed', step)
-                        if wait_for_spawn and upserted[0] == 0:  # pokemons found == 0
-                            log.warn('Spawn {0} did not spawn anything'.format(step_location_info[1]['id']))
+                        if wait_for_spawn and upserted[0] == 0 and \
+                                        last_scan_time > spawn_appear_time and datetime.now() < spawn_disappear_time:
+                            log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
+                                step_location_info[1]['id'], spawn_disappear_time))
                             Spawn.add_missed(step_location_info[1]['id'])
                         success = True
                         break  # All done, get out of the request-retry loop
