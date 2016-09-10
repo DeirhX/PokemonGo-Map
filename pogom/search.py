@@ -219,6 +219,8 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
         # repopulate for our spawn points
         if args.spawnpoints_only:
             locations = limit_locations_to_spawns(locations, scan_radius)
+        else:
+            locations = map(lambda loc: (loc, ), locations)
 
         log.debug('Starting search worker thread %d', i)
         t = Thread(target=search_worker_thread,
@@ -320,6 +322,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             log.info('Location obtained from local queue, step: %d of %d', step, len(iterate_locations))
         else:
             step, step_location_info, type = global_search_queue.get()
+            step_location_info = (step_location_info,)
             log.info('Location obtained from global queue, remaining: %d', global_search_queue.qsize())
 
         # Wait for spawn if we have spawns attached
@@ -348,11 +351,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                 wait_time, spawn['id'],str(spawn_time)))
             time.sleep(max(0, wait_time)) # Wait for appearance of spawn
 
-        if isinstance(step_location_info, tuple):
-            step_location = step_location_info[0]
-        else:
-            step_location = step_location_info
-
+        step_location = step_location_info[0]
 
         # Was the scan successful at last?
         success = False
