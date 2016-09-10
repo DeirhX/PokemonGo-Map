@@ -322,7 +322,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                 loops_done += 1
             step = location_i
             type = 1
-            log.info('Location obtained from local queue, step: %d of %d', step, len(iterate_locations))
+            log.info('Location obtained from local queue, loop: %d, step: %d of %d', loops_done, step, len(iterate_locations))
         else:
             step, step_location_info, type = global_search_queue.get()
             step_location_info = (step_location_info,)
@@ -342,15 +342,11 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                 continue                   # Advance until we find a spawn in the future
             else:
                 advance_spawns = False  # Stop advancing once there is a spawn in the future
-                if location_i == len(iterate_locations) - 1:
-                    continue  # Nothing in the list is in the future, use first
 
             # Compute next spawn time, adding up iterations of this list as hours passed
             now = datetime.now()
-            spawn_time = now
-            spawn_time += timedelta(seconds=next_spawn_second) \
-                          - timedelta(minutes=spawn_time.minute, seconds=spawn_time.second) \
-                          + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs)
+            spawn_time = now - timedelta(minutes=now.minute, seconds=now.second) \
+                         + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs + next_spawn_second)
             wait_time = spawn_time - now if spawn_time >= now else timedelta()
 
             log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
