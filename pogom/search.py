@@ -308,6 +308,9 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
     advance_spawns = True
     spawn_wait_offset_secs = 30  # Wait this number of secs after spawn in ready before querying it
 
+    start_time = datetime.now()
+    start_hour = start_time - timedelta(minutes=start_time.minute, seconds=start_time.second)
+
     # The forever loop for the thread
     while True:
 
@@ -333,20 +336,16 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             spawn = step_location_info[1]
             next_spawn_second = ((spawn['last_disappear'].minute - spawn['duration_min']) % 60 * 60) \
                                 + spawn['last_disappear'].second
-            now_second = datetime.utcnow().minute * 60 + datetime.utcnow().second
+            spawn_time = start_hour + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs + next_spawn_second)
+            now = datetime.now()
 
             # Skip spawns that have already passed for first iteration and find first that didn't
-            if advance_spawns \
-                    and now_second > next_spawn_second + spawn_wait_offset_secs \
-                    and location_i < len(iterate_locations) - 1:
-                continue                   # Advance until we find a spawn in the future
+            if advance_spawns and now > spawn_time:
+                continue                # Advance until we find a spawn in the future
             else:
                 advance_spawns = False  # Stop advancing once there is a spawn in the future
 
             # Compute next spawn time, adding up iterations of this list as hours passed
-            now = datetime.now()
-            spawn_time = now - timedelta(minutes=now.minute, seconds=now.second) \
-                         + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs + next_spawn_second)
             wait_time = spawn_time - now if spawn_time >= now else timedelta()
 
             log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
