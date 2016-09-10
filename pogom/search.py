@@ -129,6 +129,8 @@ def limit_locations_to_spawns(locations, scan_diameter):
     if len(spawnpoints) == 0:
         log.warning(
             'No spawnpoints found in the specified area! (Did you forget to run a normal scan in this area first?)')
+    else:
+        log.info('{0} spawns found in area for this worker'.format(len(spawnpoints)))
 
     spawnpoint_locs = set((d['latitude'], d['longitude']) for d in spawnpoints)
     def any_spawnpoints_in_range(coords):
@@ -151,6 +153,8 @@ def limit_locations_to_spawns(locations, scan_diameter):
     locations_with_spawns.sort(key=lambda loc_spawn:
         ((loc_spawn[1]['last_disappear'].minute - loc_spawn[1]['duration_min']) % 60) * 60
          + loc_spawn[1]['last_disappear'].second)
+
+    log.info('{0} spawns are in range and are going to be scanned'.format(len(locations_with_spawns)))
     return locations_with_spawns
 
 #
