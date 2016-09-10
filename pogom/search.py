@@ -146,8 +146,7 @@ def limit_locations_to_spawns(locations, scan_radius):
     locations_with_spawns = []
     for spawn in spawnpoints:
         spawn_loc = (spawn['latitude'], spawn['longitude'])
-        closest_loc = closest_location(locations, spawn_loc)[1]
-        geo_distance = geopy_distance.distance(spawn_loc, (closest_loc[0], closest_loc[1]))
+        geo_distance, closest_loc = closest_location(locations, spawn_loc)
         if geo_distance.meters <= (1000 * scan_radius):
             locations_with_spawns.append((closest_loc, spawn))
             log.debug('Spawn {2} at [{0},{1}] added to scan'.format(
@@ -327,10 +326,6 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
 
         # Get current time
         loop_start_time = int(round(time.time() * 1000))
-        if not check_ip_still_same():
-            log.error('IP change detected! Sleeping.')
-            time.sleep(60)
-            continue
 
         # Grab the next thing to search (when available)
         if iterate_locations:
@@ -338,6 +333,11 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             step = location_i
             if step == 0:
                 loops_done += 1
+                # Check if we still got the same IP
+                while not check_ip_still_same():
+                    log.error('IP change detected! Sleeping.')
+                    time.sleep(60)
+
             location_i = (location_i + 1) % len(iterate_locations)
             type = 1
             log.info('Location obtained from local queue, loop: %d, step: %d of %d', loops_done, step, len(iterate_locations))

@@ -8,6 +8,7 @@ import configargparse
 import uuid
 import os
 import json
+import time
 from datetime import datetime, timedelta
 import logging
 import shutil
@@ -411,7 +412,21 @@ def json_ts_datetime(ts):
 ip = None
 def check_ip_still_same():
     global ip
-    ip_now = urllib2.urlopen("http://ipecho.net/plain").read()
+    ip_now = None
+    retries = 5
+    while retries:
+        try:
+            ip_now = urllib2.urlopen("http://ipecho.net/plain").read()
+            break
+        except Exception as e:
+            retries -= 1
+            time.sleep(5)
+            log.warning('Failed to verify IP, retrying')
+            continue
+
+    if not ip_now:
+        log.error('Multiple failures trying to get IP, aborting.')
+        return False
     if not ip:
         ip = ip_now
     return ip == ip_now
