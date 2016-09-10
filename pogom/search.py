@@ -301,6 +301,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
 
     # If iterating over private locations endlessly
     location_i = 0
+    loops_done = 0
 
     # When true, steps will be delayed until expected spawn time
     wait_for_spawn = args.spawnpoints_only and True
@@ -317,6 +318,8 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
         if iterate_locations:
             step_location_info = iterate_locations[location_i]
             location_i = (location_i + 1) % len(iterate_locations)
+            if location_i == 0:
+                loops_done += 1
             step = location_i
             type = 1
             log.info('Location obtained from local queue, step: %d of %d', step, len(iterate_locations))
@@ -326,30 +329,33 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             log.info('Location obtained from global queue, remaining: %d', global_search_queue.qsize())
 
         # Wait for spawn if we have spawns attached
-        if wait_for_spawn and len(step_location_info) == 2:
+        if wait_for_spawn and iterate_locations and len(step_location_info) == 2:
             spawn = step_location_info[1]
             next_spawn_second = ((spawn['last_disappear'].minute - spawn['duration_min']) % 60 * 60) \
                                 + spawn['last_disappear'].second
             now_second = datetime.utcnow().minute * 60 + datetime.utcnow().second
+
+            # Skip spawns that have already passed for first iteration and find first that didn't
             if advance_spawns \
                     and now_second > next_spawn_second + spawn_wait_offset_secs \
                     and location_i < len(iterate_locations) - 1:
                 continue                   # Advance until we find a spawn in the future
             else:
                 advance_spawns = False  # Stop advancing once there is a spawn in the future
+                if location_i == len(iterate_locations) - 1:
+                    continue  # Nothing in the list is in the future, use first
 
-            wait_time = next_spawn_second + spawn_wait_offset_secs - now_second
-            if location_i == 0 and wait_time < 0:  # Started a new 'hour', wait for it
-                log.info('Waiting %d seconds to begin new hour of spawn scan', )
-                time.sleep(3600 - now_second) # Wait until end of hour
-                now_second = datetime.utcnow().minute * 60 + datetime.utcnow().second
-                wait_time = next_spawn_second + spawn_wait_offset_secs - now_second
+            # Compute next spawn time, adding up iterations of this list as hours passed
+            now = datetime.now()
+            spawn_time = now
+            spawn_time += timedelta(seconds=next_spawn_second) \
+                          - timedelta(minutes=spawn_time.minute, seconds=spawn_time.second) \
+                          + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs)
+            wait_time = spawn_time - now
 
-            spawn_time = timedelta(minutes=spawn['last_disappear'].minute, seconds=spawn['last_disappear'].second) \
-                         - timedelta(minutes=spawn['duration_min'])
             log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
-                wait_time, spawn['id'],str(spawn_time)))
-            time.sleep(max(0, wait_time)) # Wait for appearance of spawn
+                wait_time.seconds, spawn['id'],str(spawn_time.time())))
+            time.sleep(max(0, wait_time.seconds)) # Wait for appearance of spawn
 
         step_location = step_location_info[0]
 
