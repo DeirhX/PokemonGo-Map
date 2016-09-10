@@ -36,7 +36,7 @@ from Queue import Queue, PriorityQueue
 from datetime import timedelta, datetime
 
 from pogom.exceptions import NoAuthTicketException, EmptyResponseException, NoAvailableLogins
-from pogom.utils import json_datetime_iso
+from pogom.utils import json_datetime_iso, check_ip_still_same
 from queuing.scan_queue import ScanQueueProducer
 from queue import Queue, Empty
 
@@ -124,7 +124,8 @@ def limit_locations_to_spawns(locations, scan_radius):
     south, west = get_new_coords((minlat, minlng), scan_radius, 180), get_new_coords((minlat, minlng), scan_radius, 270)
     north, east = get_new_coords((maxlat, maxlng), scan_radius, 0), get_new_coords((maxlat, maxlng), scan_radius, 90)
     # Use the midpoints to arrive at the corners
-    log.debug('Searching for spawnpoints between %f, %f and %f, %f', south[0], west[1], north[0], east[1])
+    log.debug('For center %f, %f searching for spawnpoints between %f, %f and %f, %f',
+              (north[0]+south[0])*0.5, (west[1]+east[1])*0.5, south[0], west[1], north[0], east[1])
     spawnpoints = Spawn.get_spawns(south[0], west[1], north[0], east[1])
     if len(spawnpoints) == 0:
         log.warning(
@@ -139,7 +140,7 @@ def limit_locations_to_spawns(locations, scan_radius):
     # CAUTION: O(n*n)!
     def closest_location(locs, point): # return distance, location
         return reduce(lambda x,y: x if x[0] < y[0] else y,
-                      map(lambda loc: (math.sqrt((point[0] - loc[0]) ** 2 + (point[1] - loc[1]) ** 2), loc), locs))
+                      map(lambda loc: (geopy_distance.distance(point, loc), loc), locs))
 
     # Get locations with some spawns
     locations_with_spawns = []
@@ -152,8 +153,8 @@ def limit_locations_to_spawns(locations, scan_radius):
             log.debug('Spawn {2} at [{0},{1}] added to scan'.format(
                 spawn_loc[0], spawn_loc[1], spawn['id']))
         else:
-            log.debug('Spawn {2} at [{0},{1}] is not inside of any scan circle, closest distance is {3}'.format(
-                spawn_loc[0], spawn_loc[1], spawn['id'], geo_distance.meters))
+            log.debug('Spawn {2} at [{0},{1}] is not inside of any scan circle, closest distance is {3} to [{4}, {5}]'.format(
+                spawn_loc[0], spawn_loc[1], spawn['id'], geo_distance.meters, closest_loc[0], closest_loc[1]))
 
     # Sort by appear time
     locations_with_spawns.sort(key=lambda loc_spawn:

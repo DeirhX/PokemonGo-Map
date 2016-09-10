@@ -647,6 +647,8 @@ define(function (require) {
     function deirhExtensions (map) {
         map.addListener('click', function (e) {
             search.searchMarker.setPosition(e.latLng);
+            var lat = e.latLng.lat();
+            var lng = e.latLng.lng();
             $('button.home-map-scan div.status small')[0].innerHTML = 'Click to scan [' +
                 Math.round(search.searchMarker.getPosition().lat() * 10000) / 10000 + ',' +
                 Math.round(search.searchMarker.getPosition().lng() * 10000) / 10000 + '] ';
