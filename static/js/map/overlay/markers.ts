@@ -320,7 +320,11 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
         },
         zIndex: 3,
         map: core.map,
-        icon: "static/images/spawn-tall.png",
+        icon: {
+            url: "static/images/spawn.png",
+            size: new core.google.maps.Size(16, 16),
+            anchor: new core.google.maps.Point(8, -8),
+        },
     });
 
     mapObject.spawnData = item;
