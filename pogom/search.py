@@ -565,7 +565,7 @@ def check_login(args, api, position, type):
             # If was already logged in, try to reuse this account first (but only once)
             if api and hasattr(api, 'login_info'):
                 login_info = api.login_info
-                api.login_info = None
+                del api.login_info
             else:
                 login_name = Login.get_least_used(1, 35, type)[0] # 30mins is the normal relogin timeout
                 if login_name:
