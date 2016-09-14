@@ -21,7 +21,7 @@ from extend.stats import get_guests_seen, get_members_seen, get_requests_made, g
 from extend.user import verify_token
 from pogom.utils import get_args, percent_chance_incomplete_set
 from . import config
-from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn, dispatch_upsert
+from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn, dispatch_upsert, Member
 from .search import scan_enqueue
 
 log = logging.getLogger(__name__)
@@ -412,9 +412,13 @@ class Pogom(Flask):
             id_token = request.args.get('idToken', type=str)
             user_info = verify_token(id_token)
             if user_info and user_info['email_verified']:
-                session['token'] = id_token
-                session['email'] = user_info['email']
-                session['sub'] = user_info['sub']
+                member = Member.get_by_provider(1, user_info['email'])
+                if not member:
+                    Member.create_new(1, user_info['email'], id_token, user_info['email'])
+                    member = Member.get_by_provider(1, user_info['email'])
+                session['accountid'] = member.id
+                session['token'] = member.token
+                # session['sub'] = user_info['sub']
                 return jsonify({'result': 'authenticated' })
             return jsonify({'result': 'denied'})
         except Exception as ex:

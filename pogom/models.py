@@ -492,6 +492,34 @@ class Login(BaseModel):
         login.success_count += 1
         login.save()
 
+
+class Member(BaseModel):
+    id = SmallIntegerField(primary_key=True)
+    username = CharField(max_length=45)
+    provider = SmallIntegerField()
+    email = CharField(max_length=255)
+    token = CharField(max_length=4095)
+
+    @classmethod
+    def create_new(cls, provider, email, token, username):
+        member = Member()
+        member.email = email
+        member.provider = provider
+        member.username = username
+        member.token = token
+        member.save(force_insert=True)
+        return member
+
+    @classmethod
+    def get_by_provider(cls, provider, email):
+        query = Member.select().where((Member.email == email) &
+                                     (Member.provider == provider))
+        if len(query):
+            return query.get()
+        return None
+
+
+
 class Scan(BaseModel):
     id = IntegerField(primary_key=True)
     latitude = DoubleField()
