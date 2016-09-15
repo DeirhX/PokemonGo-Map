@@ -435,6 +435,7 @@ class Pogom(Flask):
                     return self.get_auth()
             return jsonify({'error': 'denied'})
         except Exception as ex:
+            log.error('Error at set_auth: ' + str(ex))
             return jsonify({'error': 'failed'})
 
     def message(self):
