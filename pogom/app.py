@@ -418,9 +418,9 @@ class Pogom(Flask):
     def set_auth(self):
         try:
             id_token = request.args.get('idToken', type=str)
-            del session['accountid']
-            del session['token']
-            del session['username']
+            if 'accountid' in session: del session['accountid']
+            if 'token' in session: del session['token']
+            if 'username' in session: del session['username']
             if id_token:
                 user_info = verify_token(id_token)
                 if user_info and user_info['email_verified']:

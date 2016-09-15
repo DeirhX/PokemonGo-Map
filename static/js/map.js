@@ -812,7 +812,7 @@ function applyLoginState (userInfo) {
         $('#logged-in').hide();
         $('#logged-out').show();
         $('#username').html();
-        SignOut();
+        signOut();
     }
 }
 
