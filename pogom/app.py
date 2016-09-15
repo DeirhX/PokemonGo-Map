@@ -45,7 +45,8 @@ class Pogom(Flask):
         self.route("/scan", methods=['GET'])(self.scan)
         self.route("/stats", methods=['GET'])(self.stats)
         self.route("/message", methods=['GET'])(self.message)
-        self.route("/auth", methods=['GET'])(self.auth)
+        self.route("/set_auth", methods=['GET'])(self.set_auth)
+        self.route("/get_auth", methods=['GET'])(self.get_auth)
         self.route("/spawn_detail", methods=['GET'])(self.spawn_detail)
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
@@ -407,22 +408,34 @@ class Pogom(Flask):
                  'overall': overall_stats, 'hourly': hourly_stats}
             return jsonify(d)
 
-    def auth(self):
+    def get_auth(self):
+        d = {}
+        if 'token' in session: d['token'] = session['token']
+        if 'accountid' in session: d['id'] = session['accountid']
+        if 'username' in session: d['username'] = session['username']
+        return jsonify(d)
+
+    def set_auth(self):
         try:
             id_token = request.args.get('idToken', type=str)
-            user_info = verify_token(id_token)
-            if user_info and user_info['email_verified']:
-                member = Member.get_by_provider(1, user_info['email'])
-                if not member:
-                    Member.create_new(1, user_info['email'], id_token, user_info['email'])
+            del session['accountid']
+            del session['token']
+            del session['username']
+            if id_token:
+                user_info = verify_token(id_token)
+                if user_info and user_info['email_verified']:
                     member = Member.get_by_provider(1, user_info['email'])
-                session['accountid'] = member.id
-                session['token'] = member.token
-                # session['sub'] = user_info['sub']
-                return jsonify({'result': 'authenticated' })
-            return jsonify({'result': 'denied'})
+                    if not member:
+                        Member.create_new(1, user_info['email'], id_token, user_info['email'])
+                        member = Member.get_by_provider(1, user_info['email'])
+                    session['accountid'] = member.id
+                    session['token'] = member.token
+                    session['username'] = member.username
+                    # session['sub'] = user_info['sub']
+                    return self.get_auth()
+            return jsonify({'error': 'denied'})
         except Exception as ex:
-            return jsonify({'result': 'failed'})
+            return jsonify({'error': 'failed'})
 
     def message(self):
         return jsonify({'message' : 'New crypto is defeated. Scans will be coming back slowly.'})

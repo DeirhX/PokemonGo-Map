@@ -17,3 +17,12 @@ def verify_token(token):
         # Invalid token
         return None
     return idinfo
+
+def get_credentials_from_session(session):
+    if 'credentials' not in session:
+        return None
+    credentials = client.OAuth2Credentials.from_json(session['credentials'])
+    if credentials.access_token_expired:
+        return None
+    else:
+        return credentials
