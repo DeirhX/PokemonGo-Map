@@ -102,7 +102,7 @@ class Pogom(Flask):
                                )
 
     def raw_data(self):
-        user = session['email'] if 'email' in session else None
+        member = self.get_member()
         d = {}
         swLat = request.args.get('swLat')
         swLng = request.args.get('swLng')
@@ -152,8 +152,7 @@ class Pogom(Flask):
             d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, last_pokestop)
 
         if request.args.get('scanned', 'true') == 'true':
-            d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat,
-                                                      neLng, last_scannedloc)
+            d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat, neLng, last_scannedloc, member.id)
 
         if request.args.get('spawnpoints', 'false') == 'true':
             d['spawns'] = Spawn.get_spawns(swLat, swLng, neLat, neLng, last_spawn)
@@ -162,7 +161,7 @@ class Pogom(Flask):
                 spawn['nextDespawn'] = spawn['last_disappear']
                 del spawn['last_disappear']
 
-        mark_refresh(request, user)
+        mark_refresh(request, member.username)
         return jsonify(d)
 
 
@@ -282,7 +281,7 @@ class Pogom(Flask):
 
     def scan(self):
         try:
-            user = session['email'] if 'email' in session else None
+            member = self.get_member()
             key = request.args.get('key')
             if (key != u'dontspam'):
                 return ""
@@ -294,8 +293,8 @@ class Pogom(Flask):
             position = (lat, lon, 0)
 
             # Check remaining pool
-            if (user):
-                remain = member_scan_pool_remain_user(user)
+            if (member.username):
+                remain = member_scan_pool_remain_user(member.username)
             else:
                 remain = member_scan_pool_remain_ip(request.remote_addr)
             if (remain <= 0):
@@ -315,12 +314,12 @@ class Pogom(Flask):
                 'latitude': lat,
                 'longitude': lon,
                 'ip': request.remote_addr,
-                'account': user
+                'account': member.username
             }
             dispatch_upsert(Scan, scan)
 
             scan_enqueue(datetime.utcnow(), datetime.utcnow() + timedelta(minutes=5), position, 3)
-            mark_scan(request, user)
+            mark_scan(request, member.username)
             d = {'result': 'received'}
         except Full:
             d = {'result': 'full'}
@@ -441,6 +440,12 @@ class Pogom(Flask):
     def message(self):
         return jsonify({'message' : 'New crypto is defeated. Scans will be coming back slowly.'})
 
+    def get_member(self):
+        member = Member()
+        if 'accountid' in session: member.id = session['accountid']
+        if 'token' in session: member.token = session['token']
+        if 'username' in session: member.username = session['username']
+        return member
 
 class CustomJSONEncoder(JSONEncoder):
 
