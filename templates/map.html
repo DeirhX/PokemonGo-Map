@@ -317,6 +317,6 @@
 <script src="{{ url_for('static', filename='js/vendor/require.js').lstrip('/') }}"
         data-main="{{ url_for('static', filename=script_url('main')).lstrip('/') }}"></script>
 <script src="{{ url_for('static', filename=script_url('app')).lstrip('/') }}"></script>
-<script src="https://apis.google.com/js/platform.js?onload=startGoogleSignin" async defer></script>
+<script src="https://apis.google.com/js/client:platform.js?onload=startGoogleSignin" async defer></script>
 </body>
 </html>
