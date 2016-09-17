@@ -433,7 +433,7 @@ class ScannedLocation(BaseModel):
         return empty
 
     @staticmethod
-    def get_recent( swLat, swLng, neLat, neLng, since=datetime.min):
+    def get_recent( swLat, swLng, neLat, neLng, since=datetime.min, member_id=0):
         query = (ScannedLocation
                  .select()
                  .where((ScannedLocation.last_update >=
@@ -442,7 +442,9 @@ class ScannedLocation(BaseModel):
                         (ScannedLocation.latitude >= swLat) &
                         (ScannedLocation.longitude >= swLng) &
                         (ScannedLocation.latitude <= neLat) &
-                        (ScannedLocation.longitude <= neLng))
+                        (ScannedLocation.longitude <= neLng) &
+                        (ScannedLocation.scan_id << MemberScan.select(MemberScan.scan_id).where(
+                            (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
                  .dicts())
 
         scans = []
@@ -570,6 +572,14 @@ class Scan(BaseModel):
                  .where(Scan.request_time >= since_datetime)
                  )
         return query.count()
+
+class MemberScan(BaseModel):
+    member_id = SmallIntegerField()
+    scan_id = SmallIntegerField()
+
+    class Meta:
+        primary_key = CompositeKey('member_id', 'scan_id')
+
 
 class Spawn(BaseModel):
     id = CharField(max_length=12, primary_key=True)

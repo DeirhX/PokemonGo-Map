@@ -134,6 +134,8 @@ def configure(app):
         diam_each = round((2 * args.step_limit - 1) / (2 * rings - 1))
         steps_each = (diam_each + 1) / 2
         location_list = map(lambda x: (x.lat.decimal_degree, x.lon.decimal_degree, 0), generate_hive_cells(position, rings, steps_each))
+        if not args.scan_id:
+            raise Exception('scan-id is required for robot_worker')
 
         # Gather the pokemons!
         if not args.mock:
