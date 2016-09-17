@@ -89,6 +89,7 @@ class Pokemon(BaseModel):
     disappear_time = DateTimeField(index=True)
     last_modified = DateTimeField()
     last_update = DateTimeField(index=True)
+    scan_id = SmallIntegerField()
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
@@ -408,6 +409,7 @@ class ScannedLocation(BaseModel):
     latitude = DoubleField()
     longitude = DoubleField()
     last_update = DateTimeField(index=True)
+    scan_id = SmallIntegerField()
 
     class Meta:
         primary_key = CompositeKey('latitude', 'longitude')
@@ -528,6 +530,7 @@ class Scan(BaseModel):
     complete_time = DateTimeField()
     ip = CharField(max_length=45, index=True)
     account = CharField(max_length=200, index=True)
+    scan_id = SmallIntegerField()
 
     @classmethod
     def get_last_scan_by_ip(cls, ip):
@@ -697,8 +700,8 @@ def parse_map(map_dict, step_location):
                     'latitude': p['latitude'],
                     'longitude': p['longitude'],
                     'disappear_time': d_t,
-                    'last_modified': datetime.utcfromtimestamp(
-                        p['last_modified_timestamp_ms'] / 1000.0)
+                    'last_modified': datetime.utcfromtimestamp(p['last_modified_timestamp_ms'] / 1000.0),
+                    'scan_id': args.scan_id
                 }
 
                 webhook_data = {
@@ -804,6 +807,7 @@ def parse_map(map_dict, step_location):
     scanned[0] = {
         'latitude': step_location[0],
         'longitude': step_location[1],
+        'scan_id': args.scan_id
     }
 
     if pokemons and config['parse_pokemon']:
