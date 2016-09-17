@@ -2,11 +2,26 @@
 
 export const gymTypes = ["Uncontested", "Mystic", "Valor", "Instinct"];
 
-export var mapData = {
-    pokemons: {},
-    gyms: {},
-    pokestops: {},
-    lurePokemons: {},
-    scanned: {},
-    spawnpoints: {},
+export interface IMapData {
+    pokemons: any;
+    gyms: any;
+    pokestops: any;
+    lurePokemons: any;
+    scanned: any;
+    spawnpoints: any;
+}
+
+export class MapData implements IMapData {
+    public pokemons = {};
+    public gyms =  {};
+    public pokestops = {};
+    public lurePokemons = {};
+    public scanned = {};
+    public spawnpoints = {};
+}
+
+export var mapData = new MapData();
+
+export function clearAllMapData() {
+    mapData = new MapData();
 }

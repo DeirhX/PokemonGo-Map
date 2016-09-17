@@ -721,7 +721,6 @@ define(function (require) {
         }
 
         getActiveUsers();
-        getLoginState();
         window.setInterval(getActiveUsers, 10000);
 
         // var infoWindow = new google.maps.InfoWindow({map: map, content: 'Detected location'});
@@ -757,99 +756,3 @@ define(function (require) {
     }
 });
 
-function onSignIn (googleUser) {
-    var profile = googleUser.getBasicProfile();
-    console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
-    console.log('Name: ' + profile.getName());
-    console.log('Image URL: ' + profile.getImageUrl());
-    console.log('Email: ' + profile.getEmail());
-    $.ajax({
-        url: "set_auth",
-        type: 'GET',
-        data: {idToken: googleUser.getAuthResponse().id_token},
-        dataType: "json"
-    }).done(function (result) {
-        applyLoginState(result);
-    });
-}
-
-function requestSignOut() {
-    signOut();
-    $.ajax({
-        url: "set_auth",
-        type: 'GET',
-    }).done(function (result) {
-        applyLoginState(result);
-    });
-}
-
-function signOut() {
-    var auth2 = gapi.auth2.getAuthInstance();
-    auth2.signOut().then(function () {
-      console.log('User signed out.');
-    });
-}
-
-$('#logged-in').hide();
-$('#logged-out').hide();
-
-function getLoginState () {
-    $.ajax({
-        url: "get_auth",
-        type: 'GET',
-        data: {},
-        dataType: "json"
-    }).done(function (result) {
-        applyLoginState(result);
-    });
-}
-function applyLoginState (userInfo) {
-    if (userInfo.id) {
-        $('#logged-out').hide();
-        $('#logged-in').show();
-        $('#username').html(userInfo.username);
-    } else {
-        $('#logged-in').hide();
-        $('#logged-out').show();
-        $('#username').html();
-        signOut();
-    }
-}
-
-
-/**
- * The Sign-In client object.
- */
-var auth2;
-
-/**
- * Initializes the Sign-In client.
- */
-function startGoogleSignin() {
-    gapi.load('auth2', function(){
-        /**
-         * Retrieve the singleton for the GoogleAuth library and set up the
-         * client.
-         */
-        auth2 = gapi.auth2.init({
-            client_id: '1025081464444-8jrri89ukacqpevqsle7sv0v6lva7g5i.apps.googleusercontent.com'
-        });
-
-        // Attach the click handler to the sign-in button
-        auth2.attachClickHandler('signin-button', {}, onSuccess, onFailure);
-    });
-};
-
-/**
- * Handle successful sign-ins.
- */
-var onSuccess = function(user) {
-    console.log('Signed in as ' + user.getBasicProfile().getName());
- };
-
-/**
- * Handle sign-in failures.
- */
-var onFailure = function(error) {
-    console.log(error);
-};

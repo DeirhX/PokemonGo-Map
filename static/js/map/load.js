@@ -5,7 +5,5 @@ define((require) => {
         var main = require("../map");
         var core = require("./core");
         core.map = main.initMap();
-        var omg = 3;
     });
 })
-
