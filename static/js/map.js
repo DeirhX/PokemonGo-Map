@@ -104,6 +104,13 @@ define(function (require) {
 
         core.onFinishedMove(() => updateMap());
 
+        memberServer.registerChangeCallback((member, prevState) => {
+            "use strict";
+            console.log('Member changed.');
+            entities.clearMemberMapData();
+            updateMap(false);
+        });
+
         notifications.initNotifications();
 
         function setupIconStylePicker () {
@@ -723,12 +730,8 @@ define(function (require) {
 
         getActiveUsers();
         window.setInterval(getActiveUsers, 10000);
-        memberServer.registerChangeCallback((member, prevState) => {
-            "use strict";
-            console.log('Member changed.');
-            entities.clearMemberMapData();
-            updateMap(false);
-        });
+
+
 
         // var infoWindow = new google.maps.InfoWindow({map: map, content: 'Detected location'});
 
