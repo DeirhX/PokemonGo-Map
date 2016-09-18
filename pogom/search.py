@@ -327,17 +327,18 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
         # Get current time
         loop_start_time = int(round(time.time() * 1000))
 
+        # Check if we still got the same IP if we're about to do a new login
+        if not api:
+            while not check_ip_still_same():
+                log.error('IP change detected! Sleeping.')
+                time.sleep(60)
+
         # Grab the next thing to search (when available)
         if iterate_locations:
             step_location_info = iterate_locations[location_i]
             step = location_i
             if step == 0:
                 loops_done += 1
-                # Check if we still got the same IP
-                while not check_ip_still_same():
-                    log.error('IP change detected! Sleeping.')
-                    time.sleep(60)
-
             location_i = (location_i + 1) % len(iterate_locations)
             type = 1
             log.info('Location obtained from local queue, loop: %d, step: %d of %d', loops_done, step, len(iterate_locations))
