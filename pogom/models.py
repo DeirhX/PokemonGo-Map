@@ -9,6 +9,8 @@ from Queue import Queue
 
 import sys
 import math
+
+from enum import Enum
 from peewee import SqliteDatabase, InsertQuery, \
     IntegerField, CharField, DoubleField, BooleanField, \
     DateTimeField, CompositeKey, fn, SmallIntegerField, BigIntegerField
@@ -111,7 +113,8 @@ class Pokemon(BaseModel):
                      .where((Pokemon.disappear_time > datetime.utcnow()) &
                             (Pokemon.last_update >= since) &
                             (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                                (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
+                                (MemberScan.expire_at > datetime.utcnow()) &
+                                ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
                      .dicts())
         else:
             query = (Pokemon
@@ -123,7 +126,8 @@ class Pokemon(BaseModel):
                             (Pokemon.latitude <= neLat) &
                             (Pokemon.longitude <= neLng) &
                             (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                                (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
+                                (MemberScan.expire_at > datetime.utcnow()) &
+                                ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
                      .dicts())
 
         pokemons = []
@@ -160,7 +164,8 @@ class Pokemon(BaseModel):
                             (Pokemon.disappear_time > datetime.utcnow()) &
                             (Pokemon.last_update >= since) &
                             (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                                (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
+                                (MemberScan.expire_at > datetime.utcnow()) &
+                                ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
                      .dicts())
         else:
             query = (Pokemon
@@ -173,7 +178,8 @@ class Pokemon(BaseModel):
                             (Pokemon.latitude <= neLat) &
                             (Pokemon.longitude <= neLng) &
                             (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                                (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
+                                (MemberScan.expire_at > datetime.utcnow()) &
+                                ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
                      .dicts())
 
         pokemons = []
@@ -452,7 +458,8 @@ class ScannedLocation(BaseModel):
                         (ScannedLocation.latitude <= neLat) &
                         (ScannedLocation.longitude <= neLng) &
                         (ScannedLocation.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                            (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
+                            (MemberScan.expire_at > datetime.utcnow()) &
+                            ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
                  .dicts())
 
         scans = []
@@ -581,9 +588,17 @@ class Scan(BaseModel):
                  )
         return query.count()
 
+
+class MemberScanRelation(Enum):
+    public = 0
+    owner = 1
+    shared = 2
+
 class MemberScan(BaseModel):
     member_id = SmallIntegerField()
     scan_id = SmallIntegerField()
+    expire_at = DateTimeField()
+    relation = SmallIntegerField()
 
     class Meta:
         primary_key = CompositeKey('member_id', 'scan_id')
