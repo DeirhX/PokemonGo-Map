@@ -104,13 +104,6 @@ define(function (require) {
 
         core.onFinishedMove(() => updateMap());
 
-        memberServer.registerChangeCallback((member, prevState) => {
-            "use strict";
-            console.log('Member changed.');
-            entities.clearMemberMapData();
-            updateMap(false);
-        });
-
         notifications.initNotifications();
 
         function setupIconStylePicker () {
@@ -173,6 +166,13 @@ define(function (require) {
         $(window).focus(function () {
             window.clearInterval(updateTimer);
             updateTimer = window.setInterval(updateMap, 5000, true);
+        });
+
+        memberServer.registerChangeCallback((member, prevState) => {
+            "use strict";
+            console.log('Member changed.');
+            entities.clearMemberMapData();
+            updateMap(false);
         });
 
         return map;
