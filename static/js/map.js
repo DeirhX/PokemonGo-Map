@@ -172,7 +172,10 @@ define(function (require) {
             "use strict";
             console.log('Member changed.');
             entities.clearMemberMapData();
-            updateMap(false);
+            if (map.getBounds()) {
+                // Is already loaded with content?
+                updateMap(false);
+            }
         });
 
         return map;
