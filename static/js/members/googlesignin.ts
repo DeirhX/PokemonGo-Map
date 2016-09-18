@@ -1,10 +1,44 @@
-import {clearAllMapData} from "../data/entities";
+/// <reference path="../../../typings/globals/gapi.auth2/gapi.auth2.d.ts" />
+
 import {applyLoginState} from "./visual";
-import {setLoginStateAsync} from "./server";
+import {setLoginStateAsync, serverSignOut} from "./server";
 
-var gapi : any;
+let auth2: gapi.auth2.GoogleAuth;
 
-export function onSignIn (googleUser) {
+export function finishInit(callback: () => void) {
+    gapi.load("auth2", () => {
+        /**
+         * Retrieve the singleton for the GoogleAuth library and set up the
+         * client.
+         */
+        /*
+        auth2 = gapi.auth2.init({
+            client_id: '1025081464444-8jrri89ukacqpevqsle7sv0v6lva7g5i.apps.googleusercontent.com'
+        });
+        */
+        auth2 = gapi.auth2.getAuthInstance();
+        auth2.then( () =>  {
+            auth2.currentUser.listen((user) => {
+                if (user.isSignedIn()) {
+                    onClientSignIn(user);
+                } else {
+
+                }
+            });
+            callback();
+        }, () => {console.log("Failed to initialize Google Auth"); });
+    });
+}
+
+export function connectButtons() {
+
+    $(".g-signout2").click(() => {
+        clientSignOut();
+        serverSignOut();
+    });
+}
+
+export function onClientSignIn (googleUser) {
     let profile = googleUser.getBasicProfile();
     console.log('Google Sign-in ID: ' + profile.getId());
     console.log('Google Sign-in Name: ' + profile.getName());
@@ -13,56 +47,15 @@ export function onSignIn (googleUser) {
 
     setLoginStateAsync(googleUser.getAuthResponse().id_token, (member) => {
         applyLoginState(member);
-        clearAllMapData();
     });
 }
 
-export function signOut() {
-    var auth2 = gapi.auth2.getAuthInstance();
-    auth2.signOut().then(function () {
-        console.log('Google Sign-in: User signed out.');
-    });
-    clearAllMapData();
-}
-
-
-// Maybe sucks below this line //
-
-/**
- * The Sign-In client object.
- */
-var auth2;
-
-/**
- * Initializes the Sign-In client.
- */
-function startGoogleSignin() {
-    gapi.load('auth2', function(){
-        /**
-         * Retrieve the singleton for the GoogleAuth library and set up the
-         * client.
-         */
-        auth2 = gapi.auth2.init({
-            client_id: '1025081464444-8jrri89ukacqpevqsle7sv0v6lva7g5i.apps.googleusercontent.com'
+export function clientSignOut() {
+    auth2 = gapi.auth2.getAuthInstance();
+    if (auth2.isSignedIn.get()) {
+        auth2.signOut().then(function () {
+            console.log('Google Sign-in: User signed out.');
         });
-
-        // Attach the click handler to the sign-in button
-        auth2.attachClickHandler('signin-button', {}, onSuccess, onFailure);
-    });
-};
-
-/**
- * Handle successful sign-ins.
- */
-var onSuccess = function(user) {
-    console.log('Signed in as ' + user.getBasicProfile().getName());
- };
-
-/**
- * Handle sign-in failures.
- */
-var onFailure = function (error) {
-    console.log(error);
-};
-
+    }
+}
 

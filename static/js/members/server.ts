@@ -8,6 +8,8 @@ interface IMember {
     token: string;
 }
 
+var memberChangeCallback: (result: IMember) => void;
+
 export class Member implements IMember {
     public id: number;
     public username: string;
@@ -20,14 +22,21 @@ export function getLoginStateAsync (callback: (result: IMember) => void) {
         type: "GET",
         data: {},
         dataType: "json",
-    }).done(result => {
-        applyLoginState(result);
-        callback(result);
+    }).done(member => {
+        applyLoginState(member);
+        callback(member);
+        if (memberChangeCallback) {
+            memberChangeCallback(member);
+        }
     });
 }
 
-export function requestSignOut(callback: () => void) {
-    setLoginStateAsync(null, (member) => {callback(); });
+export function serverSignOut(callback?: () => void) {
+    setLoginStateAsync(null, (member) => {
+        if (callback) {
+            callback();
+        }
+    });
 }
 
 export function setLoginStateAsync (googleToken: string, callback: (result: IMember) => void) {
@@ -36,9 +45,18 @@ export function setLoginStateAsync (googleToken: string, callback: (result: IMem
         type: "GET",
         data: {idToken: googleToken},
         dataType: "json",
-    }).done(result => {
-        applyLoginState(result);
-        callback(result);
+    }).done(member => {
+        applyLoginState(member);
+        callback(member);
+        if (memberChangeCallback) {
+            memberChangeCallback(member);
+        }
     });
 }
 
+export function registerChangeCallback(callback: (result: IMember) => void) {
+    if (memberChangeCallback) {
+        throw "Don't do it twice, fool";
+    }
+    memberChangeCallback = callback;
+}

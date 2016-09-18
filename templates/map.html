@@ -57,7 +57,7 @@
   <!-- Yourmom extensions -->
   <div id="map-overlay">
     <div id="user-info">
-      <div class="g-signin2" data-onsuccess="onSignIn">
+      <div id="g-signin-2" class="g-signin2" data-onsuccess="OMFG">
       </div>
       <div id="member-stats">
         <div id="member-scan-pool"></div>
@@ -215,11 +215,11 @@
 
           </div>
           <div class="signout">
-            <a class="g-signout2" href="#" onclick="requestSignOut();">Sign out</a>
+            <a class="g-signout2" href="#">Sign out</a>
           </div>
         </div>
         <div id="logged-out">
-          <div class="g-signin2" data-onsuccess="onSignIn">
+          <div id="g-signin-1" class="g-signin2">
         </div>
       </div>
 
@@ -317,6 +317,5 @@
 <script src="{{ url_for('static', filename='js/vendor/require.js').lstrip('/') }}"
         data-main="{{ url_for('static', filename=script_url('main')).lstrip('/') }}"></script>
 <script src="{{ url_for('static', filename=script_url('app')).lstrip('/') }}"></script>
-<script src="https://apis.google.com/js/client:platform.js?onload=startGoogleSignin" async defer></script>
 </body>
 </html>

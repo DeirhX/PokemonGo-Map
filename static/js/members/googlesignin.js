@@ -1,7 +1,9 @@
+/// <reference path="../../../typings/globals/gapi.auth2/gapi.auth2.d.ts" />
 define(["require", "exports", "./visual", "./server"], function (require, exports, visual_1, server_1) {
     "use strict";
+    var auth2;
     function finishInit(callback) {
-        gapi.load('auth2', function () {
+        gapi.load("auth2", function () {
             /**
              * Retrieve the singleton for the GoogleAuth library and set up the
              * client.
@@ -11,21 +13,21 @@ define(["require", "exports", "./visual", "./server"], function (require, export
                 client_id: '1025081464444-8jrri89ukacqpevqsle7sv0v6lva7g5i.apps.googleusercontent.com'
             });
             */
-            var auth2 = gapi.auth2.getAuthInstance();
-            auth2.then(function () { return callback(); });
+            auth2 = gapi.auth2.getAuthInstance();
+            auth2.then(function () {
+                auth2.currentUser.listen(function (user) {
+                    if (user.isSignedIn()) {
+                        onClientSignIn(user);
+                    }
+                    else {
+                    }
+                });
+                callback();
+            }, function () { console.log("Failed to initialize Google Auth"); });
         });
     }
     exports.finishInit = finishInit;
     function connectButtons() {
-        function die(user) {
-            alert('Fuck you');
-        }
-        var auth2 = gapi.auth2.getAuthInstance();
-        //    $('#g-signin-1').data('onsuccess', die);
-        //    $('#g-signin-2').data('onsuccess', die);
-        var fuckyou = $('#g-signin-2')[0];
-        // auth2.attachClickHandler(fuckyou);
-        //auth2.attachClickHandler('g-signin-2', {}, die, onFailure);
         $(".g-signout2").click(function () {
             clientSignOut();
             server_1.serverSignOut();
@@ -44,7 +46,7 @@ define(["require", "exports", "./visual", "./server"], function (require, export
     }
     exports.onClientSignIn = onClientSignIn;
     function clientSignOut() {
-        var auth2 = gapi.auth2.getAuthInstance();
+        auth2 = gapi.auth2.getAuthInstance();
         if (auth2.isSignedIn.get()) {
             auth2.signOut().then(function () {
                 console.log('Google Sign-in: User signed out.');
@@ -52,11 +54,5 @@ define(["require", "exports", "./visual", "./server"], function (require, export
         }
     }
     exports.clientSignOut = clientSignOut;
-    /**
-     * Handle sign-in failures.
-     */
-    var onFailure = function (error) {
-        console.log(error);
-    };
 });
 //# sourceMappingURL=googlesignin.js.map
