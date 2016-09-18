@@ -104,12 +104,14 @@ class Pokemon(BaseModel):
             data['last_update'] = json_ts_datetime(data['last_update'])
 
     @staticmethod
-    def get_active(swLat, swLng, neLat, neLng, since=datetime.min):
+    def get_active(swLat, swLng, neLat, neLng, since=datetime.min, member_id=0):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Pokemon
                      .select()
                      .where((Pokemon.disappear_time > datetime.utcnow()) &
-                            (Pokemon.last_update >= since))
+                            (Pokemon.last_update >= since) &
+                            (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
+                                (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
                      .dicts())
         else:
             query = (Pokemon
@@ -119,7 +121,9 @@ class Pokemon(BaseModel):
                             (Pokemon.latitude >= swLat) &
                             (Pokemon.longitude >= swLng) &
                             (Pokemon.latitude <= neLat) &
-                            (Pokemon.longitude <= neLng))
+                            (Pokemon.longitude <= neLng) &
+                            (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
+                                (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
                      .dicts())
 
         pokemons = []
@@ -148,13 +152,15 @@ class Pokemon(BaseModel):
         return empty
 
     @staticmethod
-    def get_active_by_id(ids, swLat, swLng, neLat, neLng, since=datetime.min):
+    def get_active_by_id(ids, swLat, swLng, neLat, neLng, since=datetime.min, member_id=0):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             query = (Pokemon
                      .select()
                      .where((Pokemon.pokemon_id << ids) &
                             (Pokemon.disappear_time > datetime.utcnow()) &
-                            (Pokemon.last_update >= since))
+                            (Pokemon.last_update >= since) &
+                            (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
+                                (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
                      .dicts())
         else:
             query = (Pokemon
@@ -165,7 +171,9 @@ class Pokemon(BaseModel):
                             (Pokemon.latitude >= swLat) &
                             (Pokemon.longitude >= swLng) &
                             (Pokemon.latitude <= neLat) &
-                            (Pokemon.longitude <= neLng))
+                            (Pokemon.longitude <= neLng) &
+                            (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
+                                (MemberScan.member_id == member_id) | (MemberScan.member_id == 0))))
                      .dicts())
 
         pokemons = []
