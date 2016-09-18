@@ -18,6 +18,7 @@ define(function (require) {
     var spawns = require("data/spawn");
     var mapData = require("data/entities").mapData;
     var spawntip = require("interface/tooltip/spawntip");
+    var memberServer = require("members/server");
 
     var $selectExclude
     var $selectPokemonNotify
@@ -722,6 +723,12 @@ define(function (require) {
 
         getActiveUsers();
         window.setInterval(getActiveUsers, 10000);
+        memberServer.registerChangeCallback((member, prevState) => {
+            "use strict";
+            console.log('Member changed.');
+            entities.clearMemberMapData();
+            updateMap(false);
+        });
 
         // var infoWindow = new google.maps.InfoWindow({map: map, content: 'Detected location'});
 

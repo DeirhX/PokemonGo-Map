@@ -8,7 +8,8 @@ export interface IMember {
     token: string;
 }
 
-let memberChangeCallback: (result: IMember) => void;
+let memberChangeCallback: (member: IMember, previousMember: IMember) => void;
+let currentMember: IMember;
 
 export class Member implements IMember {
     public id: number;
@@ -26,8 +27,9 @@ export function getLoginStateAsync (callback: (result: IMember) => void) {
         applyLoginState(member);
         callback(member);
         if (memberChangeCallback) {
-            memberChangeCallback(member);
+            memberChangeCallback(member, currentMember);
         }
+        currentMember = member;
     });
 }
 
@@ -49,12 +51,13 @@ export function setLoginStateAsync (googleToken: string, callback: (result: IMem
         applyLoginState(member);
         callback(member);
         if (memberChangeCallback) {
-            memberChangeCallback(member);
+            memberChangeCallback(member, currentMember);
         }
+        currentMember = member;
     });
 }
 
-export function registerChangeCallback(callback: (result: IMember) => void) {
+export function registerChangeCallback(callback: (member: IMember, previousMember: IMember) => void) {
     if (memberChangeCallback) {
         throw "Don't do it twice, fool";
     }
