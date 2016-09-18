@@ -133,7 +133,7 @@ declare namespace gapi.client {
     * @param version The version of the API to load.
     * @return promise The promise that get's resolved after the request is finished.
     */
-    export function load(name: string, version: string): Promise<void>
+    export function load(name: string, version: string): any /* Promise<void> */
 
     /**
     * Loads the client library interface to a particular API. The new API interface will be in the form gapi.client.api.collection.method.

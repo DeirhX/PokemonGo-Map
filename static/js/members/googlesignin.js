@@ -46,7 +46,6 @@ define(["require", "exports", "./visual", "./server"], function (require, export
     }
     exports.onClientSignIn = onClientSignIn;
     function clientSignOut() {
-        auth2 = gapi.auth2.getAuthInstance();
         if (auth2.isSignedIn.get()) {
             auth2.signOut().then(function () {
                 console.log('Google Sign-in: User signed out.');

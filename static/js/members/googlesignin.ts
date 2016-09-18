@@ -22,7 +22,7 @@ export function finishInit(callback: () => void) {
                 if (user.isSignedIn()) {
                     onClientSignIn(user);
                 } else {
-
+                    // Not signed in and we don't care
                 }
             });
             callback();
@@ -51,7 +51,6 @@ export function onClientSignIn (googleUser) {
 }
 
 export function clientSignOut() {
-    auth2 = gapi.auth2.getAuthInstance();
     if (auth2.isSignedIn.get()) {
         auth2.signOut().then(function () {
             console.log('Google Sign-in: User signed out.');

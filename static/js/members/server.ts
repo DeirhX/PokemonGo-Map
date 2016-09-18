@@ -2,13 +2,13 @@
 
 import {applyLoginState} from "./visual";
 
-interface IMember {
+export interface IMember {
     id: number;
     username: string;
     token: string;
 }
 
-var memberChangeCallback: (result: IMember) => void;
+let memberChangeCallback: (result: IMember) => void;
 
 export class Member implements IMember {
     public id: number;
