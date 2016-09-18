@@ -329,19 +329,19 @@ class Pogom(Flask):
 
 
     def stats(self):
-        user = session['email'] if 'email' in session else None
+        member = self.get_member()
         return jsonify({
             'guests': get_guests_seen(),
             'members': get_members_seen(),
             'scans': get_scans_made(),
             'refreshes': get_requests_made(),
-            'memberScanPoolLeft': member_scan_pool_remain_user (user) if user
+            'memberScanPoolLeft': member_scan_pool_remain_user (member.username) if member.username
                                   else member_scan_pool_remain_ip(request.remote_addr),
-            'memberScanPool': member_scan_pool_max(user),
+            'memberScanPool': member_scan_pool_max(member.username),
         })
 
     def spawn_stats(self):
-        user = session['email'] if 'email' in session else None
+        member = self.get_member()
         if not request.args:
             return jsonify({'result' : 'failed'})
 
@@ -364,7 +364,7 @@ class Pogom(Flask):
         return jsonify(d)
 
     def spawn_detail(self):
-        user = session['email'] if 'email' in session else None
+        member = self.get_member()
         if not request.args:
             return jsonify({'result' : 'failed'})
 
@@ -411,6 +411,7 @@ class Pogom(Flask):
         if 'token' in session: d['token'] = session['token']
         if 'accountid' in session: d['id'] = session['accountid']
         if 'username' in session: d['username'] = session['username']
+        if 'email' in session: d['email'] = session['email']
         return jsonify(d)
 
     def set_auth(self):
@@ -419,6 +420,7 @@ class Pogom(Flask):
             if 'accountid' in session: del session['accountid']
             if 'token' in session: del session['token']
             if 'username' in session: del session['username']
+            if 'email' in session: del session['email']
             if id_token:
                 user_info = verify_token(id_token)
                 if user_info and user_info['email_verified']:
@@ -429,6 +431,7 @@ class Pogom(Flask):
                     session['accountid'] = member.id
                     session['token'] = member.token
                     session['username'] = member.username
+                    session['email'] = member.email
                     # session['sub'] = user_info['sub']
                     return self.get_auth()
             return jsonify({'error': 'denied'})
@@ -444,6 +447,7 @@ class Pogom(Flask):
         if 'accountid' in session: member.id = session['accountid']
         if 'token' in session: member.token = session['token']
         if 'username' in session: member.username = session['username']
+        if 'email' in session: member.email = session['email']
         return member
 
 class CustomJSONEncoder(JSONEncoder):

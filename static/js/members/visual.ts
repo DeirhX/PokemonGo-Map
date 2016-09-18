@@ -7,10 +7,10 @@ export function applyLoginState (userInfo) {
     if (userInfo.id) {
         $("#logged-out").hide();
         $("#logged-in").show();
-        $("#username").html(userInfo.username);
+        $("#email").html(userInfo.email);
     } else {
         $("#logged-in").hide();
         $("#logged-out").show();
-        $("#username").html();
+        $("#email").html();
     }
 }

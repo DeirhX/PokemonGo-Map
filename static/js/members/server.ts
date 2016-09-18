@@ -4,6 +4,7 @@ import {applyLoginState} from "./visual";
 
 export interface IMember {
     id: number;
+    email: string;
     username: string;
     token: string;
 }
@@ -13,6 +14,7 @@ let currentMember: IMember;
 
 export class Member implements IMember {
     public id: number;
+    public email: string;
     public username: string;
     public token: string;
 }
