@@ -603,6 +603,18 @@ class MemberScan(BaseModel):
     class Meta:
         primary_key = CompositeKey('member_id', 'scan_id')
 
+class Radar(BaseModel):
+    id = SmallIntegerField(primary_key=True)
+    latitude = DoubleField()
+    longitude = DoubleField()
+    steps = SmallIntegerField()
+    threads = SmallIntegerField()
+    speed = SmallIntegerField()
+    last_fullscan = DateTimeField()
+    last_start = DateTimeField()
+    last_keepalive = DateTimeField()
+    name = CharField(max_length=45)
+
 
 class Spawn(BaseModel):
     id = CharField(max_length=12, primary_key=True)
