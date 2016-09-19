@@ -21,7 +21,7 @@ from extend.stats import get_guests_seen, get_members_seen, get_requests_made, g
 from extend.user import verify_token
 from pogom.utils import get_args, percent_chance_incomplete_set
 from . import config
-from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn, dispatch_upsert, Member
+from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn, dispatch_upsert, Member, Radar
 from .search import scan_enqueue
 
 log = logging.getLogger(__name__)
@@ -407,12 +407,14 @@ class Pogom(Flask):
             return jsonify(d)
 
     def get_auth(self):
-        d = {}
-        if 'token' in session: d['token'] = session['token']
-        if 'accountid' in session: d['id'] = session['accountid']
-        if 'username' in session: d['username'] = session['username']
-        if 'email' in session: d['email'] = session['email']
-        return jsonify(d)
+        member = self.get_member()
+        m = {'id': member.id, 'username': member.username, 'email': member.email, 'token': member.token }
+        locs = []
+        for l in Radar.get_with_relation(member):
+            locs.append({'id': l.id, 'latitude': l.latitude, 'longitude': l.longitude, 'size': (l.steps + 4) / 5,
+                         'priority': l.speed, 'name': l.name, 'relation': l.relation})
+        m['locations'] = locs
+        return jsonify(m)
 
     def set_auth(self):
         try:

@@ -1,12 +1,16 @@
 /// <reference path="../../../typings/globals/jquery/index.d.ts" />
 
 import {applyLoginState} from "./visual";
+import {ILocation} from "./location";
 
 export interface IMember {
     id: number;
     email: string;
     username: string;
     token: string;
+    locations: ILocation[];
+
+    refreshLocations(): void;
 }
 
 let memberChangeCallback: (member: IMember, previousMember: IMember) => void;
@@ -17,6 +21,11 @@ export class Member implements IMember {
     public email: string;
     public username: string;
     public token: string;
+    public locations: ILocation[];
+
+    public refreshLocations(): void {
+        throw "not implemented";
+    }
 }
 
 export function getLoginStateAsync (callback: (result: IMember) => void) {
@@ -35,14 +44,6 @@ export function getLoginStateAsync (callback: (result: IMember) => void) {
     });
 }
 
-export function serverSignOut(callback?: () => void) {
-    setLoginStateAsync(null, (member) => {
-        if (callback) {
-            callback();
-        }
-    });
-}
-
 export function setLoginStateAsync (googleToken: string, callback: (result: IMember) => void) {
     $.ajax({
         url: "set_auth",
@@ -56,6 +57,14 @@ export function setLoginStateAsync (googleToken: string, callback: (result: IMem
             memberChangeCallback(member, currentMember);
         }
         currentMember = member;
+    });
+}
+
+export function serverSignOut(callback?: () => void) {
+    setLoginStateAsync(null, (member) => {
+        if (callback) {
+            callback();
+        }
     });
 }
 

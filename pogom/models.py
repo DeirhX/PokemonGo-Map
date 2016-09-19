@@ -13,7 +13,7 @@ import math
 from enum import Enum
 from peewee import SqliteDatabase, InsertQuery, \
     IntegerField, CharField, DoubleField, BooleanField, \
-    DateTimeField, CompositeKey, fn, SmallIntegerField, BigIntegerField
+    DateTimeField, CompositeKey, fn, SmallIntegerField, BigIntegerField, JOIN
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError
@@ -614,6 +614,26 @@ class Radar(BaseModel):
     last_start = DateTimeField()
     last_keepalive = DateTimeField()
     name = CharField(max_length=45)
+
+    @classmethod
+    def get_all(cls):
+        query = Radar.select()
+        radars = []
+        for s in query:
+            radars.append(s)
+        return radars
+
+    @classmethod
+    def get_with_relation(cls, member):
+        query = Radar.select(Radar.id, Radar.latitude, Radar.longitude, Radar.steps, Radar.threads, Radar.speed,
+                             Radar.last_fullscan, Radar.last_start, Radar.last_keepalive, Radar.name,
+                             MemberScan.select(MemberScan.relation).where(
+                                 (MemberScan.scan_id == Radar.id) &
+                                 ((MemberScan.member_id == member.id) | (MemberScan.member_id == 0))).alias('relation'))
+        radars = []
+        for s in query:
+            radars.append(s)
+        return radars
 
 
 class Spawn(BaseModel):
