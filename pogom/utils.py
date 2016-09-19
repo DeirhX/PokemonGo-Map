@@ -421,6 +421,7 @@ def check_ip_still_same():
     while retries:
         try:
             ip_now = urllib2.urlopen("http://ipecho.net/plain").read()
+            log.info('IP check complete: ' + str(ip_now))
             break
         except Exception as e:
             retries -= 1
@@ -432,5 +433,6 @@ def check_ip_still_same():
         log.error('Multiple failures trying to get IP, aborting.')
         return False
     if not ip:
+        log.info('IP was set to: ' + str(ip_now))
         ip = ip_now
     return ip == ip_now
