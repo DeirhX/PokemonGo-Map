@@ -112,9 +112,9 @@ class Pokemon(BaseModel):
                      .select()
                      .where((Pokemon.disappear_time > datetime.utcnow()) &
                             (Pokemon.last_update >= since) &
-                            (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                                (MemberScan.expire_at > datetime.utcnow()) &
-                                ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
+                            (Pokemon.scan_id << MemberLocation.select(MemberLocation.location_id).where(
+                                (MemberLocation.expire_at > datetime.utcnow()) &
+                                ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
                      .dicts())
         else:
             query = (Pokemon
@@ -125,9 +125,9 @@ class Pokemon(BaseModel):
                             (Pokemon.longitude >= swLng) &
                             (Pokemon.latitude <= neLat) &
                             (Pokemon.longitude <= neLng) &
-                            (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                                (MemberScan.expire_at > datetime.utcnow()) &
-                                ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
+                            (Pokemon.scan_id << MemberLocation.select(MemberLocation.location_id).where(
+                                (MemberLocation.expire_at > datetime.utcnow()) &
+                                ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
                      .dicts())
 
         pokemons = []
@@ -163,9 +163,9 @@ class Pokemon(BaseModel):
                      .where((Pokemon.pokemon_id << ids) &
                             (Pokemon.disappear_time > datetime.utcnow()) &
                             (Pokemon.last_update >= since) &
-                            (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                                (MemberScan.expire_at > datetime.utcnow()) &
-                                ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
+                            (Pokemon.scan_id << MemberLocation.select(MemberLocation.location_id).where(
+                                (MemberLocation.expire_at > datetime.utcnow()) &
+                                ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
                      .dicts())
         else:
             query = (Pokemon
@@ -177,9 +177,9 @@ class Pokemon(BaseModel):
                             (Pokemon.longitude >= swLng) &
                             (Pokemon.latitude <= neLat) &
                             (Pokemon.longitude <= neLng) &
-                            (Pokemon.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                                (MemberScan.expire_at > datetime.utcnow()) &
-                                ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
+                            (Pokemon.scan_id << MemberLocation.select(MemberLocation.location_id).where(
+                                (MemberLocation.expire_at > datetime.utcnow()) &
+                                ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
                      .dicts())
 
         pokemons = []
@@ -419,7 +419,7 @@ class Gym(BaseModel):
         return gyms
 
 
-class ScannedLocation(BaseModel):
+class ScannedCell(BaseModel):
     latitude = DoubleField()
     longitude = DoubleField()
     last_update = DateTimeField(index=True)
@@ -435,31 +435,31 @@ class ScannedLocation(BaseModel):
 
     @classmethod
     def get_latest(cls):
-        query = (ScannedLocation
-            .select(ScannedLocation.last_update)
-            .order_by(-ScannedLocation.last_update)
-            .limit(1))
+        query = (ScannedCell
+                 .select(ScannedCell.last_update)
+                 .order_by(-ScannedCell.last_update)
+                 .limit(1))
 
         if query.count():
             return query.get()
-        empty = ScannedLocation()
+        empty = ScannedCell()
         empty.last_update = datetime.min
         return empty
 
     @staticmethod
     def get_recent( swLat, swLng, neLat, neLng, since=datetime.min, member_id=0):
-        query = (ScannedLocation
+        query = (ScannedCell
                  .select()
-                 .where((ScannedLocation.last_update >=
-                        (datetime.utcnow() - timedelta(minutes=15))) &
-                        (ScannedLocation.last_update >= since) &
-                        (ScannedLocation.latitude >= swLat) &
-                        (ScannedLocation.longitude >= swLng) &
-                        (ScannedLocation.latitude <= neLat) &
-                        (ScannedLocation.longitude <= neLng) &
-                        (ScannedLocation.scan_id << MemberScan.select(MemberScan.scan_id).where(
-                            (MemberScan.expire_at > datetime.utcnow()) &
-                            ((MemberScan.member_id == member_id) | (MemberScan.member_id == 0)))))
+                 .where((ScannedCell.last_update >=
+                         (datetime.utcnow() - timedelta(minutes=15))) &
+                        (ScannedCell.last_update >= since) &
+                        (ScannedCell.latitude >= swLat) &
+                        (ScannedCell.longitude >= swLng) &
+                        (ScannedCell.latitude <= neLat) &
+                        (ScannedCell.longitude <= neLng) &
+                        (ScannedCell.scan_id << MemberLocation.select(MemberLocation.location_id).where(
+                            (MemberLocation.expire_at > datetime.utcnow()) &
+                            ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
                  .dicts())
 
         scans = []
@@ -594,16 +594,16 @@ class MemberScanRelation(Enum):
     owner = 1
     shared = 2
 
-class MemberScan(BaseModel):
+class MemberLocation(BaseModel):
     member_id = SmallIntegerField()
-    scan_id = SmallIntegerField()
+    location_id = SmallIntegerField()
     expire_at = DateTimeField()
     relation = SmallIntegerField()
 
     class Meta:
         primary_key = CompositeKey('member_id', 'scan_id')
 
-class Radar(BaseModel):
+class Location(BaseModel):
     id = SmallIntegerField(primary_key=True)
     latitude = DoubleField()
     longitude = DoubleField()
@@ -617,7 +617,7 @@ class Radar(BaseModel):
 
     @classmethod
     def get_all(cls):
-        query = Radar.select()
+        query = Location.select()
         radars = []
         for s in query:
             radars.append(s)
@@ -625,11 +625,11 @@ class Radar(BaseModel):
 
     @classmethod
     def get_with_relation(cls, member):
-        query = Radar.select(Radar.id, Radar.latitude, Radar.longitude, Radar.steps, Radar.threads, Radar.speed,
-                             Radar.last_fullscan, Radar.last_start, Radar.last_keepalive, Radar.name,
-                             MemberScan.select(MemberScan.relation).where(
-                                 (MemberScan.scan_id == Radar.id) &
-                                 ((MemberScan.member_id == member.id) | (MemberScan.member_id == 0))).alias('relation'))
+        query = Location.select(Location.id, Location.latitude, Location.longitude, Location.steps, Location.threads, Location.speed,
+                                Location.last_fullscan, Location.last_start, Location.last_keepalive, Location.name,
+                                MemberLocation.select(MemberLocation.relation).where(
+                                    (MemberLocation.location_id == Location.id) &
+                                    ((MemberLocation.member_id == member.id) | (MemberLocation.member_id == 0))).alias('relation'))
         radars = []
         for s in query:
             radars.append(s)
@@ -887,7 +887,7 @@ def parse_map(map_dict, step_location):
         gyms_upserted = len(gyms)
         dispatch_upsert(Gym, gyms)
 
-    dispatch_upsert(ScannedLocation, scanned)
+    dispatch_upsert(ScannedCell, scanned)
 
     # clean_database()
 
@@ -906,10 +906,10 @@ def parse_map(map_dict, step_location):
 
 
 def clean_database():
-    query = (ScannedLocation
+    query = (ScannedCell
              .delete()
-             .where((ScannedLocation.last_update <
-                    (datetime.utcnow() - timedelta(minutes=30)))))
+             .where((ScannedCell.last_update <
+                     (datetime.utcnow() - timedelta(minutes=30)))))
     query.execute()
 
     if args.purge_data > 0:
@@ -924,7 +924,7 @@ dispatch_upsert_producer = DbInserterQueueProducer()
 dispatch_upsert_producer.connect()
 
 def dispatch_upsert(cls, data):
-    if (cls is Pokemon) or (cls is Gym) or (cls is Pokestop) or (cls is ScannedLocation):
+    if (cls is Pokemon) or (cls is Gym) or (cls is Pokestop) or (cls is ScannedCell):
         dispatch_upsert_queue.put(ujson.dumps({str(cls): data.values()}))
     else:
         bulk_upsert(cls, data)
@@ -950,12 +950,12 @@ def bulk_upsert(cls, data):
 def create_tables(db):
     db.connect()
     verify_database_schema(db)
-    db.create_tables([Pokemon, Pokestop, Gym, ScannedLocation], safe=True)
+    db.create_tables([Pokemon, Pokestop, Gym, ScannedCell], safe=True)
     db.close()
 
 def drop_tables(db):
     db.connect()
-    db.drop_tables([Pokemon, Pokestop, Gym, ScannedLocation, Versions], safe=True)
+    db.drop_tables([Pokemon, Pokestop, Gym, ScannedCell, Versions], safe=True)
     db.close()
 
 def publish_dispatch_upsert_loop():
@@ -972,7 +972,7 @@ def verify_database_schema(db):
     if not Versions.table_exists():
         db.create_tables([Versions])
 
-        if ScannedLocation.table_exists():
+        if ScannedCell.table_exists():
             # Versions table didn't exist, but there were tables. This must mean the user
             # is coming from a database that existed before we started tracking the schema
             # version. Perform a full upgrade.
@@ -1022,7 +1022,7 @@ def database_migrate(db, old_ver):
         )
 
     if old_ver < 4:
-        db.drop_tables([ScannedLocation])
+        db.drop_tables([ScannedCell])
 
     if old_ver < 5:
         # Some pokemon were added before the 595 bug was "fixed"

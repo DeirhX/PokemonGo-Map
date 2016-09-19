@@ -7,7 +7,7 @@ from threading import Lock
 import dateutil.parser
 import ujson
 from flask import logging
-from pogom.models import Pokemon, Gym, Pokestop, bulk_upsert, ScannedLocation
+from pogom.models import Pokemon, Gym, Pokestop, bulk_upsert, ScannedCell
 
 log = logging.getLogger()
 
@@ -65,9 +65,9 @@ def collect_entry(ch, method, props, body):
                             or cached['pokestops'][pokestop['pokestop_id']]['last_modified'] != pokestop['last_modified']:
                         with new['pokestops_lock']:
                             new['pokestops'][pokestop['pokestop_id']] = cached['pokestops'][pokestop['pokestop_id']] = pokestop
-            elif (key == str(ScannedLocation)):
+            elif (key == str(ScannedCell)):
                 for scanned_location in value:
-                    ScannedLocation.parse_json(scanned_location)
+                    ScannedCell.parse_json(scanned_location)
                     with new['scanned_lock']:
                         new['scanned'][str(scanned_location['latitude'])+'|'+str(scanned_location['longitude'])] = scanned_location
             else:
@@ -117,7 +117,7 @@ def upsert_new_entries():
         with new['scanned_lock']:
             scanned = list(new['scanned'].values())
             new['scanned'] = {}
-        bulk_upsert(ScannedLocation, scanned)
+        bulk_upsert(ScannedCell, scanned)
         #log.info('Inserted scans: %d', len(scanned))
         for item in scanned:
             item['received'] = datetime.utcnow()

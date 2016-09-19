@@ -21,7 +21,7 @@ from extend.stats import get_guests_seen, get_members_seen, get_requests_made, g
 from extend.user import verify_token
 from pogom.utils import get_args, percent_chance_incomplete_set
 from . import config
-from .models import Pokemon, Gym, Pokestop, ScannedLocation, bulk_upsert, Scan, Spawn, dispatch_upsert, Member, Radar
+from .models import Pokemon, Gym, Pokestop, ScannedCell, bulk_upsert, Scan, Spawn, dispatch_upsert, Member, Location
 from .search import scan_enqueue
 
 log = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ class Pogom(Flask):
                                'lastSpawn': Spawn.get_latest().last_update,
                                'lastGym': Gym.get_latest().last_update,
                                'lastPokestop': Pokestop.get_latest().last_update,
-                               'lastScannedLoc': ScannedLocation.get_latest().last_update}
+                               'lastScannedLoc': ScannedCell.get_latest().last_update}
 
         if request.args.get('pokemon', 'true') == 'true':
             if request.args.get('ids'):
@@ -151,7 +151,7 @@ class Pogom(Flask):
             d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, last_pokestop)
 
         if request.args.get('scanned', 'true') == 'true':
-            d['scanned'] = ScannedLocation.get_recent(swLat, swLng, neLat, neLng, last_scannedloc, member.id)
+            d['scanned'] = ScannedCell.get_recent(swLat, swLng, neLat, neLng, last_scannedloc, member.id)
 
         if request.args.get('spawnpoints', 'false') == 'true':
             d['spawns'] = Spawn.get_spawns(swLat, swLng, neLat, neLng, last_spawn)
@@ -410,7 +410,7 @@ class Pogom(Flask):
         member = self.get_member()
         m = {'id': member.id, 'username': member.username, 'email': member.email, 'token': member.token }
         locs = []
-        for l in Radar.get_with_relation(member):
+        for l in Location.get_with_relation(member):
             locs.append({'id': l.id, 'latitude': l.latitude, 'longitude': l.longitude, 'size': (l.steps + 4) / 5,
                          'priority': l.speed, 'name': l.name, 'relation': l.relation})
         m['locations'] = locs
