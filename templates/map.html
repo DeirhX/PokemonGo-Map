@@ -211,11 +211,22 @@
       <h3>Account</h3>
       <div id="account">
         <div id="logged-in">
-          <h3>ID</h3>
+          <h3 class="header">ID</h3>
           <div id="email"></div>
-          <h3>Display Name</h3>
-          <div id="username"></div>
+          <h3 class="header">Display Name</h3>
+          <input id="username" type="text" name="username" value="valu" placeholder="Change Display Name"/>
+          <div class="form-control switch-container">
+            <h3 class="header">Owned Locations</h3>
+            <select name="pokemon-icon-size" id="owned-locations">
+            </select>
+          </div>
+          <div class="form-control switch-container">
+            <h3 class="header">Shared Locations</h3>
+            <select name="pokemon-icon-size" id="shared-locations">
+            </select>
+          </div>
           <div class="signout">
+            <button id="signout"></button>
             <a class="g-signout2" href="#">Sign out</a>
           </div>
         </div>

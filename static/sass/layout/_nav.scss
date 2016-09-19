@@ -21,6 +21,9 @@
 			font-family: 'Muli', sans-serif;
 			color: darken(_palette(accent2, bg), 12);
 		}
+		.header {
+			margin-bottom: 0 !important;
+		}
 		p {
 			margin-bottom: 20px;
 			color: darken(_palette(accent2, bg), 12);
