@@ -616,6 +616,13 @@ class Location(BaseModel):
     name = CharField(max_length=45)
 
     @classmethod
+    def get(cls, id):
+        query = Location.select().where(Location.id == id)
+        if len(query):
+            return query.get()
+        return None
+
+    @classmethod
     def get_all(cls):
         query = Location.select()
         radars = []

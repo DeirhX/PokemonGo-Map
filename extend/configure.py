@@ -15,7 +15,7 @@ from extend.beehive import generate_hive_cells
 from extend.scan import begin_consume_queue
 from extend.stats import begin_share_receive_stats
 from pogom import config
-from pogom.models import init_database, create_tables
+from pogom.models import init_database, create_tables, Location
 from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop, scan_overseer_thread, \
     scan_radius, limit_locations_to_spawns
 from pogom.utils import get_encryption_lib_path, insert_mock_data, get_args
@@ -80,6 +80,16 @@ def configure(app):
     create_tables(db)
 
     if args.web_server or args.scan_worker or args.robot_worker:
+
+        if args.location_id:
+            db_location = Location.get(args.location_id)
+            if not db_location:
+                log.error('Location %d not found in database'.format(args.location_id))
+                sys.exit()
+            location = str(db_location.latitude) + " " + str(db_location.longitude)
+        else:
+            location = args.location
+
         # use lat/lng directly if matches such a pattern
         prog = re.compile("^(\-?\d+\.\d+),?\s?(\-?\d+\.\d+)$")
         res = prog.match(args.location)
@@ -90,15 +100,16 @@ def configure(app):
             log.debug('Looking up coords in API')
             position = get_pos_by_name(args.location)
 
-        # Use the latitude and longitude to get the local altitude from Google
-        try:
-            url = 'https://maps.googleapis.com/maps/api/elevation/json?locations={},{}'.format(
-                str(position[0]), str(position[1]))
-            altitude = requests.get(url).json()[u'results'][0][u'elevation']
-            log.debug('Local altitude is: %sm', altitude)
-            position = (position[0], position[1], altitude)
-        except (requests.exceptions.RequestException, IndexError, KeyError):
-            log.error('Unable to retrieve altitude from Google APIs; setting to 0')
+        if args.robot_worker:
+            # Use the latitude and longitude to get the local altitude from Google
+            try:
+                url = 'https://maps.googleapis.com/maps/api/elevation/json?locations={},{}'.format(
+                    str(position[0]), str(position[1]))
+                altitude = requests.get(url).json()[u'results'][0][u'elevation']
+                log.debug('Local altitude is: %sm', altitude)
+                position = (position[0], position[1], altitude)
+            except (requests.exceptions.RequestException, IndexError, KeyError):
+                log.error('Unable to retrieve altitude from Google APIs; setting to 0')
 
         if not any(position):
             log.error('Could not get a position by name, aborting')
@@ -134,8 +145,8 @@ def configure(app):
         diam_each = round((2 * args.step_limit - 1) / (2 * rings - 1))
         steps_each = (diam_each + 1) / 2
         location_list = map(lambda x: (x.lat.decimal_degree, x.lon.decimal_degree, 0), generate_hive_cells(position, rings, steps_each))
-        if not args.scan_id:
-            raise Exception('scan-id is required for robot_worker')
+        if not args.location_id:
+            raise Exception('location-id is required for robot_worker')
 
         # Gather the pokemons!
         if not args.mock:

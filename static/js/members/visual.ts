@@ -14,8 +14,8 @@ export function applyLoginState (member: IMember) {
         $("#username").val(member.username);
         let sharedLocations = $("#shared-locations");
         let ownedLocations = $("#owned-locations");
-        sharedLocations.html('');
-        ownedLocations.html('');
+        sharedLocations.html("");
+        ownedLocations.html("");
         for (let location of member.locations) {
             if (location.relation === 0) {
                 sharedLocations.append($("<option></option>").val(location.id).data("value", location).text(location.name));
@@ -27,10 +27,10 @@ export function applyLoginState (member: IMember) {
         // console.log("Applying logged-out state");
         $("#logged-in").hide();
         $("#logged-out").show();
-        $("#email").html();
+        $("#email").html("");
         $("#username").val();
         let sharedLocations = $("#shared-locations-guest");
-        sharedLocations.html('');
+        sharedLocations.html("");
         for (let location of member.locations) {
             if (location.relation === 0) {
                 sharedLocations.append($("<option></option>").val(location.id).data("value", location).text(location.name));

@@ -157,7 +157,7 @@ def get_args():
     parser.add_argument('-secret', '--app-secret-key', help='Flask secret session key')
     parser.add_argument('-ps', '--print-status', action='store_true',
                         help='Show a status screen instead of log messages. Can switch between status and logs by pressing enter.', default=False)
-    parser.add_argument('-sid', '--scan-id',
+    parser.add_argument('-lid', '--location-id',
                         help='ID of this scan that is going to be identified by in database',
                         type=int, default=0)
 
@@ -173,6 +173,9 @@ def get_args():
     else:
         errors = []
 
+        if args.location:
+            errors.append('Do not use location for other use than centering the map')
+
         num_auths = 1
         num_usernames = 0
         num_passwords = 0
@@ -181,9 +184,6 @@ def get_args():
             pass #errors.append('Missing `username` either as -u/--username or in config')
         else:
             num_usernames = len(args.username)
-
-        if (args.location is None):
-            errors.append('Missing `location` either as -l/--location or in config')
 
         if (args.password is None):
             pass #errors.append('Missing `password` either as -p/--password or in config')
@@ -197,6 +197,9 @@ def get_args():
             args.auth_service = ['ptc']
         else:
             num_auths = len(args.auth_service)
+
+        if args.location_id and args.location:
+            errors.append('Do not use location_id together with explicit location')
 
         if num_usernames > 1:
             if num_passwords > 1 and num_usernames != num_passwords:
