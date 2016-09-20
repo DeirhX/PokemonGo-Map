@@ -14,12 +14,13 @@ export function applyLoginState (member: IMember) {
         $("#username").val(member.username);
         let sharedLocations = $("#shared-locations");
         let ownedLocations = $("#owned-locations");
-        sharedLocations.html();
+        sharedLocations.html('');
+        ownedLocations.html('');
         for (let location of member.locations) {
             if (location.relation === 0) {
-                sharedLocations.append($("<option></option>").attr("value", location.id).text(location.name));
+                sharedLocations.append($("<option></option>").val(location.id).data("value", location).text(location.name));
             } else if (location.relation === 1) {
-                ownedLocations.append($("<option></option>").attr("value", location.id).text(location.name));
+                ownedLocations.append($("<option></option>").val(location.id).data("value", location).text(location.name));
             }
         }
     } else {
@@ -29,10 +30,10 @@ export function applyLoginState (member: IMember) {
         $("#email").html();
         $("#username").val();
         let sharedLocations = $("#shared-locations-guest");
-        sharedLocations.html();
+        sharedLocations.html('');
         for (let location of member.locations) {
             if (location.relation === 0) {
-                sharedLocations.append($("<option></option>").attr("value", location.id).text(location.name));
+                sharedLocations.append($("<option></option>").val(location.id).data("value", location).text(location.name));
             }
         }
     }

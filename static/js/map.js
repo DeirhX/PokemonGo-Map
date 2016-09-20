@@ -150,6 +150,13 @@ define(function (require) {
 
         search.loadSearchMarkerStyles($('#iconmarker-style'));
 
+        $("#owned-locations, #shared-locations, #shared-locations-guest").on('change', function() {
+            var location = $(this).find(":selected").data("value");
+            if (location.latitude && location.longitude) {
+                core.map.setCenter(new google.maps.LatLng(location.latitude, location.longitude));
+            }
+        });
+
         initPage2()
 
         core.onZoomChange((lat, lng, zoom) => {
@@ -171,9 +178,9 @@ define(function (require) {
         memberServer.registerChangeCallback((member, prevState) => {
             "use strict";
             console.log('Member changed.');
-            entities.clearMemberMapData();
             if (prevState && map.getBounds()) {
                 // Is already loaded with content?
+                entities.clearMemberMapData();
                 updateMap(false);
             }
         });
