@@ -773,7 +773,7 @@ def parse_map(map_dict, step_location):
                     'longitude': p['longitude'],
                     'disappear_time': d_t,
                     'last_modified': datetime.utcfromtimestamp(p['last_modified_timestamp_ms'] / 1000.0),
-                    'scan_id': args.scan_id
+                    'scan_id': args.location_id
                 }
 
                 webhook_data = {
@@ -879,7 +879,7 @@ def parse_map(map_dict, step_location):
     scanned[0] = {
         'latitude': step_location[0],
         'longitude': step_location[1],
-        'scan_id': args.scan_id
+        'scan_id': args.location_id
     }
 
     if pokemons and config['parse_pokemon']:

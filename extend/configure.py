@@ -86,9 +86,12 @@ def configure(app):
             if not db_location:
                 log.error('Location %d not found in database'.format(args.location_id))
                 sys.exit()
-            location = str(db_location.latitude) + " " + str(db_location.longitude)
-        else:
-            location = args.location
+            args.location = str(db_location.latitude) + " " + str(db_location.longitude)
+            args.num_threads = db_location.threads
+            args.step_limit = db_location.steps
+            args.scan_delay = db_location.speed
+            log.info('Using location id:%d: [%f, %f] steps: %d',
+                db_location.id, db_location.latitude, db_location.longitude, db_location.steps)
 
         # use lat/lng directly if matches such a pattern
         prog = re.compile("^(\-?\d+\.\d+),?\s?(\-?\d+\.\d+)$")
