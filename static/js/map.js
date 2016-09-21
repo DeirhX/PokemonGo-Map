@@ -183,6 +183,20 @@ define(function (require) {
                 entities.clearMemberMapData();
                 updateMap(false);
             }
+            function addLocationMarkers () {
+                if (member.locations) {
+                    for (var i = 0; i < member.locations.length; ++i) {
+                        var location = member.locations[i];
+                        location.marker = markers.createLocationMarker(location);
+                        mapData.locations[location.id] = location;
+                    }
+                }
+            }
+            if (map.getBounds()) {
+                addLocationMarkers()
+            } else {
+                core.onLoad(() => addLocationMarkers());
+            }
         });
 
         return map;
@@ -696,9 +710,11 @@ define(function (require) {
             $('.home-map-scan').removeClass('started');
             $('.home-map-scan').removeClass('failed');
 
-            $('button.home-map-scan div.status small')[0].innerHTML = 'Scanning of [' +
-                Math.round(search.searchMarker.getPosition().lat() * 10000) / 10000 + ',' +
-                Math.round(search.searchMarker.getPosition().lng() * 10000) / 10000 + '] started';
+            if ($('button.home-map-scan div.status small').length) {
+                $('button.home-map-scan div.status small')[0].innerHTML = 'Scanning of [' +
+                    Math.round(search.searchMarker.getPosition().lat() * 10000) / 10000 + ',' +
+                    Math.round(search.searchMarker.getPosition().lng() * 10000) / 10000 + '] started';
+            }
 
             $.ajax({
                 url: "scan",

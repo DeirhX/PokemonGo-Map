@@ -601,7 +601,7 @@ class MemberLocation(BaseModel):
     relation = SmallIntegerField()
 
     class Meta:
-        primary_key = CompositeKey('member_id', 'scan_id')
+        primary_key = CompositeKey('member_id', 'location_id')
 
 class Location(BaseModel):
     id = SmallIntegerField(primary_key=True)
@@ -613,6 +613,7 @@ class Location(BaseModel):
     last_fullscan = DateTimeField()
     last_start = DateTimeField()
     last_keepalive = DateTimeField()
+    creation_time = DateTimeField()
     name = CharField(max_length=45)
 
     @classmethod
@@ -633,7 +634,7 @@ class Location(BaseModel):
     @classmethod
     def get_with_relation(cls, member):
         query = Location.select(Location.id, Location.latitude, Location.longitude, Location.steps, Location.threads, Location.speed,
-                                Location.last_fullscan, Location.last_start, Location.last_keepalive, Location.name,
+                                Location.last_fullscan, Location.last_start, Location.last_keepalive, Location.creation_time, Location.name,
                                 MemberLocation.select(MemberLocation.relation).where(
                                     (MemberLocation.location_id == Location.id) &
                                     ((MemberLocation.member_id == member.id) | (MemberLocation.member_id == 0))).alias('relation'))
@@ -641,6 +642,8 @@ class Location(BaseModel):
         for s in query:
             radars.append(s)
         return radars
+
+
 
 
 class Spawn(BaseModel):

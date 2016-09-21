@@ -1,11 +1,13 @@
 /// <reference path="../../../typings/globals/jquery/index.d.ts" />
 
 import {IMember} from "./server";
+import {core} from "../data/entities";
 
 $("#logged-in").hide();
 $("#logged-out").hide();
 
 export function applyLoginState (member: IMember) {
+    core.member = member;
     if (member.id) {
         // console.log("Applying login state");
         $("#logged-out").hide();

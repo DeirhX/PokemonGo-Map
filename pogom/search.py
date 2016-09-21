@@ -46,7 +46,7 @@ from pgoapi import utilities as util
 from pgoapi.exceptions import AuthException
 
 from . import config
-from .models import parse_map, Login, args, flaskDb, Pokemon, Spawn
+from .models import parse_map, Login, args, flaskDb, Pokemon, Spawn, Location
 
 log = logging.getLogger(__name__)
 scan_radius = 0.07
@@ -440,6 +440,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     # with parse_lock: # no need for lock
                     try:
                         found_pokemons = parse_map(response_dict, step_location)[0]
+                        Location.update(last_keepalive=datetime.utcnow()).where(Location.id == args.location_id).execute()
                         log.debug('Search step %s completed', step)
                         if wait_for_spawn and spawn_appear_time and spawn_disappear_time and \
                             last_scan_time > spawn_appear_time and datetime.now() < spawn_disappear_time and \

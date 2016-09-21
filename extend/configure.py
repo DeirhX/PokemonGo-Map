@@ -3,9 +3,11 @@ import os
 import re
 import sys
 from Queue import Queue
+from datetime import datetime
 from threading import Thread, Event
 
 import math
+
 import requests
 from flask.ext.cors import CORS
 from pgoapi.utilities import get_pos_by_name
@@ -15,7 +17,7 @@ from extend.beehive import generate_hive_cells
 from extend.scan import begin_consume_queue
 from extend.stats import begin_share_receive_stats
 from pogom import config
-from pogom.models import init_database, create_tables, Location
+from pogom.models import init_database, create_tables, Location, MemberLocation
 from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop, scan_overseer_thread, \
     scan_radius, limit_locations_to_spawns
 from pogom.utils import get_encryption_lib_path, insert_mock_data, get_args
@@ -162,9 +164,12 @@ def configure(app):
             insert_mock_data(position)
             search_thread = Thread(target=fake_search_loop, name='Fake search loop')
 
+        Location.update(last_start = datetime.utcnow()).where(Location.id == args.location_id).execute()
+
         search_thread.daemon = True
         search_thread.name = 'search_overseer_thread'
         search_thread.start()
+
 
     if args.cors:
         CORS(app)

@@ -172,3 +172,13 @@ export function pokestopLabel(expireTime, latitude, longitude) {
         </div>`;
     }
 }
+
+export function locationLabel(name, latitude, longitude, owner?) {
+    return `
+    <div>
+      <b>Pokéradar: ${name}</b>
+    </div>
+    <div>
+      Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+    </div>`;
+}

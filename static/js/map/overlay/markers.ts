@@ -17,6 +17,7 @@ import {updateAllLabelsDisappearTime} from "./labels";
 import {SpawnState, ISpawn, ISpawnDetail, SpawnDetail} from "../../data/spawn";
 import spawnBar from "../../interface/bar/spawnbar";
 import {isTouchDevice} from "../../environment";
+import {ILocation} from "../../members/location";
 
 let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
@@ -459,4 +460,21 @@ export function createScannedMarker (item): Marker {
     });
 
     return new Marker(marker, null);
+}
+
+export function createLocationMarker (location: ILocation): Marker {
+
+    let mapObject = new core.google.maps.Marker({
+        position: {
+            lat: location.latitude,
+            lng: location.longitude,
+        },
+        map: core.map,
+        zIndex: 2,
+    });
+    let infoWindow = new core.google.maps.InfoWindow({
+        content: labels.locationLabel(location.name, location.latitude, location.longitude),
+        disableAutoPan: true,
+    });
+    return new Marker(mapObject, infoWindow);
 }

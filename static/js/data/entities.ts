@@ -1,6 +1,7 @@
 /// <reference path="../../../typings/globals/jquery/index.d.ts" />
 
 import {IMarker} from "../map/overlay/markers";
+import {IMember, Member} from "../members/server";
 export const gymTypes = ["Uncontested", "Mystic", "Valor", "Instinct"];
 
 export interface IMapData {
@@ -10,6 +11,7 @@ export interface IMapData {
     lurePokemons: { [id: string]: IMapElement } ;
     scanned: { [id: string]: IMapElement } ;
     spawnpoints: { [id: string]: IMapElement } ;
+    locations: { [id: string]: IMapElement } ;
 }
 
 export interface IMapElement {
@@ -27,8 +29,13 @@ export class MapData implements IMapData {
     public lurePokemons: { [id: string]: IMapElement } = {};
     public scanned: { [id: string]: IMapElement } = {};
     public spawnpoints: { [id: string]: IMapElement } = {};
+    public locations: { [id: string]: IMapElement } = {};
 }
 
+export class Core {
+    public member: IMember = new Member();
+}
+export var core = new Core();
 export var mapData = new MapData();
 
 export function clearMemberMapData() {
@@ -36,6 +43,8 @@ export function clearMemberMapData() {
     mapData.scanned = {};
     clearMarkersIn(mapData.pokemons);
     mapData.pokemons = {};
+    clearMarkersIn(mapData.locations);
+    mapData.locations = {};
 }
 
 export function clearAllMapData() {

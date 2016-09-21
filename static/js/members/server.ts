@@ -73,4 +73,8 @@ export function registerChangeCallback(callback: (member: IMember, previousMembe
         throw "Don't do it twice, fool";
     }
     memberChangeCallback = callback;
+    // Trigger if already was set
+    if (currentMember && memberChangeCallback) {
+        memberChangeCallback(currentMember, null);
+    }
 }

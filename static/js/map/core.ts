@@ -31,3 +31,7 @@ export function onFinishedMove( finishedMoveCallback: () => void ) {
     core.google.maps.event.addListener(core.map, 'idle', () => {
         finishedMoveCallback(); }) ;
 }
+
+export function onLoad( loadCallback: () => void ) {
+    throw "not implemented yet"
+}
