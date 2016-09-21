@@ -1,7 +1,7 @@
 /// <reference path="../../../typings/globals/jquery/index.d.ts" />
 
 import {IMarker} from "../map/overlay/markers";
-import {IMember, Member} from "../members/server";
+import {IMember} from "../members/members";
 export const gymTypes = ["Uncontested", "Mystic", "Valor", "Instinct"];
 
 export interface IMapData {
@@ -32,25 +32,26 @@ export class MapData implements IMapData {
     public locations: { [id: string]: IMapElement } = {};
 }
 
-export class Core {
-    public member: IMember = new Member();
+export class CoreSingleton {
+    public member: IMember;
+    public mapData = new MapData();
 }
-export var core = new Core();
-export var mapData = new MapData();
+export var Core = new CoreSingleton();
+export default Core;
 
 export function clearMemberMapData() {
-    clearMarkersIn(mapData.scanned);
-    mapData.scanned = {};
-    clearMarkersIn(mapData.pokemons);
-    mapData.pokemons = {};
-    clearMarkersIn(mapData.locations);
-    mapData.locations = {};
+    clearMarkersIn(Core.mapData.scanned);
+    Core.mapData.scanned = {};
+    clearMarkersIn(Core.mapData.pokemons);
+    Core.mapData.pokemons = {};
+    clearMarkersIn(Core.mapData.locations);
+    Core.mapData.locations = {};
 }
 
 export function clearAllMapData() {
-    for (let type in mapData) {
-        clearMarkersIn(mapData[type]);
-        mapData[type] = {};
+    for (let type in Core.mapData) {
+        clearMarkersIn(Core.mapData[type]);
+        Core.mapData[type] = {};
     }
 }
 
@@ -61,3 +62,4 @@ function clearMarkersIn(items: { [id: string]: IMapElement } ) {
         }
     }
 }
+

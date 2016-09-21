@@ -4,6 +4,6 @@ define(function (require) {
     require("interface/bar/sidebar")
     require("interface/bar/spawnbar")
     require("interface/bar/statsbar")
-    require("members/load");
+    require("members/members");
 });
 //# sourceMappingURL=main.js.map

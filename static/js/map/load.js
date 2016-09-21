@@ -4,6 +4,6 @@ define((require) => {
         "use strict";
         var main = require("../map");
         var core = require("./core");
-        core.map = main.initMap();
+        map.googleMap = main.initMap();
     });
 })

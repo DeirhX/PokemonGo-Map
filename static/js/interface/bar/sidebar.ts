@@ -1,13 +1,12 @@
 /// <reference path="../../../../typings/globals/jquery/index.d.ts" />
 /// <reference path="../../../../typings/globals/select2/index.d.ts" />
 
-import {Store} from "../../store";
-import core from "../../map/core";
-import {pokemonSprites} from "../../assets/sprites";
-import {centerMap} from "../../map/core";
-import * as mapStyles from "../../map/styles";
-import {i8ln} from "../../assets/strings";
+import {Store} from "store";
+import {pokemonSprites} from "assets/sprites";
+import * as mapStyles from "map/styles";
+import {i8ln} from "assets/strings";
 import {Bar} from "../bar";
+import {Google, map} from "map/map";
 
 let sideBar = new Bar("nav");
 export default sideBar;
@@ -26,7 +25,7 @@ export function initSidebar() {
     $("#sound-switch").prop("checked", Store.get("playSound"));
     $("#next-location").css("background-color", $("#geoloc-switch").prop("checked") ? "#e0e0e0" : "#ffffff");
 
-    const searchBox = new core.google.maps.places.SearchBox(document.getElementById("next-location"));
+    const searchBox = new Google.maps.places.SearchBox(document.getElementById("next-location"));
     searchBox.addListener("places_changed", () => {
         const places = searchBox.getPlaces();
 
@@ -35,7 +34,7 @@ export function initSidebar() {
         }
 
         const loc = places[0].geometry.location;
-        centerMap(loc.lat(), loc.lng());
+        map.centerMap(loc.lat(), loc.lng());
     });
 
     const icons = $("#pokemon-icons");

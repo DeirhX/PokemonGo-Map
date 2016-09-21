@@ -2,19 +2,7 @@
 
 import {applyLoginState} from "./visual";
 import {ILocation} from "./location";
-
-export interface IMember {
-    id: number;
-    email: string;
-    username: string;
-    token: string;
-    locations: ILocation[];
-
-    refreshLocations(): void;
-}
-
-let memberChangeCallback: (member: IMember, previousMember: IMember) => void;
-let currentMember: IMember;
+import {IMember, members} from "./members";
 
 export class Member implements IMember {
     public id: number;
@@ -37,10 +25,7 @@ export function getLoginStateAsync (callback: (result: IMember) => void) {
     }).done(member => {
         applyLoginState(member);
         callback(member);
-        if (memberChangeCallback) {
-            memberChangeCallback(member, currentMember);
-        }
-        currentMember = member;
+        updateCurrentMember(member);
     });
 }
 
@@ -53,10 +38,7 @@ export function setLoginStateAsync (googleToken: string, callback: (result: IMem
     }).done(member => {
         applyLoginState(member);
         callback(member);
-        if (memberChangeCallback) {
-            memberChangeCallback(member, currentMember);
-        }
-        currentMember = member;
+        updateCurrentMember(member);
     });
 }
 
@@ -68,13 +50,11 @@ export function serverSignOut(callback?: () => void) {
     });
 }
 
-export function registerChangeCallback(callback: (member: IMember, previousMember: IMember) => void) {
-    if (memberChangeCallback) {
-        throw "Don't do it twice, fool";
+function updateCurrentMember(member: IMember) {
+    if (members.current.id === member.id) {
+        members.MemberChanged.fire({previous: members.current, current: members.current });
+    } else {
+        members.MemberChanged.fire({previous: members.current, current: member });
     }
-    memberChangeCallback = callback;
-    // Trigger if already was set
-    if (currentMember && memberChangeCallback) {
-        memberChangeCallback(currentMember, null);
-    }
+    members.current = member;
 }

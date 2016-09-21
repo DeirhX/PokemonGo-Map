@@ -1,6 +1,6 @@
 
-import core from "./core";
 import {Store} from "../store";
+import {map, Google} from "./map";
 
 export const mapStyles = {
     noLabelsStyle: [{
@@ -602,51 +602,51 @@ export const mapStyles = {
 
 export function initStyles () {
 
-    var styleNoLabels = new core.google.maps.StyledMapType(mapStyles.noLabelsStyle, {
+    var styleNoLabels = new Google.maps.StyledMapType(mapStyles.noLabelsStyle, {
         name: 'No Labels'
     })
-    core.map.mapTypes.set('nolabels_style', styleNoLabels)
+    map.googleMap.mapTypes.set('nolabels_style', styleNoLabels)
 
-    var styleDark = new core.google.maps.StyledMapType(mapStyles.darkStyle, {
+    var styleDark = new Google.maps.StyledMapType(mapStyles.darkStyle, {
         name: 'Dark'
     })
-    core.map.mapTypes.set('dark_style', styleDark)
+    map.googleMap.mapTypes.set('dark_style', styleDark)
 
-    var styleLight2 = new core.google.maps.StyledMapType(mapStyles.light2Style, {
+    var styleLight2 = new Google.maps.StyledMapType(mapStyles.light2Style, {
         name: 'Light2'
     })
-    core.map.mapTypes.set('style_light2', styleLight2)
+    map.googleMap.mapTypes.set('style_light2', styleLight2)
 
-    var stylePgo = new core.google.maps.StyledMapType(mapStyles.pGoStyle, {
+    var stylePgo = new Google.maps.StyledMapType(mapStyles.pGoStyle, {
         name: 'PokemonGo'
     })
-    core.map.mapTypes.set('style_pgo', stylePgo)
+    map.googleMap.mapTypes.set('style_pgo', stylePgo)
 
-    var styleDarkNl = new core.google.maps.StyledMapType(mapStyles.darkStyleNoLabels, {
+    var styleDarkNl = new Google.maps.StyledMapType(mapStyles.darkStyleNoLabels, {
         name: 'Dark (No Labels)'
     })
-    core.map.mapTypes.set('dark_style_nl', styleDarkNl)
+    map.googleMap.mapTypes.set('dark_style_nl', styleDarkNl)
 
-    var styleLight2Nl = new core.google.maps.StyledMapType(mapStyles.light2StyleNoLabels, {
+    var styleLight2Nl = new Google.maps.StyledMapType(mapStyles.light2StyleNoLabels, {
         name: 'Light2 (No Labels)'
     })
-    core.map.mapTypes.set('style_light2_nl', styleLight2Nl)
+    map.googleMap.mapTypes.set('style_light2_nl', styleLight2Nl)
 
-    var stylePgoNl = new core.google.maps.StyledMapType(mapStyles.pGoStyleNoLabels, {
+    var stylePgoNl = new Google.maps.StyledMapType(mapStyles.pGoStyleNoLabels, {
         name: 'PokemonGo (No Labels)'
     })
-    core.map.mapTypes.set('style_pgo_nl', stylePgoNl)
+    map.googleMap.mapTypes.set('style_pgo_nl', stylePgoNl)
 
-    core.map.setMapTypeId(Store.get('map_style'))
+    map.googleMap.setMapTypeId(Store.get('map_style'))
 }
 
 export function watchStyleChange() {
 
-    core.map.addListener('maptypeid_changed', function (s) {
+    map.googleMap.addListener('maptypeid_changed', function (s) {
         Store.set('map_style', this.mapTypeId)
     })
 }
 
 export function setStyle(mapStyle) {
-    core.map.setMapTypeId(mapStyle);
+    map.googleMap.setMapTypeId(mapStyle);
 }

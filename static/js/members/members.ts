@@ -2,8 +2,32 @@
 
 import * as server from "./server";
 import * as signin from "./googlesignin";
+import {ILocation} from "./location";
+import {LiteEvent} from "../core/events";
 
-var googlePlatform = require(["https://apis.google.com/js/1platform.js"], () => {
+export interface IMember {
+    id: number;
+    email: string;
+    username: string;
+    token: string;
+    locations: ILocation[];
+
+    refreshLocations(): void;
+}
+
+export interface IMemberChanged {
+    previous: IMember;
+    current: IMember;
+}
+export class Members {
+    public current: IMember;
+    public get MemberChanged(): LiteEvent<IMemberChanged> { return this.memberChanged; }
+
+    private memberChanged = new LiteEvent<IMemberChanged>();
+}
+export let members = new Members();
+
+var googlePlatform = require(["https://apis.google.com/js/platform.js"], () => {
     "use strict";
 
     server.getLoginStateAsync((member) => {
