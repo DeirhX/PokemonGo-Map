@@ -33,5 +33,5 @@ export function onFinishedMove( finishedMoveCallback: () => void ) {
 }
 
 export function onLoad( loadCallback: () => void ) {
-    throw "not implemented yet"
+    // throw "not implemented yet";
 }

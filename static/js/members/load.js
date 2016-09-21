@@ -1,5 +1,5 @@
 define((require) => {
-    var googlePlatform = require(["https://apis.google.com/js/platform.js"], () => {
+    var googlePlatform = require(["https://apis.google.com/js/1platform.js"], () => {
         "use strict";
         var signin = require("./googlesignin");
         var server = require("./server");
