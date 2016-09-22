@@ -3,6 +3,7 @@
 
 import {IMarker} from "./overlay/markers";
 import {ILocation} from "../data/location";
+import {core} from "../core/base";
 
 
 export interface IMapElement extends ILocation {
@@ -12,6 +13,12 @@ export interface IMapElement extends ILocation {
 
 export class Map {
     public googleMap: google.maps.Map;
+    public isLoaded: boolean;
+
+    constructor(googleMap: google.maps.Map) {
+        this.googleMap = googleMap;
+        this.onLoad(() => this.isLoaded = true);
+    }
 
     public getBounds() {
         return this.googleMap.getBounds();
@@ -29,23 +36,20 @@ export class Map {
 
     public onCenterChange(centerChangedCallback: (lat: number, lng: number) => void) {
         google.maps.event.addListener(this.googleMap, "idle", () => {
-            centerChangedCallback(map.googleMap.getCenter().lat(), map.googleMap.getCenter().lng()); });
+            centerChangedCallback(this.googleMap.getCenter().lat(), core.map.googleMap.getCenter().lng()); });
     }
 
     public onZoomChange(zoomChangedCallback: (zoomLevel: number) => void) {
-        google.maps.event.addListener(map.googleMap, "zoom_changed", () => {
-            zoomChangedCallback(map.googleMap.getZoom()); });
+        google.maps.event.addListener(this.googleMap, "zoom_changed", () => {
+            zoomChangedCallback(this.googleMap.getZoom()); });
     }
 
     public onFinishedMove( finishedMoveCallback: () => void ) {
-        google.maps.event.addListener(map.googleMap, 'idle', () => {
+        google.maps.event.addListener(this.googleMap, 'idle', () => {
             finishedMoveCallback(); }) ;
     }
 
     public onLoad( loadCallback: () => void ) {
-        // throw "not implemented yet";
+        google.maps.event.addListenerOnce(this.googleMap, 'projection_changed', loadCallback);
     }
 }
-
-export let map = new Map();
-export default map;

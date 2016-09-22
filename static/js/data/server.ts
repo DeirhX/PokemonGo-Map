@@ -1,5 +1,5 @@
 import {Store} from "../store";
-import map from "../map/map";
+import {core} from "../core/base";
 
 let lastReceivedObjects;
 let rawDataIsLoading = false;
@@ -11,7 +11,7 @@ export function loadRawData (incremental) {
     let loadScanned = Store.get("showScanned");
     let loadSpawnpoints = Store.get("showSpawnpoints")
 
-    let bounds = map.googleMap.getBounds();
+    let bounds = core.map.googleMap.getBounds();
     let swPoint = bounds.getSouthWest();
     let nePoint = bounds.getNorthEast();
     let swLat = swPoint.lat();

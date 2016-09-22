@@ -1,9 +1,12 @@
 /// <reference path="../../../typings/globals/require/index.d.ts" />
 /// <reference path="../../../typings/globals/googlemaps/index.d.ts" />
-define(["require", "exports"], function (require, exports) {
+define(["require", "exports", "../core/base"], function (require, exports, base_1) {
     "use strict";
     var Map = (function () {
-        function Map() {
+        function Map(googleMap) {
+            var _this = this;
+            this.googleMap = googleMap;
+            this.onLoad(function () { return _this.isLoaded = true; });
         }
         Map.prototype.getBounds = function () {
             return this.googleMap.getBounds();
@@ -16,27 +19,26 @@ define(["require", "exports"], function (require, exports) {
             }
         };
         Map.prototype.onCenterChange = function (centerChangedCallback) {
+            var _this = this;
             google.maps.event.addListener(this.googleMap, "idle", function () {
-                centerChangedCallback(exports.map.googleMap.getCenter().lat(), exports.map.googleMap.getCenter().lng());
+                centerChangedCallback(_this.googleMap.getCenter().lat(), base_1.core.map.googleMap.getCenter().lng());
             });
         };
         Map.prototype.onZoomChange = function (zoomChangedCallback) {
-            google.maps.event.addListener(exports.map.googleMap, "zoom_changed", function () {
-                zoomChangedCallback(exports.map.googleMap.getZoom());
+            var _this = this;
+            google.maps.event.addListener(this.googleMap, "zoom_changed", function () {
+                zoomChangedCallback(_this.googleMap.getZoom());
             });
         };
         Map.prototype.onFinishedMove = function (finishedMoveCallback) {
-            google.maps.event.addListener(exports.map.googleMap, 'idle', function () {
+            google.maps.event.addListener(this.googleMap, 'idle', function () {
                 finishedMoveCallback();
             });
         };
         Map.prototype.onLoad = function (loadCallback) {
-            // throw "not implemented yet";
+            google.maps.event.addListenerOnce(this.googleMap, 'projection_changed', loadCallback);
         };
         return Map;
     }());
     exports.Map = Map;
-    exports.map = new Map();
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.default = exports.map;
 });

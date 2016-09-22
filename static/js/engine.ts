@@ -1,7 +1,6 @@
 import {clearMemberMapData, Core, IPokemon, IPokestop, IScannedCell, IGym} from "./data/entities";
 import {members} from "./members/members";
 import * as server from "./data/server";
-import {map} from "./map/map";
 import * as markers from "map/overlay/markers";
 import {Store} from "./store";
 import {pokemonSprites} from "./assets/sprites";
@@ -10,14 +9,16 @@ import {Spawn} from "./data/spawn";
 import {createSpawnMarker} from "./map/overlay/markers";
 import {countMarkers} from "./stats";
 import {createPokemonMarker} from "./map/overlay/markers";
+import {core} from "./core/base";
 
 export var excludedPokemon = []
 
 export function initialize() {
+
     members.MemberChanged.on((memberChange) => {
         "use strict";
         console.log("Member changed.");
-        if (memberChange.previous && map.googleMap.getBounds()) {
+        if (memberChange.previous && core.map.googleMap.getBounds()) {
             // Is already loaded with content?
             clearMemberMapData();
             updateMap(false);
@@ -31,10 +32,10 @@ export function initialize() {
             }
         }
 
-        if (map.googleMap.getBounds()) {
+        if (core.map.isLoaded) {
             addLocationMarkers();
         } else {
-            map.onLoad(() => addLocationMarkers());
+            core.map.onLoad(() => addLocationMarkers());
         }
     });
 }
@@ -116,14 +117,14 @@ export function showInBoundsMarkers (markers) {
         if (!markers[key].hidden) {
             var bounds = marker.getBounds();
             if (bounds) {
-                if (map.getBounds().intersects(marker.getBounds())) {
-                    show = true
+                if (core.map.getBounds().intersects(marker.getBounds())) {
+                    show = true;
                 }
             } else {
                 var position = marker.getPosition();
                 if (position) {
-                    if (map.getBounds().contains(marker.getPosition())) {
-                        show = true
+                    if (core.map.getBounds().contains(marker.getPosition())) {
+                        show = true;
                     }
                 }
             }

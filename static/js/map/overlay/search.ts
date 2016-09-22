@@ -2,7 +2,7 @@
 /// <reference path="../../../../typings/globals/jquery/index.d.ts" />
 
 import {Store} from "../../store";
-import {map} from "../map";
+import {core} from "../../core/base";
 
 export let searchMarker;
 let searchMarkerStyles;
@@ -10,7 +10,7 @@ let searchMarkerStyles;
 export function createSearchMarker(lat, lng) {
     searchMarker = new google.maps.Marker({ // need to keep reference.
         position: {lat, lng},
-        map: map.googleMap,
+        map: core.map.googleMap,
         animation: google.maps.Animation.DROP,
         draggable: !Store.get("lockMarker"),
         icon: null,

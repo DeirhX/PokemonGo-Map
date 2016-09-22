@@ -2,7 +2,6 @@
 /// <reference path="../../../../typings/globals/googlemaps/index.d.ts" />
 
 
-import map from "map/map";
 import {gymTypes, IPokestop, IGym, IPokemon, IScannedCell} from "../../data/entities";
 import * as labels from "./labels";
 import * as utils from "../../utils";
@@ -18,6 +17,7 @@ import {SpawnState, ISpawn, ISpawnDetail, SpawnDetail} from "../../data/spawn";
 import spawnBar from "../../interface/bar/spawnbar";
 import {isTouchDevice} from "../../environment";
 import {ILocation} from "../../members/location";
+import {core} from "../../core/base";
 
 let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
@@ -106,7 +106,7 @@ export class Marker implements IMarker {
 
         infoWindowsOpen = [];
         if (isOpen) {
-            this.infoWindow.open(map.googleMap, this.marker);
+            this.infoWindow.open(core.map.googleMap, this.marker);
             infoWindowsOpen.push(this.infoWindow);
         } else if (this.infoWindow) {
             this.infoWindow.close();
@@ -116,7 +116,7 @@ export class Marker implements IMarker {
         this.infoWindow.setContent(htmlContent);
     }
     public show() {
-        this.mapObject.setMap(map.googleMap);
+        this.mapObject.setMap(core.map.googleMap);
     }
     public hide() {
         this.mapObject.setMap(null);
@@ -281,7 +281,7 @@ export function createGymMarker(item: IGym): Marker {
             lng: item.longitude,
         },
         zIndex: 5,
-        map: map.googleMap,
+        map: core.map.googleMap,
         icon: "static/forts/" + gymTypes[item.team_id] + ".png",
     });
 
@@ -300,7 +300,7 @@ export function createPokestopMarker (item: IPokestop): Marker {
             lat: item.latitude,
             lng: item.longitude,
         },
-        map: map.googleMap,
+        map: core.map.googleMap,
         zIndex: 2,
     });
     mapObject.setIcon(sprites.getPokestopIcon(item));
@@ -320,7 +320,7 @@ export function createSpawnMarker(item: ISpawn): Marker {
             lng: item.longitude,
         },
         zIndex: 3,
-        map: map.googleMap,
+        map: core.map.googleMap,
         icon: {
             url: "static/images/spawn.png",
             size: new google.maps.Size(16, 16),
@@ -405,7 +405,7 @@ export function createSpawnMarker(item: ISpawn): Marker {
 
 export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNotification?: boolean, isBounceDisabled?: boolean): Marker {
     // Scale icon size up with the map exponentially
-    const iconSize = 2 + (map.googleMap.getZoom() - 3) * (map.googleMap.getZoom() - 3) * 0.2 + Store.get("iconSizeModifier");
+    const iconSize = 2 + (core.map.googleMap.getZoom() - 3) * (core.map.googleMap.getZoom() - 3) * 0.2 + Store.get("iconSizeModifier");
     const pokemonIndex = item.pokemon_id - 1;
     const sprite = pokemonSprites[Store.get("pokemonIcons")] || pokemonSprites.highres;
     const icon = getGoogleSprite(pokemonIndex, sprite, iconSize);
@@ -415,7 +415,7 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
             lat: item.latitude,
             lng: item.longitude,
         },
-        map: map.googleMap,
+        map: core.map.googleMap,
         icon: icon,
         zIndex: 10,
     });
@@ -449,7 +449,7 @@ export function createScannedMarker (item: IScannedCell): Marker {
     const circleCenter = new google.maps.LatLng(item.latitude, item.longitude);
 
     let marker = new google.maps.Circle({
-        map: map.googleMap,
+        map: core.map.googleMap,
         center: circleCenter,
         radius: 70, // metres
         fillColor: labels.getColorByDate(item.last_update),
@@ -468,7 +468,7 @@ export function createLocationMarker (location: ILocation): Marker {
             lat: location.latitude,
             lng: location.longitude,
         },
-        map: map.googleMap,
+        map: core.map.googleMap,
         zIndex: 2,
     });
     let infoWindow = new google.maps.InfoWindow({

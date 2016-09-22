@@ -1,12 +1,11 @@
-import map from "map/map";
-
+import {core} from "../../core/base";
 export function addMyLocationButton(lat: number, lng: number): void {
 
-    let locationMarker = createMyLocationMarker(map.googleMap, lat, lng);
-    let locationButton = createMyLocationButton(map.googleMap);
+    let locationMarker = createMyLocationMarker(core.map.googleMap, lat, lng);
+    let locationButton = createMyLocationButton(core.map.googleMap);
 
-    locationMarker.setMap(map.googleMap);
-    map.googleMap.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(locationButton);
+    locationMarker.setMap(core.map.googleMap);
+    core.map.googleMap.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(locationButton);
     beginUpdateLocationOnPress(locationButton, locationMarker);
 }
 
@@ -17,7 +16,7 @@ export function beginUpdateLocationOnPress(locationButton: any, locationMarker: 
     });
 
     // Fade out my location if map is panned
-    google.maps.event.addListener(map.googleMap, 'dragend', function () {
+    google.maps.event.addListener(core.map.googleMap, 'dragend', function () {
         let currentLocation = document.getElementById('current-location');
         currentLocation.style.backgroundPosition = '0px 0px';
         locationMarker.setOptions({
@@ -98,7 +97,7 @@ function centerMapMyOnLocation(locationMarker) {
                 'opacity': 1,
             })
             locationMarker.setPosition(latlng);
-            map.googleMap.setCenter(latlng);
+            core.map.googleMap.setCenter(latlng);
             clearInterval(animationInterval);
             currentLocation.style.backgroundPosition = '-144px 0px';
         });

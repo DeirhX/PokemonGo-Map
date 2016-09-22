@@ -8,18 +8,14 @@ define(function (require) {
     var markers = require("map/overlay/markers");
     var notifications = require("notifications");
     var mapcore = require("map/map");
-    var entities = require("data/entities");
-    var sprites = require("assets/sprites");
     var sidebar = require("interface/bar/sidebar");
     var myLocation = require("map/overlay/mylocation");
     var labels = require("map/overlay/labels");
     var strings = require("assets/strings");
-    var stats = require("stats");
-    var spawns = require("data/spawn");
     var mapData = require("data/entities").Core.mapData;
     var spawntip = require("interface/tooltip/spawntip");
-    var memberServer = require("members/members");
     var engine = require("engine");
+    var core = require("core/base").core;
 
     var $selectExclude
     var $selectPokemonNotify
@@ -81,12 +77,12 @@ define(function (require) {
             }
         })
         // TEMPORARY //
-        mapcore.map.googleMap = map;
+        core.map = new mapcore.Map(map);
 
         mapStyles.initStyles();
         mapStyles.watchStyleChange();
 
-        mapcore.map.onCenterChange((lat, lng) => {
+        core.map.onCenterChange((lat, lng) => {
             if (history.pushState) {
                 var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname +
                     `?lat=${String(lat).substring(0, 8)}&lng=${String(lng).substring(0, 8)}`;
@@ -99,7 +95,7 @@ define(function (require) {
         myLocation.addMyLocationButton(centerLat, centerLng);
         sidebar.initSidebar();
 
-        mapcore.map.onFinishedMove(() => engine.updateMap());
+        core.map.onFinishedMove(() => engine.updateMap());
 
         notifications.initNotifications();
 
@@ -150,7 +146,7 @@ define(function (require) {
         $("#owned-locations, #shared-locations, #shared-locations-guest").on('change', function() {
             var location = $(this).find(":selected").data("value");
             if (location.latitude && location.longitude) {
-                mapcore.map.setCenter(new google.maps.LatLng(location.latitude, location.longitude));
+                core.map.setCenter(new google.maps.LatLng(location.latitude, location.longitude));
             }
         });
 
@@ -158,7 +154,7 @@ define(function (require) {
 
         initPage2();
 
-        mapcore.map.onZoomChange((lat, lng, zoom) => {
+        core.map.onZoomChange((lat, lng, zoom) => {
             engine.redrawPokemon(mapData.pokemons);
             engine.redrawPokemon(mapData.lurePokemons)
         });
@@ -369,11 +365,13 @@ define(function (require) {
             search.searchMarker.setPosition(e.latLng);
             var lat = e.latLng.lat();
             var lng = e.latLng.lng();
-            $('button.home-map-scan div.status small')[0].innerHTML = 'Click to scan [' +
-                Math.round(search.searchMarker.getPosition().lat() * 10000) / 10000 + ',' +
-                Math.round(search.searchMarker.getPosition().lng() * 10000) / 10000 + '] ';
-            if ($('.home-map-scan').hasClass('started').length) {
-                $('.home-map-scan').removeClass('started');
+            if ($('button.home-map-scan div.status small').length) {
+                $('button.home-map-scan div.status small')[0].innerHTML = 'Click to scan [' +
+                    Math.round(search.searchMarker.getPosition().lat() * 10000) / 10000 + ',' +
+                    Math.round(search.searchMarker.getPosition().lng() * 10000) / 10000 + '] ';
+                if ($('.home-map-scan').hasClass('started').length) {
+                    $('.home-map-scan').removeClass('started');
+                }
             }
         });
 

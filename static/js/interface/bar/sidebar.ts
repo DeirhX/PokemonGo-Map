@@ -6,7 +6,7 @@ import {pokemonSprites} from "assets/sprites";
 import * as mapStyles from "map/styles";
 import {i8ln} from "assets/strings";
 import {Bar} from "../bar";
-import {map} from "map/map";
+import {core} from "../../core/base";
 
 let sideBar = new Bar("nav");
 export default sideBar;
@@ -34,7 +34,7 @@ export function initSidebar() {
         }
 
         const loc = places[0].geometry.location;
-        map.centerMap(loc.lat(), loc.lng());
+        core.map.centerMap(loc.lat(), loc.lng());
     });
 
     const icons = $("#pokemon-icons");

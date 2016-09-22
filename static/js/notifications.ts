@@ -1,4 +1,4 @@
-import {map} from "./map/map";
+import {core} from "./core/base";
 declare var Notification; // TODO: Get api typing
 
 export let notifiedPokemon = [];
@@ -35,7 +35,7 @@ export function sendNotification (title, text, icon, lat, lng) {
             window.focus();
             notification.close();
 
-            map.centerMap(lat, lng, 20);
+            core.map.centerMap(lat, lng, 20);
         };
     }
 }
