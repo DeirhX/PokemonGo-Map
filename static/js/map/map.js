@@ -42,3 +42,4 @@ define(["require", "exports", "../core/base"], function (require, exports, base_
     }());
     exports.Map = Map;
 });
+//# sourceMappingURL=map.js.map

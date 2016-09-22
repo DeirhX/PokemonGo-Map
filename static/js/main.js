@@ -1,4 +1,5 @@
 define(function (require) {
+    require("core/base");
     require("map/load");
     require("stats");
     require("interface/bar/sidebar")

@@ -2,7 +2,8 @@
 
 import {applyLoginState} from "./visual";
 import {ILocation} from "./location";
-import {IMember, members} from "./members";
+import {IMember} from "./members";
+import {core} from "../core/base";
 
 export class Member implements IMember {
     public id: number;
@@ -51,10 +52,17 @@ export function serverSignOut(callback?: () => void) {
 }
 
 function updateCurrentMember(member: IMember) {
-    if (members.current && (members.current.id === member.id)) {
-        members.MemberChanged.fire({previous: members.current, current: members.current });
-    } else {
-        members.MemberChanged.fire({previous: members.current, current: member });
+    if (!member) {
+        member = new Member();
+        member.id = 0;
+        member.locations = [];
     }
-    members.current = member;
+
+    const previous = core.members.current;
+    if (previous && (previous.id === member.id)) {
+        core.members.MemberChanged.fire({previous: previous, current: previous });
+    } else {
+        core.members.MemberChanged.fire({previous: previous, current: member });
+    }
+    core.members.current = member;
 }

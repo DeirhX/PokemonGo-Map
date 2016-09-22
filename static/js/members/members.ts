@@ -19,25 +19,29 @@ export interface IMemberChanged {
     previous: IMember;
     current: IMember;
 }
-export class Members {
+export class Membership {
     public current: IMember;
     public get MemberChanged(): LiteEvent<IMemberChanged> { return this.memberChanged; }
 
     private memberChanged = new LiteEvent<IMemberChanged>();
+
+    constructor() {
+        initializeMembership();
+    }
 }
-export let members = new Members();
 
-var googlePlatform = require(["https://apis.google.com/js/platform.js"], () => {
-    "use strict";
+export function initializeMembership() {
+    require(["https://apis.google.com/js/platform.js"], () => {
+        "use strict";
 
-    server.getLoginStateAsync((member) => {
-        signin.finishInit(() => {
-            signin.connectButtons();
-            if (!member.id) {
-                signin.clientSignOut();
-            }
+        server.getLoginStateAsync((member) => {
+            signin.finishInit(() => {
+                signin.connectButtons();
+                if (!member.id) {
+                    signin.clientSignOut();
+                }
+            });
         });
     });
-});
-
+}
 

@@ -126,3 +126,4 @@ define(["require", "exports", "./store"], function (require, exports, store_1) {
         };
     }
 });
+//# sourceMappingURL=stats.js.map

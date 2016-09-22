@@ -1,5 +1,4 @@
 import {clearMemberMapData, Core, IPokemon, IPokestop, IScannedCell, IGym} from "./data/entities";
-import {members} from "./members/members";
 import * as server from "./data/server";
 import * as markers from "map/overlay/markers";
 import {Store} from "./store";
@@ -10,34 +9,35 @@ import {createSpawnMarker} from "./map/overlay/markers";
 import {countMarkers} from "./stats";
 import {createPokemonMarker} from "./map/overlay/markers";
 import {core} from "./core/base";
+import {ILocation} from "./members/location";
+import {IMemberChanged} from "./members/members";
 
 export var excludedPokemon = []
 
 export function initialize() {
 
-    members.MemberChanged.on((memberChange) => {
-        "use strict";
-        console.log("Member changed.");
-        if (memberChange.previous && core.map.googleMap.getBounds()) {
-            // Is already loaded with content?
-            clearMemberMapData();
-            updateMap(false);
-        }
-        function addLocationMarkers() {
-            if (memberChange.current.locations) {
-                for (let location of memberChange.current.locations) {
-                    location.marker = markers.createLocationMarker(location);
-                    Core.mapData.locations[location.id] = location;
-                }
-            }
-        }
-
-        if (core.map.isLoaded) {
-            addLocationMarkers();
-        } else {
-            core.map.onLoad(() => addLocationMarkers());
-        }
+    // React to member change
+    core.members.MemberChanged.on((memberChange) => {
+        onMemberChanged(memberChange);
     });
+    if (core.members.current) {
+        onMemberChanged({ previous: null, current: core.members.current });
+    }
+}
+
+function onMemberChanged(memberChange: IMemberChanged) {
+    console.log("Member changed.");
+    if (memberChange.previous && core.map.googleMap.getBounds()) {
+        // Is already loaded with content?
+        clearMemberMapData();
+        updateMap(false);
+    }
+
+    if (core.map.isLoaded && memberChange.current && memberChange.current.locations) {
+        addLocationMarkers(memberChange.current.locations);
+    } else {
+        core.map.onLoad(() => addLocationMarkers(memberChange.current.locations));
+    }
 }
 
 let updateQueue = [];
@@ -245,6 +245,13 @@ export function processScannedCell (i, item: IScannedCell) {
         }
         item.marker = markers.createScannedMarker(item);
         Core.mapData.scanned[scanId] = item
+    }
+}
+
+function addLocationMarkers(locations: ILocation[]) {
+    for (let location of locations) {
+        location.marker = markers.createLocationMarker(location);
+        Core.mapData.locations[location.id] = location;
     }
 }
 
