@@ -2,20 +2,20 @@
 /// <reference path="../../../../typings/globals/jquery/index.d.ts" />
 
 import {Store} from "../../store";
-import {Google, map} from "../map";
+import {map} from "../map";
 
 export let searchMarker;
 let searchMarkerStyles;
 
 export function createSearchMarker(lat, lng) {
-    searchMarker = new Google.maps.Marker({ // need to keep reference.
+    searchMarker = new google.maps.Marker({ // need to keep reference.
         position: {lat, lng},
         map: map.googleMap,
-        animation: Google.maps.Animation.DROP,
+        animation: google.maps.Animation.DROP,
         draggable: !Store.get("lockMarker"),
         icon: null,
         optimized: false,
-        zIndex: Google.maps.Marker.MAX_ZINDEX + 1,
+        zIndex: google.maps.Marker.MAX_ZINDEX + 1,
     });
     return searchMarker;
 }

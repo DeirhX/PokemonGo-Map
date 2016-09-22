@@ -30,8 +30,6 @@ define(function (require) {
 
     var idToPokemon = {}
 
-    var excludedPokemon = []
-
     var map
 
 

@@ -6,7 +6,7 @@ import {pokemonSprites} from "assets/sprites";
 import * as mapStyles from "map/styles";
 import {i8ln} from "assets/strings";
 import {Bar} from "../bar";
-import {Google, map} from "map/map";
+import {map} from "map/map";
 
 let sideBar = new Bar("nav");
 export default sideBar;
@@ -25,7 +25,7 @@ export function initSidebar() {
     $("#sound-switch").prop("checked", Store.get("playSound"));
     $("#next-location").css("background-color", $("#geoloc-switch").prop("checked") ? "#e0e0e0" : "#ffffff");
 
-    const searchBox = new Google.maps.places.SearchBox(document.getElementById("next-location"));
+    const searchBox = new google.maps.places.SearchBox(<HTMLInputElement> document.getElementById("next-location"));
     searchBox.addListener("places_changed", () => {
         const places = searchBox.getPlaces();
 

@@ -1,5 +1,4 @@
 import map from "map/map";
-import {Google} from "../map";
 
 export function addMyLocationButton(lat: number, lng: number): void {
 
@@ -7,7 +6,7 @@ export function addMyLocationButton(lat: number, lng: number): void {
     let locationButton = createMyLocationButton(map.googleMap);
 
     locationMarker.setMap(map.googleMap);
-    map.googleMap.controls[Google.maps.ControlPosition.RIGHT_BOTTOM].push(locationButton);
+    map.googleMap.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(locationButton);
     beginUpdateLocationOnPress(locationButton, locationMarker);
 }
 
@@ -18,7 +17,7 @@ export function beginUpdateLocationOnPress(locationButton: any, locationMarker: 
     });
 
     // Fade out my location if map is panned
-    Google.maps.event.addListener(map.googleMap, 'dragend', function () {
+    google.maps.event.addListener(map.googleMap, 'dragend', function () {
         let currentLocation = document.getElementById('current-location');
         currentLocation.style.backgroundPosition = '0px 0px';
         locationMarker.setOptions({
@@ -28,14 +27,14 @@ export function beginUpdateLocationOnPress(locationButton: any, locationMarker: 
 }
 
 function createMyLocationMarker(map: any, lat: number, lng: number): any {
-    let locationMarker = new Google.maps.Marker({
-        animation: Google.maps.Animation.DROP,
+    let locationMarker = new google.maps.Marker({
+        animation: google.maps.Animation.DROP,
         position: {
             lat,
             lng,
         },
         icon: {
-            path: Google.maps.SymbolPath.CIRCLE,
+            path: google.maps.SymbolPath.CIRCLE,
             fillOpacity: 1,
             fillColor: '#1c8af6',
             scale: 6,
@@ -93,7 +92,7 @@ function centerMapMyOnLocation(locationMarker) {
     }, 500)
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function (position) {
-            var latlng = new Google.maps.LatLng(position.coords.latitude, position.coords.longitude)
+            var latlng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude)
             locationMarker.setVisible(true);
             locationMarker.setOptions({
                 'opacity': 1,

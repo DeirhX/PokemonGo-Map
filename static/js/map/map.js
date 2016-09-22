@@ -1,16 +1,18 @@
 /// <reference path="../../../typings/globals/require/index.d.ts" />
+/// <reference path="../../../typings/globals/googlemaps/index.d.ts" />
 define(["require", "exports"], function (require, exports) {
     "use strict";
-    exports.Google = null;
     exports.map = new Map();
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = exports.map;
     var Map = (function () {
         function Map() {
-            this.googleMap = null;
         }
+        Map.prototype.getBounds = function () {
+            return this.googleMap.getBounds();
+        };
         Map.prototype.centerMap = function (lat, lng, zoom) {
-            var loc = new exports.Google.maps.LatLng(lat, lng);
+            var loc = new google.maps.LatLng(lat, lng);
             this.googleMap.setCenter(loc);
             if (zoom) {
                 this.googleMap.setZoom(zoom);

@@ -1,6 +1,7 @@
+/// <reference path="../../../typings/globals/googlemaps/index.d.ts" />
 
 import {Store} from "../store";
-import {map, Google} from "./map";
+import {map} from "./map";
 
 export const mapStyles = {
     noLabelsStyle: [{
@@ -602,37 +603,37 @@ export const mapStyles = {
 
 export function initStyles () {
 
-    var styleNoLabels = new Google.maps.StyledMapType(mapStyles.noLabelsStyle, {
+    var styleNoLabels = new google.maps.StyledMapType(mapStyles.noLabelsStyle, {
         name: 'No Labels'
     })
     map.googleMap.mapTypes.set('nolabels_style', styleNoLabels)
 
-    var styleDark = new Google.maps.StyledMapType(mapStyles.darkStyle, {
+    var styleDark = new google.maps.StyledMapType(mapStyles.darkStyle, {
         name: 'Dark'
     })
     map.googleMap.mapTypes.set('dark_style', styleDark)
 
-    var styleLight2 = new Google.maps.StyledMapType(mapStyles.light2Style, {
+    var styleLight2 = new google.maps.StyledMapType(mapStyles.light2Style, {
         name: 'Light2'
     })
     map.googleMap.mapTypes.set('style_light2', styleLight2)
 
-    var stylePgo = new Google.maps.StyledMapType(mapStyles.pGoStyle, {
+    var stylePgo = new google.maps.StyledMapType(mapStyles.pGoStyle, {
         name: 'PokemonGo'
     })
     map.googleMap.mapTypes.set('style_pgo', stylePgo)
 
-    var styleDarkNl = new Google.maps.StyledMapType(mapStyles.darkStyleNoLabels, {
+    var styleDarkNl = new google.maps.StyledMapType(mapStyles.darkStyleNoLabels, {
         name: 'Dark (No Labels)'
     })
     map.googleMap.mapTypes.set('dark_style_nl', styleDarkNl)
 
-    var styleLight2Nl = new Google.maps.StyledMapType(mapStyles.light2StyleNoLabels, {
+    var styleLight2Nl = new google.maps.StyledMapType(mapStyles.light2StyleNoLabels, {
         name: 'Light2 (No Labels)'
     })
     map.googleMap.mapTypes.set('style_light2_nl', styleLight2Nl)
 
-    var stylePgoNl = new Google.maps.StyledMapType(mapStyles.pGoStyleNoLabels, {
+    var stylePgoNl = new google.maps.StyledMapType(mapStyles.pGoStyleNoLabels, {
         name: 'PokemonGo (No Labels)'
     })
     map.googleMap.mapTypes.set('style_pgo_nl', stylePgoNl)

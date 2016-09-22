@@ -6,21 +6,27 @@ import * as markers from "map/overlay/markers";
 import {Store} from "./store";
 import {pokemonSprites} from "./assets/sprites";
 import {getColorByDate} from "./map/overlay/labels";
+import {Spawn} from "./data/spawn";
+import {createSpawnMarker} from "./map/overlay/markers";
+import {countMarkers} from "./stats";
+import {createPokemonMarker} from "./map/overlay/markers";
+
+export var excludedPokemon = []
 
 export function initialize() {
-    members.registerChangeCallback((member, prevState) => {
+    members.MemberChanged.on((memberChange) => {
         "use strict";
         console.log("Member changed.");
-        if (prevState && map.getBounds()) {
+        if (memberChange.previous && map.googleMap.getBounds()) {
             // Is already loaded with content?
             clearMemberMapData();
             updateMap(false);
         }
         function addLocationMarkers() {
-            if (member.locations) {
-                for (let location of member.locations) {
+            if (memberChange.current.locations) {
+                for (let location of memberChange.current.locations) {
                     location.marker = markers.createLocationMarker(location);
-                    mapData.locations[location.id] = location;
+                    Core.mapData.locations[location.id] = location;
                 }
             }
         }
@@ -34,12 +40,12 @@ export function initialize() {
 }
 
 let updateQueue = [];
-export function updateMap (incremental) {
+export function updateMap (incremental: boolean) {
     if (!incremental) {
         incremental = false;
     }
-    function doRequest () {
-        server.loadRawData(incremental)
+    function doRequest (doIncremental: boolean) {
+        server.loadRawData(doIncremental)
             .done(result => {
                 $.each(result.pokemons, processPokemons)
                 $.each(result.pokestops, processPokestops)
@@ -54,7 +60,7 @@ export function updateMap (incremental) {
                 showInBoundsMarkers(Core.mapData.spawnpoints)
                 clearStaleMarkers()
                 if ($("#stats").hasClass("visible")) {
-                    stats.countMarkers(Core.mapData);
+                    countMarkers(Core.mapData);
                 }
             })
             .then(() => {
@@ -70,35 +76,35 @@ export function updateMap (incremental) {
     }
     updateQueue.push(incremental);
     if (updateQueue.length === 1) { // Fire request only if the queue was empty
-        doRequest();
+        doRequest(updateQueue[0]);
     }
 }
 
 export function clearStaleMarkers () {
-    $.each(mapData.pokemons, function (key, value) {
-        if (mapData.pokemons[key]['disappear_time'] < new Date().getTime() ||
-            excludedPokemon.indexOf(mapData.pokemons[key]['pokemon_id']) >= 0) {
-            mapData.pokemons[key].marker.delete()
-            delete mapData.pokemons[key]
+    $.each(Core.mapData.pokemons, function (key, value) {
+        if (Core.mapData.pokemons[key]['disappear_time'] < new Date().getTime() ||
+            excludedPokemon.indexOf(Core.mapData.pokemons[key]['pokemon_id']) >= 0) {
+            Core.mapData.pokemons[key].marker.delete()
+            delete Core.mapData.pokemons[key];
         }
     })
 
-    $.each(mapData.lurePokemons, function (key, value) {
-        if (mapData.lurePokemons[key]['lure_expiration'] < new Date().getTime() ||
-            excludedPokemon.indexOf(mapData.lurePokemons[key]['pokemon_id']) >= 0) {
-            mapData.lurePokemons[key].marker.delete()
-            delete mapData.lurePokemons[key]
+    $.each(Core.mapData.lurePokemons, function (key, value) {
+        if (Core.mapData.lurePokemons[key]['lure_expiration'] < new Date().getTime() ||
+            excludedPokemon.indexOf(Core.mapData.lurePokemons[key]['pokemon_id']) >= 0) {
+            Core.mapData.lurePokemons[key].marker.delete()
+            delete Core.mapData.lurePokemons[key];
         }
     })
 
-    $.each(mapData.scanned, function (key, value) {
+    $.each(Core.mapData.scanned, function (key, value) {
         // If older than 15mins remove
-        if (mapData.scanned[key]['last_update'] < (new Date().getTime() - 15 * 60 * 1000)) {
-            mapData.scanned[key].marker.delete()
-            delete mapData.scanned[key]
+        if (Core.mapData.scanned[key]['last_update'] < (new Date().getTime() - 15 * 60 * 1000)) {
+            Core.mapData.scanned[key].marker.delete()
+            delete Core.mapData.scanned[key]
         } else {
             // Update color
-            mapData.scanned[key].marker.setColor(getColorByDate(mapData.scanned[key]['last_update']));
+            Core.mapData.scanned[key].marker.setColor(getColorByDate(Core.mapData.scanned[key]['last_update']));
         }
     });
 }
@@ -145,15 +151,15 @@ export function processPokemons (i, item) {
         return false // in case the checkbox was unchecked in the meantime.
     }
 
-    if (!(item['encounter_id'] in mapData.pokemons) &&
+    if (!(item['encounter_id'] in Core.mapData.pokemons) &&
         excludedPokemon.indexOf(item['pokemon_id']) < 0) {
         // add marker to map and item to dict
         if (item.marker) {
             item.marker.hide()
         }
         if (!item.hidden) {
-            item.marker = markers.createPokemonMarker(item, sprites.pokemonSprites)
-            mapData.pokemons[item['encounter_id']] = item
+            item.marker = createPokemonMarker(item, pokemonSprites)
+            Core.mapData.pokemons[item['encounter_id']] = item
         }
     }
 }
@@ -162,13 +168,13 @@ export function processSpawns (i, rawItem) {
     if (!Store.get('showSpawnpoints')) {
         return false; // in case the checkbox was unchecked in the meantime.
     }
-    let spawn = new spawns.Spawn(rawItem);
+    let spawn = new Spawn(rawItem);
 
-    if (!(spawn.id in mapData.spawnpoints)) {
+    if (!(spawn.id in Core.mapData.spawnpoints)) {
         // add marker to map and item to dict
         if (!rawItem.hidden) {
-            markers.createSpawnMarker(spawn, sprites.pokemonSprites);
-            mapData.spawnpoints[rawItem.id] = spawn;
+            createSpawnMarker(spawn, pokemonSprites);
+            Core.mapData.spawnpoints[rawItem.id] = spawn;
         }
     }
 }
@@ -180,33 +186,33 @@ export function processPokestops (i, item) {
     }
 
     if (Store.get('showLuredPokestopsOnly') && !item['lure_expiration']) {
-        if (mapData.pokestops[item['pokestop_id']] && mapData.pokestops[item['pokestop_id']].marker) {
-            mapData.pokestops[item['pokestop_id']].marker.hide()
-            delete mapData.pokestops[item['pokestop_id']]
+        if (Core.mapData.pokestops[item['pokestop_id']] && Core.mapData.pokestops[item['pokestop_id']].marker) {
+            Core.mapData.pokestops[item['pokestop_id']].marker.hide()
+            delete Core.mapData.pokestops[item['pokestop_id']]
         }
-        return true
+        return true;
     }
 
-    if (!mapData.pokestops[item['pokestop_id']]) { // add marker to map and item to dict
+    if (!Core.mapData.pokestops[item['pokestop_id']]) { // add marker to map and item to dict
         // add marker to map and item to dict
         if (item.marker) {
-            item.marker.hide()
+            item.marker.hide();
         }
         item.marker = markers.createPokestopMarker(item)
-        mapData.pokestops[item['pokestop_id']] = item
+        Core.mapData.pokestops[item['pokestop_id']] = item
     } else {
-        var item2 = mapData.pokestops[item['pokestop_id']]
+        var item2 = Core.mapData.pokestops[item['pokestop_id']]
         if (!!item['lure_expiration'] !== !!item2['lure_expiration']) {
             item2.marker.hide()
             item.marker = markers.createPokestopMarker(item)
-            mapData.pokestops[item['pokestop_id']] = item
+            Core.mapData.pokestops[item['pokestop_id']] = item;
         }
     }
 }
 
 export function removePokemonMarker (encounterId) { // eslint-disable-line no-unused-vars
-    mapData.pokemons[encounterId].marker.hide()
-    mapData.pokemons[encounterId].hidden = true
+    Core.mapData.pokemons[encounterId].marker.hide()
+    Core.mapData.pokemons[encounterId].hidden = true;
 }
 
 export function processGyms (i, item) {
@@ -214,12 +220,12 @@ export function processGyms (i, item) {
         return false; // in case the checkbox was unchecked in the meantime.
     }
 
-    if (item['gym_id'] in mapData.gyms) {
-        item.marker = markers.updateGymMarker(item, mapData.gyms[item['gym_id']].marker)
+    if (item['gym_id'] in Core.mapData.gyms) {
+        item.marker = markers.updateGymMarker(item, Core.mapData.gyms[item['gym_id']].marker)
     } else { // add marker to map and item to dict
-        item.marker = markers.createGymMarker(item)
+        item.marker = markers.createGymMarker(item);
     }
-    mapData.gyms[item['gym_id']] = item
+    Core.mapData.gyms[item['gym_id']] = item;
 }
 
 export function processScanned (i, item) {
@@ -229,15 +235,15 @@ export function processScanned (i, item) {
 
     var scanId = item['latitude'] + '|' + item['longitude']
 
-    if (scanId in mapData.scanned) {
-        mapData.scanned[scanId].last_update = item['last_update']
-        mapData.scanned[scanId].marker.setColor(getColorByDate(item['last_update']));
+    if (scanId in Core.mapData.scanned) {
+        Core.mapData.scanned[scanId].last_update = item['last_update']
+        Core.mapData.scanned[scanId].marker.setColor(getColorByDate(item['last_update']));
     } else { // add marker to map and item to dict
         if (item.marker) {
             item.marker.hide()
         }
         item.marker = markers.createScannedMarker(item)
-        mapData.scanned[scanId] = item
+        Core.mapData.scanned[scanId] = item
     }
 }
 
@@ -249,23 +255,23 @@ export function redrawPokemon (pokemonList) {
         if (!item.hidden) {
             var newMarker = markers.createPokemonMarker(item, pokemonSprites, skipNotification, this.marker.isAnimated())
             item.marker.hide()
-            pokemonList[key].marker = newMarker
+            pokemonList[key].marker = newMarker;
         }
     });
 }
 
 export function updateAllSpawns() {
     var now = new Date();
-    for (var spawnId in mapData.spawnpoints) {
-        var spawn = mapData.spawnpoints[spawnId]
+    for (var spawnId in Core.mapData.spawnpoints) {
+        var spawn = Core.mapData.spawnpoints[spawnId]
         spawn.update(now);
         markers.updateSpawnIcon(spawn);
     }
 }
 
 export function updateAllPokestopIcons() {
-    for (var pokestopId in mapData.pokestops) {
-        markers.updatePokestopIcon(mapData.pokestops[pokestopId]);
+    for (var pokestopId in Core.mapData.pokestops) {
+        markers.updatePokestopIcon(Core.mapData.pokestops[pokestopId]);
     }
 }
 

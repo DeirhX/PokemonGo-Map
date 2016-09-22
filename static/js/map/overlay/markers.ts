@@ -18,7 +18,6 @@ import {SpawnState, ISpawn, ISpawnDetail, SpawnDetail} from "../../data/spawn";
 import spawnBar from "../../interface/bar/spawnbar";
 import {isTouchDevice} from "../../environment";
 import {ILocation} from "../../members/location";
-import {Google} from "../map";
 
 let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
@@ -228,7 +227,7 @@ export class Marker implements IMarker {
             }
         }));
 
-        this.listeners.push(Google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false));
+        this.listeners.push(google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false));
 
         this.listeners.push(this.marker.addListener("mouseover", () => {
             this.openWindow();
@@ -276,7 +275,7 @@ export function updateGymMarker(item, marker) {
 // -- Marker creators
 
 export function createGymMarker(item): Marker {
-    let mapObject = new Google.maps.Marker({
+    let mapObject = new google.maps.Marker({
         position: {
             lat: item.latitude,
             lng: item.longitude,
@@ -286,7 +285,7 @@ export function createGymMarker(item): Marker {
         icon: "static/forts/" + gymTypes[item.team_id] + ".png",
     });
 
-    let infoWindow = new Google.maps.InfoWindow({
+    let infoWindow = new google.maps.InfoWindow({
         content: labels.gymLabel(gymTypes[item.team_id], item.team_id, item.gym_points, item.latitude, item.longitude),
         disableAutoPan: true,
     });
@@ -296,7 +295,7 @@ export function createGymMarker(item): Marker {
 }
 
 export function createPokestopMarker (item): Marker {
-    let mapObject = new Google.maps.Marker({
+    let mapObject = new google.maps.Marker({
         position: {
             lat: item.latitude,
             lng: item.longitude,
@@ -305,7 +304,7 @@ export function createPokestopMarker (item): Marker {
         zIndex: 2,
     });
     mapObject.setIcon(sprites.getPokestopIcon(item));
-    let infoWindow = new Google.maps.InfoWindow({
+    let infoWindow = new google.maps.InfoWindow({
         content: labels.pokestopLabel(item.lure_expiration, item.latitude, item.longitude),
         disableAutoPan: true,
     });
@@ -315,7 +314,7 @@ export function createPokestopMarker (item): Marker {
 }
 
 export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification, isBounceDisabled): Marker {
-    let mapObject = new Google.maps.Marker({
+    let mapObject = new google.maps.Marker({
         position: {
             lat: item.latitude,
             lng: item.longitude,
@@ -324,14 +323,14 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
         map: map.googleMap,
         icon: {
             url: "static/images/spawn.png",
-            size: new Google.maps.Size(16, 16),
-            anchor: new Google.maps.Point(8, -8),
+            size: new google.maps.Size(16, 16),
+            anchor: new google.maps.Point(8, -8),
         },
     });
 
     mapObject.spawnData = item;
 
-    let infoWindow = new Google.maps.InfoWindow({
+    let infoWindow = new google.maps.InfoWindow({
         content: labels.spawnLabel(item.id, item.latitude, item.longitude),
         disableAutoPan: true,
     });
@@ -382,7 +381,7 @@ export function createSpawnMarker(item: ISpawn, pokemonSprites, skipNotification
 
                 // Close 'loading' tooltip
                 marker.closeWindow();
-                let newInfoWindow = new Google.maps.InfoWindow({
+                let newInfoWindow = new google.maps.InfoWindow({
                     content: html,
                     disableAutoPan: true,
                 });
@@ -411,7 +410,7 @@ export function createPokemonMarker(item, pokemonSprites, skipNotification, isBo
     const sprite = pokemonSprites[Store.get("pokemonIcons")] || pokemonSprites.highres;
     const icon = getGoogleSprite(pokemonIndex, sprite, iconSize);
 
-    let mapObject = new Google.maps.Marker({
+    let mapObject = new google.maps.Marker({
         position: {
             lat: item.latitude,
             lng: item.longitude,
@@ -422,7 +421,7 @@ export function createPokemonMarker(item, pokemonSprites, skipNotification, isBo
         animationDisabled: isBounceDisabled === true,
     });
 
-    let infoWindow = new Google.maps.InfoWindow({
+    let infoWindow = new google.maps.InfoWindow({
         content: labels.pokemonLabel(item.pokemon_name, item.pokemon_rarity, item.pokemon_types, item.disappear_time, item.pokemon_id, item.latitude, item.longitude, item.encounter_id),
         disableAutoPan: true,
     });
@@ -435,7 +434,7 @@ export function createPokemonMarker(item, pokemonSprites, skipNotification, isBo
             sendNotification("A wild " + item.pokemon_name + " appeared!", "Click to load map", "static/icons/" + item.pokemon_id + ".png", item.latitude, item.longitude);
         }
         if (mapObject.animationDisabled !== true) {
-            mapObject.setAnimation(Google.maps.Animation.BOUNCE);
+            mapObject.setAnimation(google.maps.Animation.BOUNCE);
         }
     }
 
@@ -448,9 +447,9 @@ export function createPokemonMarker(item, pokemonSprites, skipNotification, isBo
 }
 
 export function createScannedMarker (item): Marker {
-    const circleCenter = new Google.maps.LatLng(item.latitude, item.longitude);
+    const circleCenter = new google.maps.LatLng(item.latitude, item.longitude);
 
-    let marker = new Google.maps.Circle({
+    let marker = new google.maps.Circle({
         map: map.googleMap,
         center: circleCenter,
         radius: 70, // metres
@@ -465,7 +464,7 @@ export function createScannedMarker (item): Marker {
 
 export function createLocationMarker (location: ILocation): Marker {
 
-    let mapObject = new Google.maps.Marker({
+    let mapObject = new google.maps.Marker({
         position: {
             lat: location.latitude,
             lng: location.longitude,
@@ -473,7 +472,7 @@ export function createLocationMarker (location: ILocation): Marker {
         map: map.googleMap,
         zIndex: 2,
     });
-    let infoWindow = new Google.maps.InfoWindow({
+    let infoWindow = new google.maps.InfoWindow({
         content: labels.locationLabel(location.name, location.latitude, location.longitude),
         disableAutoPan: true,
     });
