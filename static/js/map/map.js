@@ -2,9 +2,6 @@
 /// <reference path="../../../typings/globals/googlemaps/index.d.ts" />
 define(["require", "exports"], function (require, exports) {
     "use strict";
-    exports.map = new Map();
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.default = exports.map;
     var Map = (function () {
         function Map() {
         }
@@ -39,4 +36,7 @@ define(["require", "exports"], function (require, exports) {
         return Map;
     }());
     exports.Map = Map;
+    exports.map = new Map();
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.default = exports.map;
 });

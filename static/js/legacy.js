@@ -82,12 +82,11 @@ define(function (require) {
         })
         // TEMPORARY //
         mapcore.map.googleMap = map;
-        mapcore.Google = google;
 
         mapStyles.initStyles();
         mapStyles.watchStyleChange();
 
-        mapcore.onCenterChange((lat, lng) => {
+        mapcore.map.onCenterChange((lat, lng) => {
             if (history.pushState) {
                 var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname +
                     `?lat=${String(lat).substring(0, 8)}&lng=${String(lng).substring(0, 8)}`;
@@ -100,7 +99,7 @@ define(function (require) {
         myLocation.addMyLocationButton(centerLat, centerLng);
         sidebar.initSidebar();
 
-        map.map.onFinishedMove(() => engine.updateMap());
+        mapcore.map.onFinishedMove(() => engine.updateMap());
 
         notifications.initNotifications();
 

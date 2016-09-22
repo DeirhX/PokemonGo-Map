@@ -51,7 +51,7 @@ export function serverSignOut(callback?: () => void) {
 }
 
 function updateCurrentMember(member: IMember) {
-    if (members.current.id === member.id) {
+    if (members.current && (members.current.id === member.id)) {
         members.MemberChanged.fire({previous: members.current, current: members.current });
     } else {
         members.MemberChanged.fire({previous: members.current, current: member });

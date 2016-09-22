@@ -3,11 +3,9 @@
 
 import {IMarker} from "./overlay/markers";
 import {ILocation} from "../data/location";
-export let map = new Map();
-export default map;
 
 
-export interface IMapElement extends ILocation{
+export interface IMapElement extends ILocation {
     marker: IMarker;
     hidden: boolean;
 }
@@ -49,3 +47,5 @@ export class Map {
     }
 }
 
+export let map = new Map();
+export default map;
