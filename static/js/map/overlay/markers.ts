@@ -418,7 +418,6 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
         map: map.googleMap,
         icon: icon,
         zIndex: 10,
-        animationDisabled: isBounceDisabled === true,
     });
 
     let infoWindow = new google.maps.InfoWindow({
@@ -433,7 +432,7 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
             }
             sendNotification("A wild " + item.pokemon_name + " appeared!", "Click to load map", "static/icons/" + item.pokemon_id + ".png", item.latitude, item.longitude);
         }
-        if (mapObject.animationDisabled !== true) {
+        if (isBounceDisabled === true) {
             mapObject.setAnimation(google.maps.Animation.BOUNCE);
         }
     }

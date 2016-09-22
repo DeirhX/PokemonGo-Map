@@ -1,4 +1,4 @@
 
-function changeZoomLevel(prev: number, curr: number) {
+export function changeZoomLevel(prev: number, curr: number) {
 
 }

@@ -285,7 +285,7 @@ export const mapStyles = {
         'stylers': [{
             'color': '#fafeb8'
         }, {
-            'weight': '1.25'
+            'weight': 1.25
         }]
     }, {
         'featureType': 'road.highway',
@@ -566,7 +566,7 @@ export const mapStyles = {
         'stylers': [{
             'color': '#fafeb8'
         }, {
-            'weight': '1.25'
+            'weight': 1.25
         }]
     }, {
         'featureType': 'road.highway',

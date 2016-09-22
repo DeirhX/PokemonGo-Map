@@ -110,7 +110,7 @@ define(["require", "exports", "./store"], function (require, exports, store_1) {
         }
     }
     exports.countMarkers = countMarkers;
-    var sortBy = function (field, reverse, primer) {
+    function sortBy(field, reverse, primer) {
         var key = primer
             ? function (x) {
                 return primer(x[field]);
@@ -118,11 +118,11 @@ define(["require", "exports", "./store"], function (require, exports, store_1) {
             : function (x) {
                 return x[field];
             };
-        reverse = !reverse ? 1 : -1;
+        var direction = !reverse ? 1 : -1;
         return function (a, b) {
             a = key(a);
             b = key(b);
-            return reverse * ((a > b) - (b > a));
+            return direction * (((a > b) ? 1 : 0) - ((b > a) ? 1 : 0));
         };
-    };
+    }
 });

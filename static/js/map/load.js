@@ -3,7 +3,7 @@ define((require) => {
     + googleApiKey + "&callback=initMap&libraries=places,geometry"], () => {
         "use strict";
         var main = require("../map");
-        var core = require("./core");
+        var map = require("./map");
         map.googleMap = main.initMap();
     });
 })
