@@ -403,7 +403,7 @@ export function createSpawnMarker(item: ISpawn): Marker {
     return marker;
 }
 
-export function createPokemonMarker(item: IPokemon, pokemonSprites, skipNotification, isBounceDisabled): Marker {
+export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNotification?: boolean, isBounceDisabled?: boolean): Marker {
     // Scale icon size up with the map exponentially
     const iconSize = 2 + (map.googleMap.getZoom() - 3) * (map.googleMap.getZoom() - 3) * 0.2 + Store.get("iconSizeModifier");
     const pokemonIndex = item.pokemon_id - 1;

@@ -17,11 +17,18 @@ export interface IMapData {
 }
 
 export interface IGym extends IMapElement {
-
+    gym_id: string;
+    team_id: number;
+    gym_points: number;
 }
 
 export interface IPokemon extends IMapElement {
-
+    encounter_id: string;
+    pokemon_id: number;
+    disappear_time: number;
+    pokemon_rarity: string;
+    pokemon_name: string;
+    pokemon_types: string;
 }
 
 export interface ILuredPokemon extends IPokemon {

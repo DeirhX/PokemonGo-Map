@@ -2,11 +2,12 @@
 /// <reference path="../../../typings/globals/googlemaps/index.d.ts" />
 
 import {IMarker} from "./overlay/markers";
+import {ILocation} from "../data/location";
 export let map = new Map();
 export default map;
 
 
-export interface IMapElement {
+export interface IMapElement extends ILocation{
     marker: IMarker;
     hidden: boolean;
 }

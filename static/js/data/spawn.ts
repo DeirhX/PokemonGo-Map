@@ -14,6 +14,8 @@ export interface ISpawn {
     prevState: SpawnState;
     marker: Marker;
     detail: ISpawnDetail;
+
+    update(now: Date);
 }
 
 export interface ISpawnChance {

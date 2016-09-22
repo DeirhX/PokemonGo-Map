@@ -1,4 +1,4 @@
-import {clearMemberMapData, Core, IPokemon, IPokestop} from "./data/entities";
+import {clearMemberMapData, Core, IPokemon, IPokestop, IScannedCell, IGym} from "./data/entities";
 import {members} from "./members/members";
 import * as server from "./data/server";
 import {map} from "./map/map";
@@ -47,11 +47,11 @@ export function updateMap (incremental: boolean) {
     function doRequest (doIncremental: boolean) {
         server.loadRawData(doIncremental)
             .done(result => {
-                $.each(result.pokemons, processPokemons)
-                $.each(result.pokestops, processPokestops)
-                $.each(result.gyms, processGyms)
-                $.each(result.scanned, processScanned)
-                $.each(result.spawns, processSpawns)
+                $.each(result.pokemons, processPokemon)
+                $.each(result.pokestops, processPokestop)
+                $.each(result.gyms, processGym)
+                $.each(result.scanned, processScannedCell)
+                $.each(result.spawns, processSpawn)
                 showInBoundsMarkers(Core.mapData.pokemons)
                 showInBoundsMarkers(Core.mapData.lurePokemons)
                 showInBoundsMarkers(Core.mapData.gyms)
@@ -146,9 +146,9 @@ export function showInBoundsMarkers (markers) {
 }
 
 
-export function processPokemons (i, item) {
+export function processPokemon (i, item: IPokemon) {
     if (!Store.get('showPokemon')) {
-        return false // in case the checkbox was unchecked in the meantime.
+        return false; // in case the checkbox was unchecked in the meantime.
     }
 
     if (!(item.encounter_id in Core.mapData.pokemons) &&
@@ -164,7 +164,7 @@ export function processPokemons (i, item) {
     }
 }
 
-export function processSpawns (i, rawItem) {
+export function processSpawn (i, rawItem) {
     if (!Store.get('showSpawnpoints')) {
         return false; // in case the checkbox was unchecked in the meantime.
     }
@@ -180,7 +180,7 @@ export function processSpawns (i, rawItem) {
 }
 
 
-export function processPokestops (i, item: IPokestop) {
+export function processPokestop (i, item: IPokestop) {
     if (!Store.get('showPokestops')) {
         return false;
     }
@@ -215,7 +215,7 @@ export function removePokemonMarker (encounterId: string) { // eslint-disable-li
     Core.mapData.pokemons[encounterId].hidden = true;
 }
 
-export function processGyms (i, item) {
+export function processGym (i, item: IGym) {
     if (!Store.get('showGyms')) {
         return false; // in case the checkbox was unchecked in the meantime.
     }
@@ -228,21 +228,21 @@ export function processGyms (i, item) {
     Core.mapData.gyms[item.gym_id] = item;
 }
 
-export function processScanned (i, item) {
+export function processScannedCell (i, item: IScannedCell) {
     if (!Store.get('showScanned')) {
-        return false
+        return false;
     }
 
-    var scanId = item.latitude + '|' + item.longitude
+    var scanId = item.latitude + '|' + item.longitude;
 
     if (scanId in Core.mapData.scanned) {
-        Core.mapData.scanned[scanId].last_update = item.last_update
+        Core.mapData.scanned[scanId].last_update = item.last_update;
         Core.mapData.scanned[scanId].marker.setColor(getColorByDate(item.last_update));
     } else { // add marker to map and item to dict
         if (item.marker) {
             item.marker.hide()
         }
-        item.marker = markers.createScannedMarker(item)
+        item.marker = markers.createScannedMarker(item);
         Core.mapData.scanned[scanId] = item
     }
 }
