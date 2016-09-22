@@ -98,20 +98,20 @@ export function countMarkers (mapData) { // eslint-disable-line no-unused-vars
     }
 }
 
-var sortBy = function (field, reverse, primer) {
+var sortBy = function (field, reverse: number, primer?: any) {
     var key = primer
         ? function (x) {
-        return primer(x[field])
+        return primer(x[field]);
     }
         : function (x) {
-        return x[field]
+        return x[field];
     }
 
     reverse = !reverse ? 1 : -1
 
-    return function (a, b) {
-        a = key(a)
-        b = key(b)
-        return reverse * ((a > b) - (b > a))
-    }
+    return function (a: any, b: any) {
+        a = key(a);
+        b = key(b);
+        return reverse * ((a > b) - (b > a));
+    };
 }

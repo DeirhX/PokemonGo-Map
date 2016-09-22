@@ -2,34 +2,53 @@
 
 import {IMarker} from "../map/overlay/markers";
 import {IMember} from "../members/members";
+import {IMapElement} from "../map/map";
+import {ISpawn} from "./spawn";
 export const gymTypes = ["Uncontested", "Mystic", "Valor", "Instinct"];
 
 export interface IMapData {
-    pokemons: { [id: string]: IMapElement } ;
-    gyms: { [id: string]: IMapElement } ;
-    pokestops: { [id: string]: IMapElement } ;
-    lurePokemons: { [id: string]: IMapElement } ;
-    scanned: { [id: string]: IMapElement } ;
-    spawnpoints: { [id: string]: IMapElement } ;
-    locations: { [id: string]: IMapElement } ;
+    pokemons: { [id: string]: IPokemon } ;
+    gyms: { [id: string]: IGym } ;
+    pokestops: { [id: string]: IPokestop } ;
+    lurePokemons: { [id: string]: ILuredPokemon } ;
+    scanned: { [id: string]: IScannedCell } ;
+    spawnpoints: { [id: string]: ISpawn } ;
+    locations: { [id: string]: ILocation } ;
 }
 
-export interface IMapElement {
-    marker: IMarker;
+export interface IGym extends IMapElement {
+
 }
 
-export interface IPokemon {
+export interface IPokemon extends IMapElement {
+
+}
+
+export interface ILuredPokemon extends IPokemon {
+
+}
+
+export interface IPokestop extends IMapElement {
+    pokestop_id: string;
+    lure_expiration: Date;
+}
+
+export interface IScannedCell extends IMapElement {
+    last_update: number;
+}
+
+export interface ILocation extends IMapElement {
 
 }
 
 export class MapData implements IMapData {
-    public pokemons: { [id: string]: IMapElement } = {};
-    public gyms: { [id: string]: IMapElement } = {};
-    public pokestops: { [id: string]: IMapElement } = {};
-    public lurePokemons: { [id: string]: IMapElement } = {};
-    public scanned: { [id: string]: IMapElement } = {};
-    public spawnpoints: { [id: string]: IMapElement } = {};
-    public locations: { [id: string]: IMapElement } = {};
+    public pokemons: { [id: string]: IPokemon } = {};
+    public gyms: { [id: string]: IGym } = {};
+    public pokestops: { [id: string]: IPokestop } = {};
+    public lurePokemons: { [id: string]: ILuredPokemon } = {};
+    public scanned: { [id: string]: IScannedCell } = {};
+    public spawnpoints: { [id: string]: ISpawn } = {};
+    public locations: { [id: string]: ILocation } = {};
 }
 
 export class CoreSingleton {

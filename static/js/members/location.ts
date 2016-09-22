@@ -1,4 +1,4 @@
-import {IMapElement} from "../data/entities";
+import {IMapElement} from "../map/map";
 
 export interface ILocation extends IMapElement {
     id: number;

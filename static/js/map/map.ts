@@ -1,8 +1,15 @@
 /// <reference path="../../../typings/globals/require/index.d.ts" />
 /// <reference path="../../../typings/globals/googlemaps/index.d.ts" />
 
+import {IMarker} from "./overlay/markers";
 export let map = new Map();
 export default map;
+
+
+export interface IMapElement {
+    marker: IMarker;
+    hidden: boolean;
+}
 
 export class Map {
     public googleMap: google.maps.Map;
