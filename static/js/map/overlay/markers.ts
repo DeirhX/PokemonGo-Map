@@ -472,7 +472,7 @@ export function createLocationMarker (location: ILocation): Marker {
         zIndex: 2,
     });
     let infoWindow = new google.maps.InfoWindow({
-        content: labels.locationLabel(location.name, location.latitude, location.longitude),
+        content: labels.locationLabel(location),
         disableAutoPan: true,
     });
     return new Marker(mapObject, infoWindow);
