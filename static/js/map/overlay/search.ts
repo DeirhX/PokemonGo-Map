@@ -21,9 +21,11 @@ export function createSearchMarker(lat, lng) {
 }
 
 function updateSearchMarker(style) {
-    if (style in searchMarkerStyles) {
-        searchMarker.setIcon(searchMarkerStyles[style].icon);
-        Store.set("searchMarkerStyle", style);
+    if (searchMarker) {
+        if (style in searchMarkerStyles) {
+            searchMarker.setIcon(searchMarkerStyles[style].icon);
+            Store.set("searchMarkerStyle", style);
+        }
     }
     return searchMarker;
 }

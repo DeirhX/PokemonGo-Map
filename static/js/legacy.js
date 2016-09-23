@@ -90,7 +90,7 @@ define(function (require) {
             }
         });
 
-        search.createSearchMarker(map.getCenter().lat(), map.getCenter().lng())
+        // search.createSearchMarker(map.getCenter().lat(), map.getCenter().lng())
 
         myLocation.addMyLocationButton(centerLat, centerLng);
         sidebar.initSidebar();
@@ -361,6 +361,7 @@ define(function (require) {
 
 
     function deirhExtensions (map) {
+        /*
         map.addListener('click', function (e) {
             search.searchMarker.setPosition(e.latLng);
             var lat = e.latLng.lat();
@@ -373,7 +374,7 @@ define(function (require) {
                     $('.home-map-scan').removeClass('started');
                 }
             }
-        });
+        });*/
 
         // Restrict zoom
         var minZoomLevel = 14;
