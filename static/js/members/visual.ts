@@ -33,9 +33,11 @@ export function applyLoginState (member: IMember) {
         $("#username").val();
         let sharedLocations = $("#shared-locations-guest");
         sharedLocations.html("");
-        for (let location of member.locations) {
-            if (location.relation === 0) {
-                sharedLocations.append($("<option></option>").val(location.id).data("value", location).text(location.name));
+        if (member.locations) {
+            for (let location of member.locations) {
+                if (location.relation === 0) {
+                    sharedLocations.append($("<option></option>").val(location.id).data("value", location).text(location.name));
+                }
             }
         }
     }

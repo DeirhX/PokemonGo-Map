@@ -145,7 +145,6 @@ export function gymLabel(teamName, teamId, gymPoints, latitude, longitude) {
 export function pokestopLabel(expireTime, latitude, longitude) {
     if (expireTime && new Date(expireTime) > new Date()) {
         const expireDate = new Date(expireTime)
-
         return  `
         <div>
           <b>Lured Pokéstop</b>

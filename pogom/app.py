@@ -435,8 +435,8 @@ class Pogom(Flask):
                     session['username'] = member.username
                     session['email'] = member.email
                     # session['sub'] = user_info['sub']
-                    return self.get_auth()
-            return jsonify({'error': 'denied'})
+            return self.get_auth()
+            # return jsonify({'error': 'denied'})
         except Exception as ex:
             log.error('Error at set_auth: ' + str(ex))
             return jsonify({'error': 'failed'})
