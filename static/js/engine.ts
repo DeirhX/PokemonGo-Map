@@ -153,9 +153,10 @@ export function processPokemon (i, item: IPokemon) {
 
     if (!(item.encounter_id in Core.mapData.pokemons)) {
         // add marker to map and item to dict
-        item.marker = createPokemonMarker(item, pokemonSprites)
+        var isHidden = (excludedPokemon.indexOf(item.pokemon_id) !== -1);
+        item.marker = createPokemonMarker(item, pokemonSprites, isHidden);
         Core.mapData.pokemons[item.encounter_id] = item;
-        if (excludedPokemon.indexOf(item.pokemon_id) !== -1) {
+        if (isHidden) {
             item.hidden = true;
             item.marker.hide();
         }
@@ -238,10 +239,10 @@ export function processScannedCell (i, item: IScannedCell) {
         Core.mapData.scanned[scanId].marker.setColor(getColorByDate(item.last_update));
     } else { // add marker to map and item to dict
         if (item.marker) {
-            item.marker.hide()
+            item.marker.hide();
         }
         item.marker = markers.createScannedMarker(item);
-        Core.mapData.scanned[scanId] = item
+        Core.mapData.scanned[scanId] = item;
     }
 }
 
