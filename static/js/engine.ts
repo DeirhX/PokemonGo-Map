@@ -83,8 +83,7 @@ export function updateMap (incremental: boolean) {
 
 export function clearStaleMarkers () {
     $.each(Core.mapData.pokemons, function (key, value) {
-        if (Core.mapData.pokemons[key]['disappear_time'] < new Date().getTime() ||
-            excludedPokemon.indexOf(Core.mapData.pokemons[key]['pokemon_id']) >= 0) {
+        if (Core.mapData.pokemons[key]['disappear_time'] < new Date().getTime()) {
             Core.mapData.pokemons[key].marker.delete()
             delete Core.mapData.pokemons[key];
         }
@@ -152,15 +151,13 @@ export function processPokemon (i, item: IPokemon) {
         return false; // in case the checkbox was unchecked in the meantime.
     }
 
-    if (!(item.encounter_id in Core.mapData.pokemons) &&
-        excludedPokemon.indexOf(item.pokemon_id) < 0) {
+    if (!(item.encounter_id in Core.mapData.pokemons)) {
         // add marker to map and item to dict
-        if (item.marker) {
+        item.marker = createPokemonMarker(item, pokemonSprites)
+        Core.mapData.pokemons[item.encounter_id] = item;
+        if (excludedPokemon.indexOf(item.pokemon_id) !== -1) {
+            item.hidden = true;
             item.marker.hide();
-        }
-        if (!item.hidden) {
-            item.marker = createPokemonMarker(item, pokemonSprites)
-            Core.mapData.pokemons[item.encounter_id] = item
         }
     }
 }
@@ -212,7 +209,7 @@ export function processPokestop (i, item: IPokestop) {
 }
 
 export function removePokemonMarker (encounterId: string) { // eslint-disable-line no-unused-vars
-    Core.mapData.pokemons[encounterId].marker.hide()
+    Core.mapData.pokemons[encounterId].marker.hide();
     Core.mapData.pokemons[encounterId].hidden = true;
 }
 
@@ -255,16 +252,33 @@ function addLocationMarkers(locations: ILocation[]) {
     }
 }
 
+export function updatePokemonHiddenStatus() {
+    $.each(Core.mapData.pokemons, (key, item) => {
+        let excluded = excludedPokemon.indexOf(item.pokemon_id) !== -1;
+        if (excluded && !item.hidden) {
+            item.hidden = true;
+            if (item.marker) {
+                item.marker.hide();
+            }
+        } else if (!excluded && item.hidden) {
+            item.hidden = false;
+            if (item.marker) {
+                item.marker.show();
+            }
+        }
+    });
+}
 
-export function redrawPokemon (pokemonList: IPokemon[]) {
+export function redrawPokemonMarkers(pokemonList: IPokemon[]) {
     var skipNotification = true
     $.each(pokemonList, function (key, value) {
         var item = pokemonList[key]
-        if (!item.hidden) {
-            var newMarker = markers.createPokemonMarker(item, pokemonSprites, skipNotification, this.marker.isAnimated())
-            item.marker.hide()
-            pokemonList[key].marker = newMarker;
+        var newMarker = markers.createPokemonMarker(item, pokemonSprites, skipNotification, this.marker.isAnimated())
+        if (item.hidden) {
+            newMarker.hide();
         }
+        item.marker.hide(); // Remove previous
+        item.marker = newMarker; // Reinstate new
     });
 }
 

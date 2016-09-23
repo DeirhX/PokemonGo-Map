@@ -109,8 +109,8 @@ define(function (require) {
 
             $selectIconResolution.on('change', function () {
                 store.Store.set('pokemonIcons', this.value)
-                engine.redrawPokemon(mapData.pokemons)
-                engine.redrawPokemon(mapData.lurePokemons)
+                engine.redrawPokemonMarkers(mapData.pokemons)
+                engine.redrawPokemonMarkers(mapData.lurePokemons)
             })
 
             let $selectIconSize = $('#pokemon-icon-size')
@@ -122,8 +122,8 @@ define(function (require) {
 
             $selectIconSize.on('change', function () {
                 store.Store.set('iconSizeModifier', this.value)
-                engine.redrawPokemon(mapData.pokemons)
-                engine.redrawPokemon(mapData.lurePokemons)
+                engine.redrawPokemonMarkers(mapData.pokemons)
+                engine.redrawPokemonMarkers(mapData.lurePokemons)
             })
         }
 
@@ -155,8 +155,8 @@ define(function (require) {
         initPage2();
 
         core.map.onZoomChange((lat, lng, zoom) => {
-            engine.redrawPokemon(mapData.pokemons);
-            engine.redrawPokemon(mapData.lurePokemons)
+            engine.redrawPokemonMarkers(mapData.pokemons);
+            engine.redrawPokemonMarkers(mapData.lurePokemons)
         });
 
         deirhExtensions(map);
@@ -251,9 +251,10 @@ define(function (require) {
 
             // setup list change behavior now that we have the list to work from
             $selectExclude.on('change', function (e) {
-                excludedPokemon = $selectExclude.val().map(Number)
-                engine.clearStaleMarkers()
-                store.Store.set('remember_select_exclude', excludedPokemon)
+                engine.excludedPokemon = $selectExclude.val().map(Number);
+                engine.clearStaleMarkers();
+                engine.updatePokemonHiddenStatus();
+                store.Store.set('remember_select_exclude', engine.excludedPokemon)
             })
             $selectPokemonNotify.on('change', function (e) {
                 notifications.notifiedPokemon = $selectPokemonNotify.val().map(Number)
