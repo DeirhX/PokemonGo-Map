@@ -7,6 +7,7 @@ export interface ILocation extends IMapElement {
     longitude: number;
     size: number;
     priority: number;
+    spawns: number;
 
     relation: number;
     online: boolean;

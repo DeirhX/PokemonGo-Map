@@ -634,7 +634,7 @@ class Location(BaseModel):
 
     @classmethod
     def get_with_relation(cls, member):
-        query = Location.select(Location.id, Location.latitude, Location.longitude, Location.steps, Location.threads, Location.speed,
+        query = Location.select(Location.id, Location.latitude, Location.longitude, Location.steps, Location.threads, Location.speed, Location.spawn_count,
                                 Location.last_fullscan, Location.last_start, Location.last_keepalive, Location.creation_time, Location.name,
                                 MemberLocation.select(MemberLocation.relation).where(
                                     (MemberLocation.location_id == Location.id) &

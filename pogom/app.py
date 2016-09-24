@@ -412,7 +412,7 @@ class Pogom(Flask):
         locs = []
         for l in Location.get_with_relation(member):
             locs.append({'id': l.id, 'latitude': l.latitude, 'longitude': l.longitude, 'size': l.steps,
-                         'priority': l.speed, 'name': l.name, 'relation': l.relation})
+                         'priority': l.speed, 'name': l.name, 'relation': l.relation, 'spawns': l.spawn_count})
         m['locations'] = locs
         return jsonify(m)
 

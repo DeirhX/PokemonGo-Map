@@ -182,6 +182,9 @@ export function locationLabel(location: ILocation) {
       Strength: ${Math.round((location.size + 4) / 5)}
     </div>
     <div>
+      Spawns watched: <b>${location.spawns}</b>
+    </div>
+    <div>
       Location: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}
     </div>`;
 }
