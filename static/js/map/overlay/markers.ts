@@ -18,6 +18,7 @@ import spawnBar from "../../interface/bar/spawnbar";
 import {isTouchDevice} from "../../environment";
 import {ILocation} from "../../members/location";
 import {core} from "../../core/base";
+import {ILiteEvent, LiteEvent} from "../../core/events";
 
 let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
@@ -58,33 +59,23 @@ interface IMapObject {
     addListener(name: string, callback);
 }
 
-export class Marker implements IMarker {
+export class MarkerInfoWindow {
+    public get onOpen(): ILiteEvent<void> { return this.onOpenEvent; }
 
-    private listeners: google.maps.MapsEventListener[] = [];
+    private nativeObject: google.maps.InfoWindow;
+    private onOpenEvent: LiteEvent<void>;
 
-    private marker: google.maps.Marker;
-    private circle: google.maps.Circle;
+    public setHtmlContent(htmlContent: string) {
+        this.nativeObject.setContent(htmlContent);
+    }
+}
 
-    private mapObject: IMapObject;
-    private infoWindow: google.maps.InfoWindow;
+export class MapMarker {
+    protected infoWindow: google.maps.InfoWindow;
+    protected nativeObject: google.maps.MVCObject;
 
-    private oldAnimation: google.maps.Animation;
-    private persistWindow: boolean;
-    private onOpenCallback: () => void;
-
-    constructor(marker: google.maps.Marker, infoWindow: google.maps.InfoWindow);
-    constructor(circle: google.maps.Circle, infoWindow: google.maps.InfoWindow);
-    constructor(mapObject: IMapObject, infoWindow: google.maps.InfoWindow) {
-        if (mapObject instanceof google.maps.Marker) {
-            this.marker = <google.maps.Marker> mapObject;
-        } else if (mapObject instanceof google.maps.Circle) {
-            this.circle = <google.maps.Circle> mapObject;
-        } else {
-            throw "Not supported";
-        }
-        this.mapObject = mapObject;
-        this.infoWindow = infoWindow;
-        this.registerPopupWindowListeners();
+    constructor(nativeObj: google.maps.MVCObject) {
+        this.nativeObject = nativeObj;
     }
 
     public openWindow(overrideWindow?: google.maps.InfoWindow) {
@@ -94,6 +85,7 @@ export class Marker implements IMarker {
         this.toggleWindow(true);
     }
     public closeWindow() { this.toggleWindow(false); };
+
     public toggleWindow(isOpen: boolean) {
         if (!this.infoWindow) { return; }
 
@@ -106,15 +98,50 @@ export class Marker implements IMarker {
 
         infoWindowsOpen = [];
         if (isOpen) {
-            this.infoWindow.open(core.map.googleMap, this.marker);
+            this.infoWindow.open(core.map.googleMap, this.nativeObject);
             infoWindowsOpen.push(this.infoWindow);
         } else if (this.infoWindow) {
             this.infoWindow.close();
         }
     }
+
     public setWindowContent(htmlContent: string) {
         this.infoWindow.setContent(htmlContent);
     }
+}
+
+export class Marker extends MapMarker implements IMarker {
+
+    private listeners: google.maps.MapsEventListener[] = [];
+
+    private marker: google.maps.Marker;
+    private circle: google.maps.Circle;
+
+    private mapObject: IMapObject;
+
+    private oldAnimation: google.maps.Animation;
+    private persistWindow: boolean;
+    private onOpenCallback: () => void;
+
+    constructor(marker: google.maps.Marker, infoWindow: google.maps.InfoWindow);
+    constructor(circle: google.maps.Circle, infoWindow: google.maps.InfoWindow);
+    constructor(mapObject: IMapObject, infoWindow: google.maps.InfoWindow) {
+        super(null);
+        if (mapObject instanceof google.maps.Marker) {
+            this.marker = <google.maps.Marker> mapObject;
+            this.nativeObject = this.marker;
+        } else if (mapObject instanceof google.maps.Circle) {
+            this.circle = <google.maps.Circle> mapObject;
+            this.nativeObject = this.circle;
+        } else {
+            throw "Not supported";
+        }
+        this.mapObject = mapObject;
+        this.infoWindow = infoWindow;
+        this.registerPopupWindowListeners();
+    }
+
+
     public show() {
         this.mapObject.setMap(core.map.googleMap);
     }
@@ -250,6 +277,18 @@ export class Marker implements IMarker {
         for (let listener of this.listeners) {
             listener.remove();
         }
+    }
+}
+
+class Circle {
+
+}
+
+class LocationMarker extends Marker {
+    private range;
+
+    constructor(marker: google.maps.Marker, infoWindow: google.maps.InfoWindow) {
+        super(marker, infoWindow);
     }
 }
 
