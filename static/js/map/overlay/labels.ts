@@ -179,7 +179,7 @@ export function locationLabel(location: ILocation) {
       <b>Pokéradar: ${location.name}</b>
     </div>
     <div>
-      Strength: ${location.size}
+      Strength: ${Math.round((location.size + 4) / 5)}
     </div>
     <div>
       Location: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}

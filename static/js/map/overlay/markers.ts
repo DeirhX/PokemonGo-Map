@@ -531,5 +531,31 @@ export function createLocationMarker (location: ILocation): Marker {
         content: labels.locationLabel(location),
         disableAutoPan: true,
     });
-    return new Marker(mapObject, infoWindow);
+    let marker = new Marker(mapObject, infoWindow);
+    let rangeMarker = createLocationRangeMarker(location);
+    rangeMarker.hide();
+    marker.onClick.on(() => {
+            if (rangeMarker.hidden) {
+                rangeMarker.show();
+            } else {
+                rangeMarker.hide();
+            }
+        });
+    return marker;
+}
+
+export function createLocationRangeMarker (location: ILocation): Marker {
+    const circleCenter = new google.maps.LatLng(location.latitude, location.longitude);
+
+    let marker = new google.maps.Circle({
+        map: core.map.googleMap,
+        center: circleCenter,
+        radius: 70 * ((location.size * 2) - 1) * 0.75, // metres
+        fillColor: 'hsl(50,100%,50%)',
+        strokeWeight: 1,
+        zIndex: 1,
+        clickable: false,
+    });
+
+    return new Marker(marker, null);
 }
