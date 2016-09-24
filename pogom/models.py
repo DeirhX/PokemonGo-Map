@@ -615,6 +615,7 @@ class Location(BaseModel):
     last_keepalive = DateTimeField()
     creation_time = DateTimeField()
     name = CharField(max_length=45)
+    spawn_count = SmallIntegerField()
 
     @classmethod
     def get(cls, id):
@@ -643,6 +644,9 @@ class Location(BaseModel):
             radars.append(s)
         return radars
 
+    @classmethod
+    def update_spawn_count(cls, id, count):
+        Location.update(spawn_count = count).where(Location.id == id).execute()
 
 
 

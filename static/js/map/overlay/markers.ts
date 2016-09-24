@@ -59,6 +59,7 @@ interface IMapObject {
     addListener(name: string, callback);
 }
 
+/*
 export class MarkerInfoWindow {
     public get onOpen(): ILiteEvent<void> { return this.onOpenEvent; }
 
@@ -68,7 +69,7 @@ export class MarkerInfoWindow {
     public setHtmlContent(htmlContent: string) {
         this.nativeObject.setContent(htmlContent);
     }
-}
+}*/
 
 export abstract class MapMarker {
     public hidden: boolean;
@@ -550,7 +551,7 @@ export function createLocationRangeMarker (location: ILocation): Marker {
     let marker = new google.maps.Circle({
         map: core.map.googleMap,
         center: circleCenter,
-        radius: 70 * ((location.size * 2) - 1) * 0.75, // metres
+        radius: 70 * ((location.size * 2) - 1) * 0.7, // metres
         fillColor: 'hsl(50,100%,50%)',
         strokeWeight: 1,
         zIndex: 1,

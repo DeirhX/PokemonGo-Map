@@ -216,6 +216,7 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
     log.info('Search overseer starting')
     parse_lock = Lock()
 
+    all_locations = []
     # Create a search_worker_thread per account
     for i, current_location in enumerate(location_list):
 
@@ -225,6 +226,7 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
         # repopulate for our spawn points
         if args.spawnpoints_only:
             locations = limit_locations_to_spawns(locations, scan_radius)
+            all_locations += locations
         else:
             locations = map(lambda loc: (loc, ), locations)
 
@@ -237,6 +239,10 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
 
     # while True:
     #    time.sleep(1)
+    if args.location_id:
+        total = len(all_locations)
+        unique_spawns = len(set(map(lambda el: el[1]['id'], all_locations)))
+        Location.update_spawn_count(args.location_id, unique_spawns)
     return
 
 
