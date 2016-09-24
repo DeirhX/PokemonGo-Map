@@ -84,7 +84,7 @@ export function clearAllMapData() {
 function clearMarkersIn(items: { [id: string]: IMapElement } ) {
     for (let key in items) {
         if (items[key].marker) {
-            items[key].marker.delete();
+            items[key].marker.destroy();
         }
     }
 }

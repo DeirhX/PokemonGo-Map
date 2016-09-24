@@ -84,7 +84,7 @@ export function updateMap (incremental: boolean) {
 export function clearStaleMarkers () {
     $.each(Core.mapData.pokemons, function (key, value) {
         if (Core.mapData.pokemons[key]['disappear_time'] < new Date().getTime()) {
-            Core.mapData.pokemons[key].marker.delete()
+            Core.mapData.pokemons[key].marker.destroy()
             delete Core.mapData.pokemons[key];
         }
     })
@@ -92,7 +92,7 @@ export function clearStaleMarkers () {
     $.each(Core.mapData.lurePokemons, function (key, value) {
         if (Core.mapData.lurePokemons[key]['lure_expiration'] < new Date().getTime() ||
             excludedPokemon.indexOf(Core.mapData.lurePokemons[key]['pokemon_id']) >= 0) {
-            Core.mapData.lurePokemons[key].marker.delete()
+            Core.mapData.lurePokemons[key].marker.destroy()
             delete Core.mapData.lurePokemons[key];
         }
     })
@@ -100,7 +100,7 @@ export function clearStaleMarkers () {
     $.each(Core.mapData.scanned, function (key, value) {
         // If older than 15mins remove
         if (Core.mapData.scanned[key].last_update < (new Date().getTime() - 15 * 60 * 1000)) {
-            Core.mapData.scanned[key].marker.delete()
+            Core.mapData.scanned[key].marker.destroy()
             delete Core.mapData.scanned[key]
         } else {
             // Update color

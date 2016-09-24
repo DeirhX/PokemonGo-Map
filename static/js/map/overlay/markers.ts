@@ -24,10 +24,13 @@ let infoWindowsOpen = [];
 let highlightedMarker; // Global focused marker
 
 export interface IMarker {
+    onOpen: ILiteEvent<void>;
+    onClick: ILiteEvent<void>;
+
     isShown(): boolean;
     show();
     hide();
-    delete();
+    destroy();
 
     openWindow(overrideWindow?: google.maps.InfoWindow);
     closeWindow();
@@ -39,9 +42,6 @@ export interface IMarker {
     setIcon(icon: string);
     setColor(color);
     setOpacity(opacity: number);
-
-    onOpen(callback: () => void);
-    onClick(callback: () => void);
 
     canAnimate(): boolean;
     isAnimated(): boolean;
@@ -70,12 +70,35 @@ export class MarkerInfoWindow {
     }
 }
 
-export class MapMarker {
+export abstract class MapMarker {
+    public hidden: boolean;
+    public get onOpen(): ILiteEvent<void> { return this.eventOnOpen; }
+    public get onClick(): ILiteEvent<void> { return this.eventOnClick; }
+
     protected infoWindow: google.maps.InfoWindow;
     protected nativeObject: google.maps.MVCObject;
 
-    constructor(nativeObj: google.maps.MVCObject) {
+    private listeners: google.maps.MapsEventListener[] = [];
+    private persistWindow: boolean;
+    private eventOnOpen = new LiteEvent<void>();
+    private eventOnClick = new LiteEvent<void>();
+
+    constructor(nativeObj: google.maps.MVCObject, infoWindow: google.maps.InfoWindow) {
         this.nativeObject = nativeObj;
+        this.infoWindow = infoWindow;
+        this.registerPopupWindowListeners();
+        this.listeners.push(this.nativeObject.addListener("click", () => this.eventOnClick.fire()));
+    }
+
+    public show(): void {
+        this.hidden = false;
+    }
+    public hide(): void {
+        this.hidden = true;
+    }
+    public destroy(): void {
+        this.hide();
+        this.unregisterPopupWindowListeners();
     }
 
     public openWindow(overrideWindow?: google.maps.InfoWindow) {
@@ -108,11 +131,49 @@ export class MapMarker {
     public setWindowContent(htmlContent: string) {
         this.infoWindow.setContent(htmlContent);
     }
+
+    private registerPopupWindowListeners() {
+        if (!this.infoWindow) {
+            return;
+        }
+        this.listeners.push(this.nativeObject.addListener("click", () => {
+            if (!this.persistWindow) {
+                this.openWindow();
+                this.persistWindow = true;
+            } else {
+                this.closeWindow();
+                this.persistWindow = false;
+            }
+
+            utils.clearSelection();
+            this.eventOnOpen.fire();
+        }));
+
+        this.listeners.push(google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false));
+
+        this.listeners.push(this.nativeObject.addListener("mouseover", () => {
+            this.openWindow();
+            utils.clearSelection();
+            this.eventOnOpen.fire();
+            highlightedMarker = this;
+        }));
+
+        this.listeners.push(this.nativeObject.addListener("mouseout", () => {
+            if (!this.persistWindow) {
+                this.closeWindow();
+            }
+            highlightedMarker = null;
+        }));
+    }
+
+    private unregisterPopupWindowListeners() {
+        for (let listener of this.listeners) {
+            listener.remove();
+        }
+    }
 }
 
 export class Marker extends MapMarker implements IMarker {
-
-    private listeners: google.maps.MapsEventListener[] = [];
 
     private marker: google.maps.Marker;
     private circle: google.maps.Circle;
@@ -120,47 +181,47 @@ export class Marker extends MapMarker implements IMarker {
     private mapObject: IMapObject;
 
     private oldAnimation: google.maps.Animation;
-    private persistWindow: boolean;
-    private onOpenCallback: () => void;
 
     constructor(marker: google.maps.Marker, infoWindow: google.maps.InfoWindow);
     constructor(circle: google.maps.Circle, infoWindow: google.maps.InfoWindow);
     constructor(mapObject: IMapObject, infoWindow: google.maps.InfoWindow) {
-        super(null);
+        let marker: google.maps.Marker;
+        let circle: google.maps.Circle;
+        let nativeObject: google.maps.MVCObject;
         if (mapObject instanceof google.maps.Marker) {
-            this.marker = <google.maps.Marker> mapObject;
-            this.nativeObject = this.marker;
+            marker = <google.maps.Marker> mapObject;
+            nativeObject = marker;
         } else if (mapObject instanceof google.maps.Circle) {
-            this.circle = <google.maps.Circle> mapObject;
-            this.nativeObject = this.circle;
+            circle = <google.maps.Circle> mapObject;
+            nativeObject = circle;
         } else {
             throw "Not supported";
         }
+        super(nativeObject, infoWindow);
+        this.marker = marker;
+        this.circle = circle;
         this.mapObject = mapObject;
         this.infoWindow = infoWindow;
-        this.registerPopupWindowListeners();
     }
 
 
     public show() {
+        super.show();
         this.mapObject.setMap(core.map.googleMap);
     }
     public hide() {
+        super.hide();
         this.mapObject.setMap(null);
     }
-    public delete() {
-        this.unregisterPopupWindowListeners();
+    public destroy() {
+        super.destroy();
         this.hide();
     }
     public isShown(): boolean {
         return this.mapObject.getMap() != null;
     }
-    public onClick(callback: () => void) {
-        this.listeners.push(this.marker.addListener("click", callback));
-    }
-    public onOpen(callback: () => void) {
-        this.onOpenCallback = callback;
-    }
+
+
     public setIcon(icon: string) {
         if (!this.marker) {
             throw "Not implemented";
@@ -234,50 +295,6 @@ export class Marker extends MapMarker implements IMarker {
         }
         this.marker.setAnimation(this.oldAnimation);
     }
-
-    private registerPopupWindowListeners() {
-        if (!this.infoWindow) {
-            return;
-        }
-        this.listeners.push(this.marker.addListener("click", () => {
-            if (!this.persistWindow) {
-                this.openWindow();
-                this.persistWindow = true;
-            } else {
-                this.closeWindow();
-                this.persistWindow = false;
-            }
-
-            utils.clearSelection();
-            if (this.onOpenCallback) {
-                this.onOpenCallback();
-            }
-        }));
-
-        this.listeners.push(google.maps.event.addListener(this.infoWindow, "closeclick", () => this.persistWindow = false));
-
-        this.listeners.push(this.marker.addListener("mouseover", () => {
-            this.openWindow();
-            utils.clearSelection();
-            if (this.onOpenCallback) {
-                this.onOpenCallback();
-            }
-            highlightedMarker = this;
-        }));
-
-        this.listeners.push(this.marker.addListener("mouseout", () => {
-            if (!this.persistWindow) {
-                this.closeWindow();
-            }
-            highlightedMarker = null;
-        }));
-    }
-
-    private unregisterPopupWindowListeners() {
-        for (let listener of this.listeners) {
-            listener.remove();
-        }
-    }
 }
 
 class Circle {
@@ -329,7 +346,7 @@ export function createGymMarker(item: IGym): Marker {
         disableAutoPan: true,
     });
     let marker = new Marker(mapObject, infoWindow);
-    marker.onOpen(updateAllLabelsDisappearTime);
+    marker.onOpen.on(updateAllLabelsDisappearTime);
     return marker;
 }
 
@@ -348,7 +365,7 @@ export function createPokestopMarker (item: IPokestop): Marker {
         disableAutoPan: true,
     });
     let marker = new Marker(mapObject, infoWindow);
-    marker.onClick(updateAllLabelsDisappearTime);
+    marker.onClick.on(updateAllLabelsDisappearTime);
     return marker;
 }
 
@@ -375,7 +392,7 @@ export function createSpawnMarker(item: ISpawn): Marker {
     });
 
     let marker = new Marker(mapObject, infoWindow);
-    marker.onClick( () => {
+    marker.onClick.on( () => {
         if (!isTouchDevice()) {
             spawnBar.open();
             spawnBar.stayOpenOnce();
@@ -384,7 +401,7 @@ export function createSpawnMarker(item: ISpawn): Marker {
             spawnBar.displaySpawn(item.detail);
         }
     } );
-    marker.onOpen( () => {
+    marker.onOpen.on( () => {
         updateAllLabelsDisappearTime();
     });
 
@@ -477,8 +494,8 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
     }
 
     let marker = new Marker(mapObject, infoWindow);
-    marker.onOpen(updateAllLabelsDisappearTime);
-    marker.onClick(() => {
+    marker.onOpen.on(updateAllLabelsDisappearTime);
+    marker.onClick.on(() => {
         marker.stopAnimation();
     })
     return marker;
