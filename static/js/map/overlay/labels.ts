@@ -187,7 +187,7 @@ export function locationLabel(location: ILocation): string {
     if (location.relation === 1) {
         lehtml += `<div><b>Owned</b> ${location.expiry ? (" until " + new Date(location.expiry).toDateString()) : ""}</div>`;
     } else if (location.relation === 0) {
-        lehtml += `<div>Shared ${location.expiry ? (" until " + new Date(location.expiry).toDateString()) : ""}</div>`;
+        lehtml += `<div><i>Shared</i> ${location.expiry ? (" until " + new Date(location.expiry).toDateString()) : ""}</div>`;
     } else {
         lehtml += `<div>
           Needs ${location.pokecubes} pokecubes / day
