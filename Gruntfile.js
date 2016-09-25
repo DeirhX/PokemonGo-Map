@@ -135,7 +135,7 @@ module.exports = function(grunt) {
           appDir: "static/dist/js",
           baseUrl: ".",
           dir: "static/dist/rs",
-          optimize: 'none',
+          optimize: 'uglify',
           modules:[
             {
               name:'main'
@@ -198,7 +198,7 @@ module.exports = function(grunt) {
   grunt.registerTask('json', ['newer:minjson']);
   grunt.registerTask('ts-build', ['newer:typescript']);
   grunt.registerTask('rs-build', ['newer:requirejs']);
-  grunt.registerTask('rs-uglybuild', ['newer:requireuglyjs']);
+  grunt.registerTask('rs-uglybuild', ['newer:requirejs']);
 
   grunt.registerTask('nice-build', ['clean', 'ts-build', 'js-build', 'rs-build', 'css-build', 'json']);
   grunt.registerTask('build', ['clean', 'ts-build', 'js-uglybuild', 'rs-uglybuild', 'css-build', 'json']);
