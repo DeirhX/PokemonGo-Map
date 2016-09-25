@@ -8,7 +8,9 @@ export interface ILocation extends IMapElement {
     size: number;
     priority: number;
     spawns: number;
+    pokecubes: number;
 
     relation: number;
+    expiry: number;
     online: boolean;
 }

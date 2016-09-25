@@ -106,7 +106,7 @@ module.exports = function(grunt) {
     tslint: {
       src: ['static/js/**/.ts']
     },
-    requirejs: {
+    requireuglyjs: {
       compile: {
 
         options: {
@@ -114,6 +114,28 @@ module.exports = function(grunt) {
           baseUrl: ".",
           dir: "static/dist/rs",
           optimize: 'uglify',
+          modules:[
+            {
+              name:'main'
+            }
+          ],
+          logLevel: 0,
+          findNestedDependencies: true,
+          fileExclusionRegExp: /^\./,
+          inlineText: true
+        },
+        src: ['static/dist/js/**/*.js'],
+        ext: '.js',
+      }
+    },
+    requirejs: {
+      compile: {
+
+        options: {
+          appDir: "static/dist/js",
+          baseUrl: ".",
+          dir: "static/dist/rs",
+          optimize: 'none',
           modules:[
             {
               name:'main'
@@ -176,8 +198,10 @@ module.exports = function(grunt) {
   grunt.registerTask('json', ['newer:minjson']);
   grunt.registerTask('ts-build', ['newer:typescript']);
   grunt.registerTask('rs-build', ['newer:requirejs']);
+  grunt.registerTask('rs-uglybuild', ['newer:requireuglyjs']);
 
-  grunt.registerTask('build', ['clean', 'ts-build', 'js-uglybuild', 'rs-build', 'css-build', 'json']);
+  grunt.registerTask('nice-build', ['clean', 'ts-build', 'js-build', 'rs-build', 'css-build', 'json']);
+  grunt.registerTask('build', ['clean', 'ts-build', 'js-uglybuild', 'rs-uglybuild', 'css-build', 'json']);
   grunt.registerTask('lint', ['ts-lint', 'js-lint']);
   grunt.registerTask('default', ['build', 'watch']);
 

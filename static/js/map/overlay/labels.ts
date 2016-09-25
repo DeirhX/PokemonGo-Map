@@ -173,8 +173,8 @@ export function pokestopLabel(expireTime, latitude, longitude) {
     }
 }
 
-export function locationLabel(location: ILocation) {
-    return `
+export function locationLabel(location: ILocation): string {
+    let lehtml = `
     <div>
       <b>Pokéradar: ${location.name}</b>
     </div>
@@ -183,8 +183,20 @@ export function locationLabel(location: ILocation) {
     </div>
     <div>
       Spawns watched: <b>${location.spawns}</b>
-    </div>
+    </div>`;
+    if (location.relation === 1) {
+        lehtml += `<div><b>Owned</b> ${location.expiry ? (" until " + new Date(location.expiry).toDateString()) : ""}</div>`;
+    } else if (location.relation === 0) {
+        lehtml += `<div>Shared ${location.expiry ? (" until " + new Date(location.expiry).toDateString()) : ""}</div>`;
+    } else {
+        lehtml += `<div>
+          Needs ${location.pokecubes} pokecubes / day
+        </div>`;
+    }
+    return lehtml;
+    /*
     <div>
       Location: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}
     </div>`;
+    */
 }

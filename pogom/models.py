@@ -634,11 +634,9 @@ class Location(BaseModel):
 
     @classmethod
     def get_with_relation(cls, member):
-        query = Location.select(Location.id, Location.latitude, Location.longitude, Location.steps, Location.threads, Location.speed, Location.spawn_count,
-                                Location.last_fullscan, Location.last_start, Location.last_keepalive, Location.creation_time, Location.name,
-                                MemberLocation.select(MemberLocation.relation).where(
-                                    (MemberLocation.location_id == Location.id) &
-                                    ((MemberLocation.member_id == member.id) | (MemberLocation.member_id == 0))).alias('relation'))
+        query = Location.select(Location, MemberLocation)\
+                        .join(MemberLocation, join_type=JOIN.LEFT_OUTER, on=(MemberLocation.location_id == Location.id).alias('member_location'))\
+                        .where((MemberLocation.member_id == member.id) | (MemberLocation.member_id == 0))
         radars = []
         for s in query:
             radars.append(s)

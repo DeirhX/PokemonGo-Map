@@ -4,9 +4,16 @@ declare var Notification; // TODO: Get api typing
 export let notifiedPokemon = [];
 export let notifiedRarity = [];
 
-const notifySound = new Audio("static/sounds/ding.mp3");
+let notifySound: HTMLAudioElement;
+if (Audio) { // Damn Safari. Planet of the apes.
+    notifySound = new Audio("static/sounds/ding.mp3");
+}
+
 
 export function initNotifications() {
+    if (!("Notification" in window)) {
+        return false; // Notifications are not present in browser
+    }
     if (!Notification) {
         console.log("could not load notifications");
         return;
@@ -18,8 +25,8 @@ export function initNotifications() {
 }
 
 export function sendNotification (title, text, icon, lat, lng) {
-    if (!("Notification" in window)) {
-        return false; // Notifications are not present in browser
+    if (!Notification) {
+        return false;
     }
 
     if (Notification.permission !== "granted") {
