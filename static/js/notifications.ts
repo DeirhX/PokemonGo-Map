@@ -25,8 +25,8 @@ export function initNotifications() {
 }
 
 export function sendNotification (title, text, icon, lat, lng) {
-    if (!Notification) {
-        return false;
+    if (!("Notification" in window)) {
+        return false; // Notifications are not present in browser
     }
 
     if (Notification.permission !== "granted") {
