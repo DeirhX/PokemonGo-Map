@@ -33,9 +33,9 @@ export function initNotifications(): boolean {
 
     if (Notification.permission !== "granted") {
         Notification.requestPermission();
-        notificationsSupported = true;
-        return true;
     }
+    notificationsSupported = true;
+    return true;
 }
 
 export function sendNotification (title, text, icon, lat, lng) {
