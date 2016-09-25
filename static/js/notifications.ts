@@ -49,7 +49,6 @@ export function sendNotification (title, text, icon, lat, lng) {
     };
 
 
-
     {
         if (Notification.permission !== "granted") {
             Notification.requestPermission();
@@ -60,11 +59,15 @@ export function sendNotification (title, text, icon, lat, lng) {
                     body: text,
                     sound: "sounds/ding.mp3",
                 });
-                notification.onclick = () => {onClick(); notification.close(); };
+                notification.onclick = () => {
+                    onClick();
+                    notification.close();
+                };
             } catch (e) {
-            if (e.name === "TypeError") {
-                notificationsSupported = false;
-                return false;
+                if (e.name === "TypeError") {
+                    notificationsSupported = false;
+                    return false;
+                }
             }
         }
     }
