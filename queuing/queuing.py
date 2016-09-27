@@ -61,11 +61,10 @@ class Consumer:
             except pika.exceptions.ConnectionClosed:
                 log.warning('Rabbit connection closed, retrying')
                 time.sleep(1)
-                self.connect()
             except Exception as ex:
                 log.exception('Unknown rabbit error "' + str(ex) + '", retrying in ten')
                 time.sleep(10)
-                self.connect()
+            self.connect()
 
 
 class QueueConsumer(Consumer):
@@ -127,11 +126,11 @@ class Producer:
             except pika.exceptions.ConnectionClosed:
                 log.warning('Rabbit connection closed, retrying')
                 time.sleep(1)
-                self.connect()
             except Exception as ex:
                 log.warning('Unknown rabbit error ' + str(ex) + ', retrying in ten')
                 time.sleep(10)
-                self.connect()
+            self.connect()
+
 
     def _do_basic_publish(self, message, delivery_mode):
         raise Exception('_do_basic_publish needs to be implemented')
