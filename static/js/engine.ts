@@ -274,7 +274,7 @@ export function redrawPokemonMarkers(pokemonList: IPokemon[]) {
     var skipNotification = true
     $.each(pokemonList, function (key, value) {
         var item = pokemonList[key]
-        var newMarker = markers.createPokemonMarker(item, pokemonSprites, skipNotification,)
+        var newMarker = markers.createPokemonMarker(item, pokemonSprites, skipNotification)
         if (item.hidden) {
             newMarker.hide();
         }
