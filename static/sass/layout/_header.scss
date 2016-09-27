@@ -92,6 +92,14 @@
 				}
 			}
 		}
+
+		#fb-link
+		{
+			height: 29px;
+			width: 29px;
+			vertical-align: sub;
+			margin-top: 8px;
+		}
 	}
 
 	@include breakpoint(medium) {

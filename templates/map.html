@@ -52,6 +52,9 @@
   <header id="header">
     <a href="#nav"><span class="label">Options</span></a>
     <h1><a href="#">Yourmom @ Pokémon Go</a></h1>
+    <a id="fb-link" href="https://www.facebook.com/mompokeland/" target="_newtab">
+      <img id="fb-link-image" src="/static/images/fblogo.png"/>
+    </a>
     <a href="#stats" id="statsToggle" class="statsNav" style="float: right;"><span class="label">Stats</span></a>
   </header>
   <!-- Yourmom extensions -->
@@ -320,6 +323,15 @@
   </div>
 </button>
 -->
+<!-- FB -->
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_PI/sdk.js#xfbml=1&version=v2.7&appId=1692007067686555";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
 
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-polyfill/6.9.1/polyfill.min.js"></script>
