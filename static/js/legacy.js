@@ -6,7 +6,7 @@ define(function (require) {
     var mapStyles = require("map/styles");
     var search = require("map/overlay/search");
     var markers = require("map/overlay/markers");
-    var notifications = require("notifications");
+    var notifications = require("interface/notifications");
     var mapcore = require("map/map");
     var sidebar = require("interface/bar/sidebar");
     var myLocation = require("map/overlay/mylocation");
@@ -259,10 +259,14 @@ define(function (require) {
             $selectPokemonNotify.on('change', function (e) {
                 notifications.notifiedPokemon = $selectPokemonNotify.val().map(Number)
                 store.Store.set('remember_select_notify', notifications.notifiedPokemon)
+                engine.redrawPokemonMarkers(mapData.pokemons)
+                engine.redrawPokemonMarkers(mapData.lurePokemons)
             })
             $selectRarityNotify.on('change', function (e) {
                 notifications.notifiedRarity = $selectRarityNotify.val().map(String)
                 store.Store.set('remember_select_rarity_notify', notifications.notifiedRarity)
+                engine.redrawPokemonMarkers(mapData.pokemons)
+                engine.redrawPokemonMarkers(mapData.lurePokemons)
             })
 
             // recall saved lists

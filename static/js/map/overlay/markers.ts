@@ -7,7 +7,7 @@ import * as labels from "./labels";
 import * as utils from "../../utils";
 import {getGoogleSprite} from "../../utils";
 import {Store} from "../../store";
-import {sendNotification, playNotifySound, notifiedPokemon, notifiedRarity} from "../../notifications";
+import {sendNotification, playNotifySound, notifiedPokemon, notifiedRarity} from "../../interface/notifications";
 import LatLng = google.maps.LatLng;
 import LatLngBounds = google.maps.LatLngBounds;
 import * as sprites from "../../assets/sprites";
@@ -274,7 +274,11 @@ export class Marker extends MapMarker implements IMarker {
         if (!this.marker) {
             throw "Cannot animate this";
         }
-        this.marker.setAnimation(animation);
+        if (animation) {
+            this.marker.setAnimation(animation);
+        } else {
+            this.marker.setAnimation(this.oldAnimation);
+        }
     }
     public stopAnimation() {
         if (!this.marker) {
@@ -460,7 +464,7 @@ export function createSpawnMarker(item: ISpawn): Marker {
     return marker;
 }
 
-export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNotification?: boolean, isBounceDisabled?: boolean): Marker {
+export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNotification?: boolean, animateIfNotified?: boolean): Marker {
     // Scale icon size up with the map exponentially
     const iconSize = 2 + (core.map.googleMap.getZoom() - 3) * (core.map.googleMap.getZoom() - 3) * 0.2 + Store.get("iconSizeModifier");
     const pokemonIndex = item.pokemon_id - 1;
@@ -489,7 +493,7 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
             }
             sendNotification("A wild " + item.pokemon_name + " appeared!", "Click to load map", "static/icons/" + item.pokemon_id + ".png", item.latitude, item.longitude);
         }
-        if (isBounceDisabled === true) {
+        if (animateIfNotified === true) {
             mapObject.setAnimation(google.maps.Animation.BOUNCE);
         }
     }

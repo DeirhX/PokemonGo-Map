@@ -1,4 +1,4 @@
-import {core} from "./core/base";
+import {core} from "../core/base";
 declare var Notification; // TODO: Get api typing
 let notificationsSupported = false;
 declare var ServiceWorkerRegistration;

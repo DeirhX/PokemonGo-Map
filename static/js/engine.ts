@@ -154,7 +154,7 @@ export function processPokemon (i, item: IPokemon) {
     if (!(item.encounter_id in Core.mapData.pokemons)) {
         // add marker to map and item to dict
         var isHidden = (excludedPokemon.indexOf(item.pokemon_id) !== -1);
-        item.marker = createPokemonMarker(item, pokemonSprites, isHidden);
+        item.marker = createPokemonMarker(item, pokemonSprites, isHidden, true);
         Core.mapData.pokemons[item.encounter_id] = item;
         if (isHidden) {
             item.hidden = true;
@@ -274,7 +274,7 @@ export function redrawPokemonMarkers(pokemonList: IPokemon[]) {
     var skipNotification = true
     $.each(pokemonList, function (key, value) {
         var item = pokemonList[key]
-        var newMarker = markers.createPokemonMarker(item, pokemonSprites, skipNotification, this.marker.isAnimated())
+        var newMarker = markers.createPokemonMarker(item, pokemonSprites, skipNotification, true)
         if (item.hidden) {
             newMarker.hide();
         }
