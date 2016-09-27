@@ -329,7 +329,12 @@ define(function (require) {
         })
 
         $('#sound-switch').change(function () {
-            store.Store.set('playSound', this.checked)
+            store.Store.set('playSound', this.checked);
+        })
+        $('#animation-switch').change(function () {
+            store.Store.set('playAnimation', this.checked);
+            engine.redrawPokemonMarkers(mapData.pokemons);
+            engine.redrawPokemonMarkers(mapData.lurePokemons);
         })
 
         $('#geoloc-switch').change(function () {

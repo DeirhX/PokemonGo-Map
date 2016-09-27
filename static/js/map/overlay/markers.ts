@@ -464,7 +464,7 @@ export function createSpawnMarker(item: ISpawn): Marker {
     return marker;
 }
 
-export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNotification?: boolean, animateIfNotified?: boolean): Marker {
+export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNotification?: boolean): Marker {
     // Scale icon size up with the map exponentially
     const iconSize = 2 + (core.map.googleMap.getZoom() - 3) * (core.map.googleMap.getZoom() - 3) * 0.2 + Store.get("iconSizeModifier");
     const pokemonIndex = item.pokemon_id - 1;
@@ -493,7 +493,7 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
             }
             sendNotification("A wild " + item.pokemon_name + " appeared!", "Click to load map", "static/icons/" + item.pokemon_id + ".png", item.latitude, item.longitude);
         }
-        if (animateIfNotified === true) {
+        if (Store.get("playAnimation")) {
             mapObject.setAnimation(google.maps.Animation.BOUNCE);
         }
     }

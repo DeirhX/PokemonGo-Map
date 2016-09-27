@@ -109,6 +109,10 @@ const StoreOptions = {
     default: false,
     type: StoreTypes.Boolean,
   },
+  playAnimation: {
+    default: true,
+    type: StoreTypes.Boolean,
+  },
   geoLocate: {
     default: false,
     type: StoreTypes.Boolean,
