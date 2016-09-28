@@ -81,7 +81,6 @@ def receive_stats_loop():
         stats = json.loads(body)
 
     consumer = StatsAggregateConsumer()
-    consumer.connect()
     consumer.start_consume(consume_stats)
 
 

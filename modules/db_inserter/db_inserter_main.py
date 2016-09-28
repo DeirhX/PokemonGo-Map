@@ -21,7 +21,6 @@ upsert_threads = 4
 
 def consume():
     collector = DbInserterQueueConsumer()
-    collector.connect()
     log.info('About to start consuming submits')
     collector.start_consume(collect_entry)
 

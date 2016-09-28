@@ -43,7 +43,6 @@ def begin_consume_queue():
         global consumer
         consumer = ScanQueueConsumer()
         consumer.no_ack = False
-        consumer.connect()
         log.info('Listening to scan queue...')
         consumer.start_consume(callback)
 

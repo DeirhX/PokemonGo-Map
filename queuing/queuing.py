@@ -55,6 +55,7 @@ class Consumer:
     def start_consume(self, callback):
         while True:
             try:
+                self.connect()
                 self.channel.basic_consume(callback, queue=self.queue_name, no_ack=self.no_ack)
                 self.channel.start_consuming()
                 break
@@ -64,7 +65,7 @@ class Consumer:
             except Exception as ex:
                 log.exception('Unknown rabbit error "' + str(ex) + '", retrying in ten')
                 time.sleep(10)
-            self.connect()
+
 
 
 class QueueConsumer(Consumer):
