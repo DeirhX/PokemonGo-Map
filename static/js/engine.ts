@@ -71,9 +71,9 @@ export function updateMap (incremental: boolean) {
                 }
             });
     }
-    if (updateQueue.length > 15) {
-        console.log(`Update queue too large! ${updateQueue.length} entries present.`);
-        return; // Throw it away, queue too long
+    if (updateQueue.length > 10) {
+        console.log(`Update queue too large! ${updateQueue.length} entries present. Clearing...`);
+        updateQueue = [];
     }
     updateQueue.push(incremental);
     if (updateQueue.length === 1) { // Fire request only if the queue was empty
