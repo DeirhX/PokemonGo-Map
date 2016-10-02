@@ -4,10 +4,9 @@
 *.db-*
 *.sass-cache
 *.orig
-*.json
 config/config.ini
-static/dist/
 node_modules/
+/static/dist
 venv/
 src/
 _build
@@ -50,3 +49,4 @@ beehive.*
 /static/js/notifications.js
 /static/js/store.js
 /static/js/utils.js
+/static/dist/rs
