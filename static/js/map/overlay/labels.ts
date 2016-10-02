@@ -69,16 +69,16 @@ export function pokemonLabel(pokemon: IPokemon): string {
     let iv = (pokemon.individual_attack + pokemon.individual_defense + pokemon.individual_stamina) / 45 * 100;
     details = `
       <div>
-        IV: ${iv.toFixed(1)}% (ATT: ${pokemon.individual_attack} DEF: ${pokemon.individual_defense} STA: ${pokemon.individual_stamina})
+        <b>${iv.toFixed(1)}% IV</b> (${pokemon.individual_attack}A / ${pokemon.individual_defense}D / ${pokemon.individual_stamina}S)
       </div>
       <div>
-        Moves: ${i8ln(entities.staticData.attacks[pokemon.attack_1].name)} / ${i8ln(entities.staticData.attacks[pokemon.attack_2].name)}
+        Moves: <b>${i8ln(entities.staticData.attacks[pokemon.attack_1].name)}</b> / <b>${i8ln(entities.staticData.attacks[pokemon.attack_2].name)}</b>
       </div>
       `;
     }
     return `
       <div>
-        <b>${name}</b>
+        <b>${pokemon.pokemon_name}</b>
         <span> - </span>
         <small>
           <a href='http://www.pokemon.com/us/pokedex/${pokemon.pokemon_id}' target='_blank' title='View in Pokedex'>#${pokemon.pokemon_id}</a>
@@ -87,12 +87,10 @@ export function pokemonLabel(pokemon: IPokemon): string {
         <span> - </span>
         <small>${typesDisplay}</small>
       </div>
+      ${details}
       <div>
         Disappears at ${pad(disappearDate.getHours(), 2)}:${pad(disappearDate.getMinutes(), 2)}:${pad(disappearDate.getSeconds(), 2)}
         <span class='label-countdown' disappears-at='${pokemon.disappear_time}'>(00m00s)</span>
-      </div>
-      <div>
-        Location: ${pokemon.latitude.toFixed(6)}, ${pokemon.longitude.toFixed(7)}
       </div>
       <div>
         <a href='javascript:excludePokemon(${pokemon.pokemon_id})'>Exclude</a>&nbsp;&nbsp
@@ -100,6 +98,12 @@ export function pokemonLabel(pokemon: IPokemon): string {
         <a href='javascript:removePokemonMarker("${pokemon.encounter_id}")'>Remove</a>&nbsp;&nbsp
         <a href='https://www.google.com/maps/dir/Current+Location/${pokemon.latitude},${pokemon.longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
       </div>`;
+    /*
+      <div>
+        Location: ${pokemon.latitude.toFixed(6)}, ${pokemon.longitude.toFixed(7)}
+      </div>
+
+     */
 }
 
 export function spawnLabel(id, latitude, longitude, spawnTime?) {
