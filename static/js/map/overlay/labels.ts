@@ -2,6 +2,8 @@
 
 import {pad} from "../../utils";
 import {ILocation} from "../../members/location";
+import {i8ln} from "../../assets/strings";
+import entities from "../../data/entities";
 
 function getTypeSpan(type) {
     return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
@@ -54,12 +56,24 @@ export function updateAllLabelsDisappearTime() {
     });
 }
 
-export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId): string {
+export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId, atk, def, sta, move1, move2): string {
     const disappearDate = new Date(disappearTime);
     const rarityDisplay = rarity ? "(" + rarity + ")" : "";
     let typesDisplay = "";
     for (let type of types) {
         typesDisplay += getTypeSpan(type);
+    }
+    let details = "";
+    if (atk != null) {
+    let iv = (atk + def + sta) / 45 * 100;
+    details = `
+      <div>
+        IV: ${iv.toFixed(1)}% (ATT: ${atk} DEF: ${def} STA: ${sta})
+      </div>
+      <div>
+        Moves: ${i8ln(entities.staticData.attacks[move1].name)} / ${i8ln(entities.staticData.attacks[move2].name)}
+      </div>
+      `;
     }
     return `
       <div>

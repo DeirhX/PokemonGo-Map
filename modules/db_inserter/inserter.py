@@ -43,7 +43,7 @@ def collect_entry(ch, method, props, body):
         return
 
     try:
-        # Parse each object and add it to cached and new if not alrady found in cached
+        # Parse each object and add it to cached and new if not already found in cached
         for key, value in message.iteritems():
             if (key == str(Pokemon)):
                 for pokemon in value:

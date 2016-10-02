@@ -10,10 +10,11 @@ from Queue import Queue
 import sys
 import math
 
+import gc
 from enum import Enum
 from peewee import SqliteDatabase, InsertQuery, \
     IntegerField, CharField, DoubleField, BooleanField, \
-    DateTimeField, CompositeKey, fn, SmallIntegerField, BigIntegerField, JOIN
+    DateTimeField, CompositeKey, fn, SmallIntegerField, BigIntegerField, JOIN, FloatField, TextField
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError
@@ -92,6 +93,11 @@ class Pokemon(BaseModel):
     last_modified = DateTimeField()
     last_update = DateTimeField(index=True)
     scan_id = SmallIntegerField()
+    individual_attack = IntegerField(null=True)
+    individual_defense = IntegerField(null=True)
+    individual_stamina = IntegerField(null=True)
+    attack_1 = IntegerField(null=True)
+    attack_2 = IntegerField(null=True)
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
@@ -398,12 +404,12 @@ class Gym(BaseModel):
     @staticmethod
     def get_gyms(swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
-            query = (Gym
+            results = (Gym
                      .select()
                      .where(Gym.last_update >= since)
                      .dicts())
         else:
-            query = (Gym
+            results = (Gym
                      .select()
                      .where((Gym.latitude >= swLat) &
                             (Gym.longitude >= swLng) &
@@ -412,11 +418,94 @@ class Gym(BaseModel):
                             (Gym.last_update >= since))
                      .dicts())
 
-        gyms = []
-        for g in query:
-            gyms.append(g)
+            # Performance: Disable the garbage collector prior to creating a (potentially) large dict with append()
+            gc.disable()
+
+        gyms = {}
+        gym_ids = []
+        for g in results:
+            g['name'] = None
+            g['pokemon'] = []
+            gyms[g['gym_id']] = g
+            gym_ids.append(g['gym_id'])
+
+        if len(gym_ids) > 0:
+            pokemon = (GymMember
+                       .select(
+                GymMember.gym_id,
+                GymPokemon.cp.alias('pokemon_cp'),
+                GymPokemon.pokemon_id,
+                Trainer.name.alias('trainer_name'),
+                Trainer.level.alias('trainer_level'))
+                       .join(Gym, on=(GymMember.gym_id == Gym.gym_id))
+                       .join(GymPokemon, on=(GymMember.pokemon_uid == GymPokemon.pokemon_uid))
+                       .join(Trainer, on=(GymPokemon.trainer_name == Trainer.name))
+                       .where(GymMember.gym_id << gym_ids)
+                       .where(GymMember.last_scanned > Gym.last_modified)
+                       .order_by(GymMember.gym_id, GymPokemon.cp)
+                       .dicts())
+
+            for p in pokemon:
+                p['pokemon_name'] = get_pokemon_name(p['pokemon_id'])
+                gyms[p['gym_id']]['pokemon'].append(p)
+
+            details = (GymDetails
+                       .select(
+                GymDetails.gym_id,
+                GymDetails.name)
+                       .where(GymDetails.gym_id << gym_ids)
+                       .dicts())
+
+            for d in details:
+                gyms[d['gym_id']]['name'] = d['name']
+
+        # Re-enable the GC.
+        gc.enable()
 
         return gyms
+
+class GymMember(BaseModel):
+    gym_id = CharField(index=True)
+    pokemon_uid = CharField()
+    last_scanned = DateTimeField(default=datetime.utcnow)
+
+    class Meta:
+        primary_key = False
+
+
+class GymPokemon(BaseModel):
+    pokemon_uid = CharField(primary_key=True, max_length=50)
+    pokemon_id = IntegerField()
+    cp = IntegerField()
+    trainer_name = CharField()
+    num_upgrades = IntegerField(null=True)
+    attack_1 = IntegerField(null=True)
+    attack_2 = IntegerField(null=True)
+    height = FloatField(null=True)
+    weight = FloatField(null=True)
+    stamina = IntegerField(null=True)
+    stamina_max = IntegerField(null=True)
+    cp_multiplier = FloatField(null=True)
+    additional_cp_multiplier = FloatField(null=True)
+    iv_defense = IntegerField(null=True)
+    iv_stamina = IntegerField(null=True)
+    iv_attack = IntegerField(null=True)
+    last_seen = DateTimeField(default=datetime.utcnow)
+
+
+class Trainer(BaseModel):
+    name = CharField(primary_key=True, max_length=50)
+    team = IntegerField()
+    level = IntegerField()
+    last_seen = DateTimeField(default=datetime.utcnow)
+
+
+class GymDetails(BaseModel):
+    gym_id = CharField(primary_key=True, max_length=50)
+    name = CharField()
+    description = TextField(null=True, default="")
+    url = CharField()
+    last_scanned = DateTimeField(default=datetime.utcnow)
 
 
 class ScannedCell(BaseModel):
@@ -743,7 +832,40 @@ class Versions(flaskDb.Model):
         primary_key = False
 
 
-def parse_map(map_dict, step_location):
+def construct_pokemon_dict(pokemons, p, encounter_result, d_t):
+    pokemons[p['encounter_id']] = {
+        'encounter_id': b64encode(str(p['encounter_id'])),
+        'spawnpoint_id': p['spawn_point_id'],
+        'pokemon_id': p['pokemon_data']['pokemon_id'],
+        'latitude': p['latitude'],
+        'longitude': p['longitude'],
+        'disappear_time': d_t,
+    }
+    if encounter_result is not None and 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
+        pokemon_info = encounter_result['responses']['ENCOUNTER']['wild_pokemon']['pokemon_data']
+        attack = pokemon_info.get('individual_attack', 0)
+        defense = pokemon_info.get('individual_defense', 0)
+        stamina = pokemon_info.get('individual_stamina', 0)
+        pokemons[p['encounter_id']].update({
+            'individual_attack': attack,
+            'individual_defense': defense,
+            'individual_stamina': stamina,
+            'attack_1': pokemon_info['move_1'],
+            'attack_2': pokemon_info['move_2'],
+        })
+    else:
+        if encounter_result is not None and 'wild_pokemon' not in encounter_result['responses']['ENCOUNTER']:
+            log.warning("Error encountering {}, status code: {}".format(p['encounter_id'], encounter_result['responses']['ENCOUNTER']['status']))
+        pokemons[p['encounter_id']].update({
+            'individual_attack': None,
+            'individual_defense': None,
+            'individual_stamina': None,
+            'attack_1': None,
+            'attack_2': None,
+        })
+
+
+def parse_map(map_dict, step_location, api):
     pokemons = {}
     pokestops = {}
     gyms = {}
@@ -770,16 +892,17 @@ def parse_map(map_dict, step_location):
 
                 printPokemon(p['pokemon_data']['pokemon_id'], p['latitude'],
                              p['longitude'], d_t)
-                pokemons[p['encounter_id']] = {
-                    'encounter_id': b64encode(str(p['encounter_id'])),
-                    'spawnpoint_id': p['spawn_point_id'],
-                    'pokemon_id': p['pokemon_data']['pokemon_id'],
-                    'latitude': p['latitude'],
-                    'longitude': p['longitude'],
-                    'disappear_time': d_t,
-                    'last_modified': datetime.utcfromtimestamp(p['last_modified_timestamp_ms'] / 1000.0),
-                    'scan_id': args.location_id
-                }
+
+                # Scan for IVs and moves
+                encounter_result = None
+                if (args.encounter and (p['pokemon_data']['pokemon_id'] in args.encounter_whitelist or
+                                        p['pokemon_data']['pokemon_id'] not in args.encounter_blacklist and not args.encounter_whitelist)):
+                    time.sleep(args.encounter_delay)
+                    encounter_result = api.encounter(encounter_id=p['encounter_id'],
+                                                     spawn_point_id=p['spawn_point_id'],
+                                                     player_latitude=step_location[0],
+                                                     player_longitude=step_location[1])
+                construct_pokemon_dict(pokemons, p, encounter_result, d_t)
 
                 webhook_data = {
                     'encounter_id': b64encode(str(p['encounter_id'])),

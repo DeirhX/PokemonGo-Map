@@ -131,7 +131,6 @@ def get_args():
     parser.add_argument('-pd', '--purge-data',
                         help='Clear pokemon from database this many hours after they disappear \
                         (0 to disable)', type=int, default=0)
-    parser.add_argument('-px', '--proxy', help='Proxy url (e.g. socks5://127.0.0.1:9050)')
     parser.add_argument('--db-type', help='Type of database to be used (default: sqlite)',
                         default='sqlite')
     parser.add_argument('--db-name', help='Name of the database to be used')
@@ -160,6 +159,25 @@ def get_args():
     parser.add_argument('-loc', '--location-id',
                         help='ID of this scan that is going to be identified by in database',
                         type=int, default=0)
+    parser.add_argument('-enc', '--encounter',
+                        help='Start an encounter to gather IVs and moves',
+                        action='store_true', default=True)
+    parser.add_argument('-ed', '--encounter-delay',
+                        help='Time delay between encounter pokemon in scan threads',
+                        type=float, default=1)
+    encounter_list = parser.add_mutually_exclusive_group()
+    encounter_list.add_argument('-ewht', '--encounter-whitelist', action='append', default=[],
+                                help='List of pokemon to encounter for more stats')
+    encounter_list.add_argument('-eblk', '--encounter-blacklist', action='append', default=[],
+                                help='List of pokemon to NOT encounter for more stats')
+    parser.add_argument('-gi', '--gym-info', help='Get all details about gyms (causes an additional API hit for every gym)',
+                        action='store_true', default=True)
+    parser.add_argument('-px', '--proxy', help='Proxy url (e.g. socks5://127.0.0.1:9050)', action='append')
+    parser.add_argument('-pxsc', '--proxy-skip-check', help='Disable checking of proxies before start', action='store_true', default=False)
+    parser.add_argument('-pxt', '--proxy-timeout', help='Timeout settings for proxy checker in seconds ', type=int, default=5)
+    parser.add_argument('-pxd', '--proxy-display', help='Display info on which proxy beeing used (index or full) To be used with -ps', type=str, default='index')
+
+
 
     parser.set_defaults(DEBUG=False)
 
@@ -225,6 +243,10 @@ def get_args():
         if args.username:
             for i, username in enumerate(args.username):
                 args.accounts.append({'username': username, 'password': args.password[i], 'auth_service': args.auth_service[i]})
+
+        # Encounter black/white list
+        args.encounter_blacklist = [int(i) for i in args.encounter_blacklist]
+        args.encounter_whitelist = [int(i) for i in args.encounter_whitelist]
 
     return args
 

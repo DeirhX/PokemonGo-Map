@@ -4,6 +4,7 @@ import {IMarker} from "../map/overlay/markers";
 import {IMember} from "../members/members";
 import {IMapElement} from "../map/map";
 import {ISpawn} from "./spawn";
+
 export const gymTypes = ["Uncontested", "Mystic", "Valor", "Instinct"];
 
 export interface IMapData {
@@ -15,6 +16,11 @@ export interface IMapData {
     spawnpoints: { [id: string]: ISpawn } ;
     locations: { [id: string]: ILocation } ;
 }
+
+export interface IStaticData {
+    attacks: { [id: string]: IPokemonAttack } ;
+}
+
 
 export interface IGym extends IMapElement {
     gym_id: string;
@@ -29,6 +35,22 @@ export interface IPokemon extends IMapElement {
     pokemon_rarity: string;
     pokemon_name: string;
     pokemon_types: string;
+
+    attack: number;
+    defense: number;
+    stamina: number;
+    move1: number;
+    move2: number;
+}
+
+export interface IPokemonAttack {
+    // id: number;
+    name: string;
+    type: string;
+    damage: number;
+    duration: number;
+    energy: number;
+    dps: number;
 }
 
 export interface ILuredPokemon extends IPokemon {
@@ -58,9 +80,14 @@ export class MapData implements IMapData {
     public locations: { [id: string]: ILocation } = {};
 }
 
+export class StaticData implements IStaticData {
+    public attacks: { [id: string]: IPokemonAttack } =  {};
+}
+
 export class CoreSingleton {
     public member: IMember;
     public mapData = new MapData();
+    public staticData = new StaticData();
 }
 export var Core = new CoreSingleton();
 export default Core;

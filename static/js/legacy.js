@@ -12,6 +12,7 @@ define(function (require) {
     var myLocation = require("map/overlay/mylocation");
     var labels = require("map/overlay/labels");
     var strings = require("assets/strings");
+    var entities = require("data/entities").Core;
     var mapData = require("data/entities").Core.mapData;
     var spawntip = require("interface/tooltip/spawntip");
     var engine = require("engine");
@@ -206,6 +207,10 @@ define(function (require) {
         $selectPokemonNotify = $('#notify-pokemon')
         $selectRarityNotify = $('#notify-rarity')
         var numberOfPokemon = 151
+
+        $.getJSON('static/dist/data/moves.min.json').done(function (data) {
+            entities.staticData.attacks = data;
+        });
 
         // Load pokemon names and populate lists
         $.getJSON('static/dist/data/pokemon.min.json').done(function (data) {

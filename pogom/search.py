@@ -445,7 +445,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     # Got the response, lock for parsing and do so (or fail, whatever)
                     # with parse_lock: # no need for lock
                     try:
-                        found_pokemons = parse_map(response_dict, step_location)[0]
+                        found_pokemons = parse_map(response_dict, step_location, api)[0]
                         Location.update(last_keepalive=datetime.utcnow()).where(Location.id == args.location_id).execute()
                         log.debug('Search step %s completed', step)
                         if wait_for_spawn and spawn_appear_time and spawn_disappear_time and \
