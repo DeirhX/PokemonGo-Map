@@ -4,6 +4,7 @@ import {pad} from "../../utils";
 import {ILocation} from "../../members/location";
 import {i8ln} from "../../assets/strings";
 import entities from "../../data/entities";
+import {IPokemon} from "../../data/entities";
 
 function getTypeSpan(type) {
     return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
@@ -56,22 +57,22 @@ export function updateAllLabelsDisappearTime() {
     });
 }
 
-export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId, atk, def, sta, move1, move2): string {
-    const disappearDate = new Date(disappearTime);
-    const rarityDisplay = rarity ? "(" + rarity + ")" : "";
+export function pokemonLabel(pokemon: IPokemon): string {
+    const disappearDate = new Date(pokemon.disappear_time);
+    const rarityDisplay = pokemon.pokemon_rarity ? "(" + pokemon.pokemon_rarity + ")" : "";
     let typesDisplay = "";
-    for (let type of types) {
+    for (let type of pokemon.pokemon_types) {
         typesDisplay += getTypeSpan(type);
     }
     let details = "";
-    if (atk != null) {
-    let iv = (atk + def + sta) / 45 * 100;
+    if (pokemon.individual_attack != null) {
+    let iv = (pokemon.individual_attack + pokemon.individual_defense + pokemon.individual_stamina) / 45 * 100;
     details = `
       <div>
-        IV: ${iv.toFixed(1)}% (ATT: ${atk} DEF: ${def} STA: ${sta})
+        IV: ${iv.toFixed(1)}% (ATT: ${pokemon.individual_attack} DEF: ${pokemon.individual_defense} STA: ${pokemon.individual_stamina})
       </div>
       <div>
-        Moves: ${i8ln(entities.staticData.attacks[move1].name)} / ${i8ln(entities.staticData.attacks[move2].name)}
+        Moves: ${i8ln(entities.staticData.attacks[pokemon.attack_1].name)} / ${i8ln(entities.staticData.attacks[pokemon.attack_2].name)}
       </div>
       `;
     }
@@ -80,7 +81,7 @@ export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, l
         <b>${name}</b>
         <span> - </span>
         <small>
-          <a href='http://www.pokemon.com/us/pokedex/${id}' target='_blank' title='View in Pokedex'>#${id}</a>
+          <a href='http://www.pokemon.com/us/pokedex/${pokemon.pokemon_id}' target='_blank' title='View in Pokedex'>#${pokemon.pokemon_id}</a>
         </small>
         <span> ${rarityDisplay}</span>
         <span> - </span>
@@ -88,16 +89,16 @@ export function pokemonLabel(name, rarity, types, disappearTime, id, latitude, l
       </div>
       <div>
         Disappears at ${pad(disappearDate.getHours(), 2)}:${pad(disappearDate.getMinutes(), 2)}:${pad(disappearDate.getSeconds(), 2)}
-        <span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span>
+        <span class='label-countdown' disappears-at='${pokemon.disappear_time}'>(00m00s)</span>
       </div>
       <div>
-        Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+        Location: ${pokemon.latitude.toFixed(6)}, ${pokemon.longitude.toFixed(7)}
       </div>
       <div>
-        <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
-        <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
-        <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
-        <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
+        <a href='javascript:excludePokemon(${pokemon.pokemon_id})'>Exclude</a>&nbsp;&nbsp
+        <a href='javascript:notifyAboutPokemon(${pokemon.pokemon_id})'>Notify</a>&nbsp;&nbsp
+        <a href='javascript:removePokemonMarker("${pokemon.encounter_id}")'>Remove</a>&nbsp;&nbsp
+        <a href='https://www.google.com/maps/dir/Current+Location/${pokemon.latitude},${pokemon.longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
       </div>`;
 }
 

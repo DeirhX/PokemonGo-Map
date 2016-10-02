@@ -482,7 +482,7 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
     });
 
     let infoWindow = new google.maps.InfoWindow({
-        content: labels.pokemonLabel(item.pokemon_name, item.pokemon_rarity, item.pokemon_types, item.disappear_time, item.pokemon_id, item.latitude, item.longitude, item.encounter_id),
+        content: labels.pokemonLabel(item),
         disableAutoPan: true,
     });
 

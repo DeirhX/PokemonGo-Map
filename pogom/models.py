@@ -840,6 +840,7 @@ def construct_pokemon_dict(pokemons, p, encounter_result, d_t):
         'latitude': p['latitude'],
         'longitude': p['longitude'],
         'disappear_time': d_t,
+        'scan_id': args.location_id
     }
     if encounter_result is not None and 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
         pokemon_info = encounter_result['responses']['ENCOUNTER']['wild_pokemon']['pokemon_data']

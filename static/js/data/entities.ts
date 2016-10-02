@@ -36,11 +36,11 @@ export interface IPokemon extends IMapElement {
     pokemon_name: string;
     pokemon_types: string;
 
-    attack: number;
-    defense: number;
-    stamina: number;
-    move1: number;
-    move2: number;
+    individual_attack: number;
+    individual_defense: number;
+    individual_stamina: number;
+    attack_1: number;
+    attack_2: number;
 }
 
 export interface IPokemonAttack {
