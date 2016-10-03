@@ -509,7 +509,7 @@ class GymDetails(BaseModel):
     name = CharField()
     description = TextField(null=True, default="")
     url = CharField()
-    last_scanned = DateTimeField(default=datetime.utcnow)
+    last_update = DateTimeField(default=datetime.utcnow)
 
 
 class ScannedCell(BaseModel):
@@ -1042,7 +1042,7 @@ def parse_map(map_dict, step_location, api):
              pokestops_upserted,
              gyms_upserted)
 
-    return [pokemons, pokestops, gyms]
+    return {'pokemons': pokemons, 'pokestops': pokestops, 'gyms': gyms}
 
 
 def clean_database():

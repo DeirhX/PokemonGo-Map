@@ -492,7 +492,10 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
             if (Store.get("playSound")) {
                 playNotifySound();
             }
-            sendNotification("A wild " + item.pokemon_name + " appeared!", `IV: ${ivValue.toFixed(0)}% Stats: ${item.individual_attack}-${item.individual_defense}-${item.individual_stamina}`, "static/icons/" + item.pokemon_id + ".png", item.latitude, item.longitude);
+            sendNotification("A wild " + item.pokemon_name + " appeared!", `IV: ${ivValue.toFixed(0)}%, expires in: ${new Date(item.disappear_time).toLocaleTimeString("en-US", {hour12: false})}`,
+                "static/icons/" + item.pokemon_id + ".png",
+                item.latitude, item.longitude);
+            //   Stats: ${item.individual_attack}-${item.individual_defense}-${item.individual_stamina}
         }
         if (Store.get("playAnimation")) {
             mapObject.setAnimation(google.maps.Animation.BOUNCE);
