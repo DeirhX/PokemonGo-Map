@@ -69,7 +69,7 @@ export function pokemonLabel(pokemon: IPokemon): string {
     let iv = (pokemon.individual_attack + pokemon.individual_defense + pokemon.individual_stamina) / 45 * 100;
     details = `
       <div>
-        <b>${iv.toFixed(1)}% IV</b> (${pokemon.individual_attack}A / ${pokemon.individual_defense}D / ${pokemon.individual_stamina}S)
+        <b>${iv.toFixed(1)}% </b>IV (${pokemon.individual_attack}A / ${pokemon.individual_defense}D / ${pokemon.individual_stamina}S)
       </div>
       <div>
         Moves: <b>${i8ln(entities.staticData.attacks[pokemon.attack_1].name)}</b> / <b>${i8ln(entities.staticData.attacks[pokemon.attack_2].name)}</b>

@@ -470,6 +470,7 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
     const pokemonIndex = item.pokemon_id - 1;
     const sprite = pokemonSprites[Store.get("pokemonIcons")] || pokemonSprites.highres;
     const icon = getGoogleSprite(pokemonIndex, sprite, iconSize);
+    const ivValue = (item.individual_attack + item.individual_defense + item.individual_stamina) / 45.0 * 100;
 
     let mapObject = new google.maps.Marker({
         position: {
@@ -491,7 +492,7 @@ export function createPokemonMarker(item: IPokemon, pokemonSprites: any, skipNot
             if (Store.get("playSound")) {
                 playNotifySound();
             }
-            sendNotification("A wild " + item.pokemon_name + " appeared!", "Click to load map", "static/icons/" + item.pokemon_id + ".png", item.latitude, item.longitude);
+            sendNotification("A wild " + item.pokemon_name + " appeared!", `IV: ${ivValue.toFixed(1)}% (${item.individual_attack}A / ${item.individual_defense}D / ${item.individual_stamina}S)`, "static/icons/" + item.pokemon_id + ".png", item.latitude, item.longitude);
         }
         if (Store.get("playAnimation")) {
             mapObject.setAnimation(google.maps.Animation.BOUNCE);
