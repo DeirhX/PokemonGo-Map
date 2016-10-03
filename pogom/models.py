@@ -14,7 +14,7 @@ import gc
 from enum import Enum
 from peewee import SqliteDatabase, InsertQuery, \
     IntegerField, CharField, DoubleField, BooleanField, \
-    DateTimeField, CompositeKey, fn, SmallIntegerField, BigIntegerField, JOIN, FloatField, TextField
+    DateTimeField, CompositeKey, fn, SmallIntegerField, BigIntegerField, JOIN, FloatField, TextField, DeleteQuery
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError
@@ -1043,6 +1043,126 @@ def parse_map(map_dict, step_location, api):
              gyms_upserted)
 
     return {'pokemons': pokemons, 'pokestops': pokestops, 'gyms': gyms}
+
+
+def parse_gyms(args, gym_responses, wh_update_queue):
+    gym_details = {}
+    gym_members = {}
+    gym_pokemon = {}
+    trainers = {}
+
+    i = 0
+    for g in gym_responses.values():
+        gym_state = g['gym_state']
+        gym_id = gym_state['fort_data']['id']
+
+        gym_details[gym_id] = {
+            'gym_id': gym_id,
+            'name': g['name'],
+            'description': g.get('description'),
+            'url': g['urls'][0],
+        }
+
+        if args.webhooks:
+            webhook_data = {
+                'id': gym_id,
+                'latitude': gym_state['fort_data']['latitude'],
+                'longitude': gym_state['fort_data']['longitude'],
+                'team': gym_state['fort_data'].get('owned_by_team', 0),
+                'name': g['name'],
+                'description': g.get('description'),
+                'url': g['urls'][0],
+                'pokemon': [],
+            }
+
+        for member in gym_state.get('memberships', []):
+            gym_members[i] = {
+                'gym_id': gym_id,
+                'pokemon_uid': member['pokemon_data']['id'],
+            }
+
+            gym_pokemon[i] = {
+                'pokemon_uid': member['pokemon_data']['id'],
+                'pokemon_id': member['pokemon_data']['pokemon_id'],
+                'cp': member['pokemon_data']['cp'],
+                'trainer_name': member['trainer_public_profile']['name'],
+                'num_upgrades': member['pokemon_data'].get('num_upgrades', 0),
+                'move_1': member['pokemon_data'].get('move_1'),
+                'move_2': member['pokemon_data'].get('move_2'),
+                'height': member['pokemon_data'].get('height_m'),
+                'weight': member['pokemon_data'].get('weight_kg'),
+                'stamina': member['pokemon_data'].get('stamina'),
+                'stamina_max': member['pokemon_data'].get('stamina_max'),
+                'cp_multiplier': member['pokemon_data'].get('cp_multiplier'),
+                'additional_cp_multiplier': member['pokemon_data'].get('additional_cp_multiplier', 0),
+                'iv_defense': member['pokemon_data'].get('individual_defense', 0),
+                'iv_stamina': member['pokemon_data'].get('individual_stamina', 0),
+                'iv_attack': member['pokemon_data'].get('individual_attack', 0),
+                'last_seen': datetime.utcnow(),
+            }
+
+            trainers[i] = {
+                'name': member['trainer_public_profile']['name'],
+                'team': gym_state['fort_data']['owned_by_team'],
+                'level': member['trainer_public_profile']['level'],
+                'last_seen': datetime.utcnow(),
+            }
+
+            if args.webhooks:
+                webhook_data['pokemon'].append({
+                    'pokemon_uid': member['pokemon_data']['id'],
+                    'pokemon_id': member['pokemon_data']['pokemon_id'],
+                    'cp': member['pokemon_data']['cp'],
+                    'num_upgrades': member['pokemon_data'].get('num_upgrades', 0),
+                    'move_1': member['pokemon_data'].get('move_1'),
+                    'move_2': member['pokemon_data'].get('move_2'),
+                    'height': member['pokemon_data'].get('height_m'),
+                    'weight': member['pokemon_data'].get('weight_kg'),
+                    'stamina': member['pokemon_data'].get('stamina'),
+                    'stamina_max': member['pokemon_data'].get('stamina_max'),
+                    'cp_multiplier': member['pokemon_data'].get('cp_multiplier'),
+                    'additional_cp_multiplier': member['pokemon_data'].get('additional_cp_multiplier', 0),
+                    'iv_defense': member['pokemon_data'].get('individual_defense', 0),
+                    'iv_stamina': member['pokemon_data'].get('individual_stamina', 0),
+                    'iv_attack': member['pokemon_data'].get('individual_attack', 0),
+                    'trainer_name': member['trainer_public_profile']['name'],
+                    'trainer_level': member['trainer_public_profile']['level'],
+                })
+
+            i += 1
+        if args.webhooks:
+            wh_update_queue.put(('gym_details', webhook_data))
+
+    # All this database stuff is synchronous (not using the upsert queue) on purpose.
+    # Since the search workers load the GymDetails model from the database to determine if a gym
+    # needs rescanned, we need to be sure the GymDetails get fully committed to the database before moving on.
+    #
+    # We _could_ synchronously upsert GymDetails, then queue the other tables for
+    # upsert, but that would put that Gym's overall information in a weird non-atomic state.
+
+    # upsert all the models
+    if len(gym_details):
+        bulk_upsert(GymDetails, gym_details)
+    if len(gym_pokemon):
+        bulk_upsert(GymPokemon, gym_pokemon)
+    if len(trainers):
+        bulk_upsert(Trainer, trainers)
+
+    # This needs to be completed in a transaction, because we don't wany any other thread or process
+    # to mess with the GymMembers for the gyms we're updating while we're updating the bridge table.
+    with flaskDb.database.transaction():
+        # get rid of all the gym members, we're going to insert new records
+        if len(gym_details):
+            DeleteQuery(GymMember).where(GymMember.gym_id << gym_details.keys()).execute()
+
+        # insert new gym members
+        if len(gym_members):
+            bulk_upsert(GymMember, gym_members)
+
+    log.info('Upserted %d gyms and %d gym members',
+             len(gym_details),
+             len(gym_members))
+
 
 
 def clean_database():
