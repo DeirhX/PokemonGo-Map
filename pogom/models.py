@@ -471,6 +471,7 @@ class GymMember(BaseModel):
 
     class Meta:
         primary_key = False
+        db_table = "gym_member"
 
 
 class GymPokemon(BaseModel):
@@ -478,19 +479,22 @@ class GymPokemon(BaseModel):
     pokemon_id = IntegerField()
     cp = IntegerField()
     trainer_name = CharField()
-    num_upgrades = IntegerField(null=True)
-    attack_1 = IntegerField(null=True)
-    attack_2 = IntegerField(null=True)
+    num_upgrades = SmallIntegerField(null=True)
+    attack_1 = SmallIntegerField(null=True)
+    attack_2 = SmallIntegerField(null=True)
     height = FloatField(null=True)
     weight = FloatField(null=True)
-    stamina = IntegerField(null=True)
-    stamina_max = IntegerField(null=True)
+    stamina = SmallIntegerField(null=True)
+    stamina_max = SmallIntegerField(null=True)
     cp_multiplier = FloatField(null=True)
     additional_cp_multiplier = FloatField(null=True)
-    iv_defense = IntegerField(null=True)
-    iv_stamina = IntegerField(null=True)
-    iv_attack = IntegerField(null=True)
+    iv_defense = SmallIntegerField(null=True)
+    iv_stamina = SmallIntegerField(null=True)
+    iv_attack = SmallIntegerField(null=True)
     last_seen = DateTimeField(default=datetime.utcnow)
+
+    class Meta:
+        db_table = "gympokemon"
 
 
 class Trainer(BaseModel):
