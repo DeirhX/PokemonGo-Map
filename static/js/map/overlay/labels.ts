@@ -150,13 +150,13 @@ export function gymLabel(gym: IGym, teamName: string) {
               <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
             </div>
             <div>
-              Level: ${gymLevel} | Prestige: ${gymPoints}
+              Level: ${gymLevel} | Prestige: ${gym.gym_points}
             </div>
             <div>
-              Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+              Location: ${gym.latitude.toFixed(6)}, ${gym.longitude.toFixed(7)}
             </div>
             <div>
-              <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
+              <a href='https://www.google.com/maps/dir/Current+Location/${gym.latitude},$gym.{longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
             </div>
           </center>
         </div>`;
