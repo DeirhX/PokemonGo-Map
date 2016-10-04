@@ -466,7 +466,7 @@ class Gym(BaseModel):
 
 class GymMember(BaseModel):
     gym_id = CharField(index=True)
-    pokemon_uid = CharField()
+    pokemon_uid = CharField(max_length=30)
     last_scanned = DateTimeField(default=datetime.utcnow)
 
     class Meta:
@@ -475,10 +475,10 @@ class GymMember(BaseModel):
 
 
 class GymPokemon(BaseModel):
-    pokemon_uid = CharField(primary_key=True, max_length=50)
+    pokemon_uid = CharField(max_length=30, primary_key=True)
     pokemon_id = IntegerField()
     cp = IntegerField()
-    trainer_name = CharField()
+    trainer_name = CharField(max_length=45)
     num_upgrades = SmallIntegerField(null=True)
     attack_1 = SmallIntegerField(null=True)
     attack_2 = SmallIntegerField(null=True)
@@ -492,10 +492,6 @@ class GymPokemon(BaseModel):
     iv_stamina = SmallIntegerField(null=True)
     iv_attack = SmallIntegerField(null=True)
     last_seen = DateTimeField(default=datetime.utcnow)
-
-    class Meta:
-        db_table = "gympokemon"
-
 
 class Trainer(BaseModel):
     name = CharField(primary_key=True, max_length=50)
@@ -1087,8 +1083,8 @@ def parse_gyms(args, gym_responses, wh_update_queue):
                 'cp': member['pokemon_data']['cp'],
                 'trainer_name': member['trainer_public_profile']['name'],
                 'num_upgrades': member['pokemon_data'].get('num_upgrades', 0),
-                'move_1': member['pokemon_data'].get('move_1'),
-                'move_2': member['pokemon_data'].get('move_2'),
+                'attack_1': member['pokemon_data'].get('move_1'),
+                'attack_2': member['pokemon_data'].get('move_2'),
                 'height': member['pokemon_data'].get('height_m'),
                 'weight': member['pokemon_data'].get('weight_kg'),
                 'stamina': member['pokemon_data'].get('stamina'),
