@@ -136,22 +136,34 @@ export function gymLabel(gym: IGym, teamName: string) {
         </div>`;
     } else {
         const gymLevel = getGymLevel(gym);
+Fix
+        let gymDetailTableRows = "";
+        for (let key in gym.pokemon) {
+            if (gym.pokemon.hasOwnProperty(key)) {
+                const pokemon = gym.pokemon[key];
+                gymDetailTableRows +=
+                         `<tr>
+                            <td><strong>${pokemon.trainer_name}</strong></td>
+                            <td>${pokemon.pokemon_name}</td>
+                            <td>${pokemon.pokemon_cp}</td>
+                            <td>${pokemon.individual_attack}/${pokemon.individual_defense}/${pokemon.individual_stamina}</td>
+                          </tr>`;
+            }
+        }
+
         return `
         <div>
           <center>
-            <div style='padding-bottom: 2px'>
-              Gym owned by:
-            </div>
             <div>
               <b style='color:rgba(${gymColor[gym.team_id]})'>Team ${teamName}</b><br>
-              <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
             </div>
             <div>
               Level: ${gymLevel} | Prestige: ${gym.gym_points}
             </div>
-            <div>
-              Location: ${gym.latitude.toFixed(6)}, ${gym.longitude.toFixed(7)}
-            </div>
+            <table class="gymtable">
+              <thead><tr><th>Trainer</th><th>Pokémon</th><th>CP</th><th>A/D/S</th></tr></thead>
+                <tbody>${gymDetailTableRows}</tbody>
+              </table>
             <div>
               <a href='https://www.google.com/maps/dir/Current+Location/${gym.latitude},$gym.{longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
             </div>

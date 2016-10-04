@@ -486,7 +486,7 @@ class GymMember(BaseModel):
     last_scanned = DateTimeField(default=datetime.utcnow)
 
     class Meta:
-        primary_key = False
+        primary_key = CompositeKey('gym_id', 'pokemon_uid')
         db_table = "gym_member"
 
 

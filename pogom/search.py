@@ -505,7 +505,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                                         continue
 
                                     # if we have a record of this gym already, check if the gym has been updated since our last update
-                                    if record.last_update < gym['last_modified']:
+                                    if record.last_update < gym['last_modified'].replace(microsecond=0):
                                         gyms_to_update[gym['gym_id']] = gym
                                         continue
                                     else:
