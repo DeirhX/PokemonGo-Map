@@ -7,6 +7,7 @@ import entities from "../../data/entities";
 import {IPokemon} from "../../data/entities";
 import {ISpawn} from "../../data/spawn";
 import {IGym} from "../../data/entities";
+import {getGymLevel} from "../../data/entities";
 
 function getTypeSpan(type) {
     return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
@@ -22,7 +23,7 @@ export function getColorByDate (value) {
 
     // value from 0 to 1 - Green to Red
     const hue = ((1 - diff) * 120).toString(10);
-    return ['hsl(', hue, ',100%,50%)'].join('');
+    return ["hsl(", hue, ",100%,50%)"].join("");
 }
 
 export function updateDisappearTime(element) {
@@ -116,13 +117,13 @@ export function spawnLabel(spawn: ISpawn) {
 }
 
 export function gymLabel(gym: IGym, teamName: string) {
-    const gymColor = ["0, 0, 0, .4", "74, 138, 202, .6", "240, 68, 58, .6", "254, 217, 40, .6"]
+    const gymColor = ["0, 0, 0, .4", "74, 138, 202, .6", "240, 68, 58, .6", "254, 217, 40, .6"];
     if (gym.team_id === 0) {
         return `
         <div>
           <center>
             <div>
-              <b style='color:rgba(${gymColor[teamId]})'>${teamName}</b><br>
+              <b style='color:rgba(${gymColor[gym.team_id]})'>${teamName}</b><br>
               <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
             </div>
             <div>
@@ -134,11 +135,7 @@ export function gymLabel(gym: IGym, teamName: string) {
           </center>
         </div>`;
     } else {
-        const gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000]
-        let gymLevel = 1
-        while (gym.gym_points >= gymPrestige[gymLevel - 1]) {
-            gymLevel++;
-        }
+        const gymLevel = getGymLevel(gym);
         return `
         <div>
           <center>
@@ -146,7 +143,7 @@ export function gymLabel(gym: IGym, teamName: string) {
               Gym owned by:
             </div>
             <div>
-              <b style='color:rgba(${gymColor[teamId]})'>Team ${teamName}</b><br>
+              <b style='color:rgba(${gymColor[gym.team_id]})'>Team ${teamName}</b><br>
               <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
             </div>
             <div>
@@ -165,7 +162,7 @@ export function gymLabel(gym: IGym, teamName: string) {
 
 export function pokestopLabel(expireTime, latitude, longitude) {
     if (expireTime && new Date(expireTime) > new Date()) {
-        const expireDate = new Date(expireTime)
+        const expireDate = new Date(expireTime);
         return  `
         <div>
           <b>Lured Pokéstop</b>

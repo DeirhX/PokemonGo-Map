@@ -2,7 +2,7 @@
 /// <reference path="../../../../typings/globals/googlemaps/index.d.ts" />
 
 
-import {gymTypes, IPokestop, IGym, IPokemon, IScannedCell} from "../../data/entities";
+import {gymTypes, IPokestop, IGym, IPokemon, IScannedCell, getGymLevel} from "../../data/entities";
 import * as labels from "./labels";
 import * as utils from "../../utils";
 import {getGoogleSprite} from "../../utils";
@@ -327,8 +327,16 @@ export function updateSpawnIcon (spawn: ISpawn) {
     }
 }
 
+
+function getGymMarkerIcon(item: IGym) {
+    return {
+        url: "static/forts/shield/" + gymTypes[item.team_id] + (item.team_id !== 0 ? "_" + getGymLevel(item) : "") + ".png",
+        scaledSize: new google.maps.Size(48, 48),
+    };
+}
+
 export function updateGymMarker(item: IGym, marker) {
-    marker.setIcon("static/forts/" + gymTypes[item.team_id] + ".png");
+    marker.setIcon(getGymMarkerIcon(item));
     marker.infoWindow.setContent(labels.gymLabel(item, gymTypes[item.team_id]));
     return marker;
 }
@@ -343,7 +351,7 @@ export function createGymMarker(item: IGym): Marker {
         },
         zIndex: 5,
         map: core.map.googleMap,
-        icon: "static/forts/" + gymTypes[item.team_id] + ".png",
+        icon: getGymMarkerIcon(item),
     });
 
     let infoWindow = new google.maps.InfoWindow({

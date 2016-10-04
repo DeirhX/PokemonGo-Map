@@ -6,6 +6,7 @@ import {IMapElement} from "../map/map";
 import {ISpawn} from "./spawn";
 
 export const gymTypes = ["Uncontested", "Mystic", "Valor", "Instinct"];
+export const gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000];
 
 export interface IMapData {
     pokemons: { [id: string]: IPokemon } ;
@@ -30,6 +31,15 @@ export interface IGym extends IMapElement {
     gym_points: number;
     name: string;
     pokemon: { [id: string]: IGymPokemon };
+}
+
+// TODO: Make class member once we have more?
+export function getGymLevel(gym: IGym): number {
+    let gymLevel = 1;
+    while (gym.gym_points >= gymPrestige[gymLevel - 1]) {
+        gymLevel++;
+    }
+    return gymLevel;
 }
 
 export interface IPokemon extends IMapElement {
