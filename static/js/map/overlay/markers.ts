@@ -329,7 +329,7 @@ export function updateSpawnIcon (spawn: ISpawn) {
 
 export function updateGymMarker(item: IGym, marker) {
     marker.setIcon("static/forts/" + gymTypes[item.team_id] + ".png");
-    marker.infoWindow.setContent(labels.gymLabel(gymTypes[item.team_id], item.team_id, item.gym_points, item.latitude, item.longitude));
+    marker.infoWindow.setContent(labels.gymLabel(item, gymTypes[item.team_id]));
     return marker;
 }
 
@@ -347,7 +347,7 @@ export function createGymMarker(item: IGym): Marker {
     });
 
     let infoWindow = new google.maps.InfoWindow({
-        content: labels.gymLabel(gymTypes[item.team_id], item.team_id, item.gym_points, item.latitude, item.longitude),
+        content: labels.gymLabel(item, gymTypes[item.team_id]),
         disableAutoPan: true,
     });
     let marker = new Marker(mapObject, infoWindow);
@@ -392,7 +392,7 @@ export function createSpawnMarker(item: ISpawn): Marker {
     // mapObject.spawnData = item;
 
     let infoWindow = new google.maps.InfoWindow({
-        content: labels.spawnLabel(item.id, item.latitude, item.longitude),
+        content: labels.spawnLabel(item),
         disableAutoPan: true,
     });
 

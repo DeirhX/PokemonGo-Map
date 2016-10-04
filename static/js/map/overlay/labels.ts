@@ -5,6 +5,8 @@ import {ILocation} from "../../members/location";
 import {i8ln} from "../../assets/strings";
 import entities from "../../data/entities";
 import {IPokemon} from "../../data/entities";
+import {ISpawn} from "../../data/spawn";
+import {IGym} from "../../data/entities";
 
 function getTypeSpan(type) {
     return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
@@ -106,16 +108,16 @@ export function pokemonLabel(pokemon: IPokemon): string {
      */
 }
 
-export function spawnLabel(id, latitude, longitude, spawnTime?) {
+export function spawnLabel(spawn: ISpawn) {
     return `
         <div id="spawn-content">
           <b>Loading...</b>
         </div>`;
 }
 
-export function gymLabel(teamName, teamId, gymPoints, latitude, longitude) {
+export function gymLabel(gym: IGym, teamName: string) {
     const gymColor = ["0, 0, 0, .4", "74, 138, 202, .6", "240, 68, 58, .6", "254, 217, 40, .6"]
-    if (teamId === 0) {
+    if (gym.team_id === 0) {
         return `
         <div>
           <center>
@@ -124,17 +126,17 @@ export function gymLabel(teamName, teamId, gymPoints, latitude, longitude) {
               <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
             </div>
             <div>
-              Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+              Location: ${gym.latitude.toFixed(6)}, ${gym.longitude.toFixed(7)}
             </div>
             <div>
-              <a href='https://www.google.com/maps/dir/Current+Location/${latitude},${longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
+              <a href='https://www.google.com/maps/dir/Current+Location/${gym.latitude},${gym.longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
             </div>
           </center>
         </div>`;
     } else {
         const gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000]
         let gymLevel = 1
-        while (gymPoints >= gymPrestige[gymLevel - 1]) {
+        while (gym.gym_points >= gymPrestige[gymLevel - 1]) {
             gymLevel++;
         }
         return `

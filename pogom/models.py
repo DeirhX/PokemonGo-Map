@@ -448,6 +448,9 @@ class Gym(BaseModel):
                 GymMember.gym_id,
                 GymPokemon.cp.alias('pokemon_cp'),
                 GymPokemon.pokemon_id,
+                GymPokemon.iv_attack.alias('individual_attack'),
+                GymPokemon.iv_defense.alias('individual_defense'),
+                GymPokemon.iv_stamina.alias('individual_stamina'),
                 Trainer.name.alias('trainer_name'),
                 Trainer.level.alias('trainer_level'))
                        .join(Gym, on=(GymMember.gym_id == Gym.gym_id))
