@@ -148,7 +148,7 @@ class Pogom(Flask):
             d['appearances'] = Pokemon.get_appearances(request.args.get('pokemonid'), request.args.get('last', type=float))
 
         if request.args.get('gyms', 'true') == 'true':
-            d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, last_pokestop)
+            d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng, last_gym)
 
         if request.args.get('scanned', 'true') == 'true':
             d['scanned'] = ScannedCell.get_recent(swLat, swLng, neLat, neLng, last_scannedloc, member.id)

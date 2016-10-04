@@ -39,6 +39,11 @@ flaskDb = FlaskDB()
 
 db_schema_version = 5
 
+max_pokestops = 1000
+max_spawns = 1000
+max_pokemon = 1000
+max_gyms = 1000
+max_scannedcells = 3000
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
     pass
@@ -121,6 +126,7 @@ class Pokemon(BaseModel):
                             (Pokemon.scan_id << MemberLocation.select(MemberLocation.location_id).where(
                                 (MemberLocation.expire_at > datetime.utcnow()) &
                                 ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
+                     .limit(max_pokemon)
                      .dicts())
         else:
             query = (Pokemon
@@ -134,6 +140,7 @@ class Pokemon(BaseModel):
                             (Pokemon.scan_id << MemberLocation.select(MemberLocation.location_id).where(
                                 (MemberLocation.expire_at > datetime.utcnow()) &
                                 ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
+                     .limit(max_pokemon)
                      .dicts())
 
         pokemons = []
@@ -172,6 +179,7 @@ class Pokemon(BaseModel):
                             (Pokemon.scan_id << MemberLocation.select(MemberLocation.location_id).where(
                                 (MemberLocation.expire_at > datetime.utcnow()) &
                                 ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
+                     .limit(max_pokemon)
                      .dicts())
         else:
             query = (Pokemon
@@ -186,6 +194,7 @@ class Pokemon(BaseModel):
                             (Pokemon.scan_id << MemberLocation.select(MemberLocation.location_id).where(
                                 (MemberLocation.expire_at > datetime.utcnow()) &
                                 ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
+                     .limit(max_pokemon)
                      .dicts())
 
         pokemons = []
@@ -340,6 +349,7 @@ class Pokestop(BaseModel):
             query = (Pokestop
                      .select()
                      .where(Pokestop.last_update >= since)
+                     .limit(max_pokestops)
                      .dicts())
         else:
             query = (Pokestop
@@ -349,6 +359,7 @@ class Pokestop(BaseModel):
                             (Pokestop.latitude <= neLat) &
                             (Pokestop.longitude <= neLng) &
                             (Pokestop.last_update >= since))
+                     .limit(max_pokestops)
                      .dicts())
 
         pokestops = []
@@ -405,18 +416,20 @@ class Gym(BaseModel):
     def get_gyms(swLat, swLng, neLat, neLng, since=datetime.min):
         if swLat is None or swLng is None or neLat is None or neLng is None:
             results = (Gym
-                     .select()
-                     .where(Gym.last_update >= since)
-                     .dicts())
+                       .select()
+                       .where(Gym.last_update >= since)
+                       .limit(max_gyms)
+                       .dicts())
         else:
             results = (Gym
-                     .select()
-                     .where((Gym.latitude >= swLat) &
+                       .select()
+                       .where((Gym.latitude >= swLat) &
                             (Gym.longitude >= swLng) &
                             (Gym.latitude <= neLat) &
                             (Gym.longitude <= neLng) &
                             (Gym.last_update >= since))
-                     .dicts())
+                       .limit(max_gyms)
+                       .dicts())
 
             # Performance: Disable the garbage collector prior to creating a (potentially) large dict with append()
             gc.disable()
@@ -549,6 +562,7 @@ class ScannedCell(BaseModel):
                         (ScannedCell.scan_id << MemberLocation.select(MemberLocation.location_id).where(
                             (MemberLocation.expire_at > datetime.utcnow()) &
                             ((MemberLocation.member_id == member_id) | (MemberLocation.member_id == 0)))))
+                 .limit(max_scannedcells)
                  .dicts())
 
         scans = []

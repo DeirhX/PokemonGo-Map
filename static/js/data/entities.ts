@@ -25,7 +25,11 @@ export interface IStaticData {
 export interface IGym extends IMapElement {
     gym_id: string;
     team_id: number;
+    enabled: boolean;
+    guard_pokemon_id: number;
     gym_points: number;
+    name: string;
+    pokemon: { [id: string]: IGymPokemon };
 }
 
 export interface IPokemon extends IMapElement {
@@ -41,6 +45,13 @@ export interface IPokemon extends IMapElement {
     individual_stamina: number;
     attack_1: number;
     attack_2: number;
+}
+
+export interface IGymPokemon extends  IPokemon {
+    gym_id: string;
+    pokemon_cp: number;
+    trainer_level: number;
+    trainer_name: string;
 }
 
 export interface IPokemonAttack {
