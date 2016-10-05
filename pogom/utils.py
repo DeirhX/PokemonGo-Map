@@ -162,17 +162,17 @@ def get_args():
                         type=int, default=0)
     parser.add_argument('-enc', '--encounter',
                         help='Start an encounter to gather IVs and moves',
-                        action='store_true', default=False)
+                        action='store_true', default=True)
     parser.add_argument('-ed', '--encounter-delay',
                         help='Time delay between encounter pokemon in scan threads',
-                        type=float, default=1)
+                        type=float, default=10)
     encounter_list = parser.add_mutually_exclusive_group()
     encounter_list.add_argument('-ewht', '--encounter-whitelist', action='append', default=[],
                                 help='List of pokemon to encounter for more stats')
     encounter_list.add_argument('-eblk', '--encounter-blacklist', action='append', default=[],
                                 help='List of pokemon to NOT encounter for more stats')
     parser.add_argument('-gym', '--gym-info', help='Get all details about gyms (causes an additional API hit for every gym)',
-                        action='store_true', default=False)
+                        action='store_true', default=True)
     parser.add_argument('-px', '--proxy', help='Proxy url (e.g. socks5://127.0.0.1:9050)', action='append')
     parser.add_argument('-pxsc', '--proxy-skip-check', help='Disable checking of proxies before start', action='store_true', default=False)
     parser.add_argument('-pxt', '--proxy-timeout', help='Timeout settings for proxy checker in seconds ', type=int, default=5)
