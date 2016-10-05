@@ -136,7 +136,6 @@ export function gymLabel(gym: IGym, teamName: string) {
         </div>`;
     } else {
         const gymLevel = getGymLevel(gym);
-Fix
         let gymDetailTableRows = "";
         for (let key in gym.pokemon) {
             if (gym.pokemon.hasOwnProperty(key)) {

@@ -36,7 +36,7 @@ from Queue import Queue, PriorityQueue
 from datetime import timedelta, datetime
 
 from pogom.exceptions import NoAuthTicketException, EmptyResponseException, NoAvailableLogins
-from pogom.utils import json_datetime_iso, check_ip_still_same
+from pogom.utils import json_datetime_iso, check_ip_still_same, local_to_utc
 from queuing.scan_queue import ScanQueueProducer
 from queue import Queue, Empty
 
@@ -505,7 +505,8 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                                         continue
 
                                     # if we have a record of this gym already, check if the gym has been updated since our last update
-                                    if record.last_update < gym['last_modified'].replace(microsecond=0):
+                                    utc_last_modified = local_to_utc(gym['last_modified'].timetuple())
+                                    if record.last_update < utc_last_modified:
                                         gyms_to_update[gym['gym_id']] = gym
                                         continue
                                     else:

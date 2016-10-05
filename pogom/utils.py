@@ -461,3 +461,7 @@ def check_ip_still_same():
         log.info('IP was set to: ' + str(ip_now))
         ip = ip_now
     return ip == ip_now
+
+def local_to_utc(t):
+    secs = time.mktime(t)
+    return datetime.utcfromtimestamp(secs)
