@@ -445,7 +445,7 @@ def check_ip_still_same():
     retries = 5
     while retries:
         try:
-            ip_now = urllib2.urlopen("http://ipecho.net/plain").read()
+            ip_now = urllib2.urlopen("http://ipecho.net/plain", timeout=15).read()
             log.info('IP check complete: ' + str(ip_now))
             break
         except Exception as e:
