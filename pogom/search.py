@@ -46,7 +46,8 @@ from pgoapi import utilities as util
 from pgoapi.exceptions import AuthException
 
 from . import config
-from .models import parse_map, parse_gyms, add_encounter_data, Login, args, flaskDb, Pokemon, Spawn, Location, GymDetails
+from .models import parse_map, parse_and_save_gym_details, save_parsed_to_db, add_encounter_data, \
+    Login, args, flaskDb, Pokemon, Spawn, Location, GymDetails
 
 log = logging.getLogger(__name__)
 scan_radius = 0.07
@@ -509,6 +510,8 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                                     # Wait a while after encounter - it takes time, right
                                     time.sleep(args.encounter_delay)
 
+                        # Save what we got so far. Gym details will be saved in a different transaction if updated
+                        save_parsed_to_db(parsed['pokemons'], parsed['pokestops'], parsed['gyms'])
 
                         # Get detailed information about gyms
                         if args.gym_info:
@@ -566,7 +569,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                                     len(gyms_to_update), step_location[0], step_location[1]))
 
                                 if gym_responses:
-                                    parse_gyms(args, gym_responses, None)
+                                    parse_and_save_gym_details(args, gym_responses, None)
 
                         success = True
                         break  # All done, get out of the request-retry loop

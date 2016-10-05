@@ -1005,15 +1005,19 @@ def parse_map(map_dict, step_location, api):
                     }
                     send_to_webhook('gym', webhook_data)
 
-    pokemons_upserted = 0
-    pokestops_upserted = 0
-    gyms_upserted = 0
-
     scanned[0] = {
         'latitude': step_location[0],
         'longitude': step_location[1],
         'scan_id': args.location_id
     }
+    dispatch_upsert(ScannedCell, scanned)
+
+    return {'pokemons': pokemons, 'pokestops': pokestops, 'gyms': gyms, 'scanned': scanned}
+
+def save_parsed_to_db(pokemons, pokestops, gyms):
+    pokemons_upserted = 0
+    pokestops_upserted = 0
+    gyms_upserted = 0
 
     if pokemons and config['parse_pokemon']:
         pokemons_upserted = len(pokemons)
@@ -1027,10 +1031,7 @@ def parse_map(map_dict, step_location, api):
         gyms_upserted = len(gyms)
         dispatch_upsert(Gym, gyms)
 
-    dispatch_upsert(ScannedCell, scanned)
-
     # clean_database()
-
     flaskDb.close_db(None)
 
     if pokemons_upserted == 0 and pokestops_upserted == 0 and gyms_upserted == 0:
@@ -1042,10 +1043,9 @@ def parse_map(map_dict, step_location, api):
              pokestops_upserted,
              gyms_upserted)
 
-    return {'pokemons': pokemons, 'pokestops': pokestops, 'gyms': gyms}
 
 
-def parse_gyms(args, gym_responses, wh_update_queue):
+def parse_and_save_gym_details(args, gym_responses, wh_update_queue):
     gym_details = {}
     gym_members = {}
     gym_pokemon = {}
