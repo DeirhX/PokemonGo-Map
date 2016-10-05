@@ -21,7 +21,7 @@ from playhouse.shortcuts import RetryOperationalError
 from playhouse.migrate import migrate, MySQLMigrator, SqliteMigrator
 from datetime import datetime, timedelta
 
-from base64 import b64encode
+from base64 import b64encode, b64decode
 from threading import Thread
 
 from pogom.exceptions import NoAuthTicketException, EmptyResponseException
@@ -849,7 +849,7 @@ class Versions(flaskDb.Model):
         primary_key = False
 
 
-def construct_pokemon_dict(pokemons, p, encounter_result, d_t):
+def construct_pokemon_dict(pokemons, p, d_t):
     pokemons[p['encounter_id']] = {
         'encounter_id': b64encode(str(p['encounter_id'])),
         'spawnpoint_id': p['spawn_point_id'],
@@ -857,30 +857,26 @@ def construct_pokemon_dict(pokemons, p, encounter_result, d_t):
         'latitude': p['latitude'],
         'longitude': p['longitude'],
         'disappear_time': d_t,
-        'scan_id': args.location_id
+        'scan_id': args.location_id,
+        'individual_attack': None,
+        'individual_defense': None,
+        'individual_stamina': None,
+        'attack_1': None,
+        'attack_2': None,
     }
-    if encounter_result is not None and 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
-        pokemon_info = encounter_result['responses']['ENCOUNTER']['wild_pokemon']['pokemon_data']
-        attack = pokemon_info.get('individual_attack', 0)
-        defense = pokemon_info.get('individual_defense', 0)
-        stamina = pokemon_info.get('individual_stamina', 0)
-        pokemons[p['encounter_id']].update({
-            'individual_attack': attack,
-            'individual_defense': defense,
-            'individual_stamina': stamina,
-            'attack_1': pokemon_info['move_1'],
-            'attack_2': pokemon_info['move_2'],
-        })
-    else:
-        if encounter_result is not None and 'wild_pokemon' not in encounter_result['responses']['ENCOUNTER']:
-            log.warning("Error encountering {}, status code: {}".format(p['encounter_id'], encounter_result['responses']['ENCOUNTER']['status']))
-        pokemons[p['encounter_id']].update({
-            'individual_attack': None,
-            'individual_defense': None,
-            'individual_stamina': None,
-            'attack_1': None,
-            'attack_2': None,
-        })
+
+def add_encounter_data(pokemon, encounter_result):
+    pokemon_info = encounter_result['responses']['ENCOUNTER']['wild_pokemon']['pokemon_data']
+    attack = pokemon_info.get('individual_attack', 0)
+    defense = pokemon_info.get('individual_defense', 0)
+    stamina = pokemon_info.get('individual_stamina', 0)
+    pokemon.update({
+        'individual_attack': attack,
+        'individual_defense': defense,
+        'individual_stamina': stamina,
+        'attack_1': pokemon_info['move_1'],
+        'attack_2': pokemon_info['move_2'],
+    })
 
 
 def parse_map(map_dict, step_location, api):
@@ -911,16 +907,7 @@ def parse_map(map_dict, step_location, api):
                 printPokemon(p['pokemon_data']['pokemon_id'], p['latitude'],
                              p['longitude'], d_t)
 
-                # Scan for IVs and moves
-                encounter_result = None
-                if (args.encounter and (p['pokemon_data']['pokemon_id'] in args.encounter_whitelist or
-                                        p['pokemon_data']['pokemon_id'] not in args.encounter_blacklist and not args.encounter_whitelist)):
-                    time.sleep(args.encounter_delay)
-                    encounter_result = api.encounter(encounter_id=p['encounter_id'],
-                                                     spawn_point_id=p['spawn_point_id'],
-                                                     player_latitude=step_location[0],
-                                                     player_longitude=step_location[1])
-                construct_pokemon_dict(pokemons, p, encounter_result, d_t)
+                construct_pokemon_dict(pokemons, p, d_t)
 
                 webhook_data = {
                     'encounter_id': b64encode(str(p['encounter_id'])),

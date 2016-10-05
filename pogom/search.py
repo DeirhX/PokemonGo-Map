@@ -46,7 +46,7 @@ from pgoapi import utilities as util
 from pgoapi.exceptions import AuthException
 
 from . import config
-from .models import parse_map, parse_gyms, Login, args, flaskDb, Pokemon, Spawn, Location, GymDetails
+from .models import parse_map, parse_gyms, add_encounter_data, Login, args, flaskDb, Pokemon, Spawn, Location, GymDetails
 
 log = logging.getLogger(__name__)
 scan_radius = 0.07
@@ -488,6 +488,26 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                                 log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
                                     step_location_info[1]['id'], spawn_disappear_time))
                                 Spawn.add_missed(step_location_info[1]['id'])
+
+                        # Get detailed information (IV) about pokemon
+                        if args.encounter:
+                            for encounter_id in parsed['pokemons'].keys():
+                                pokemon = parsed['pokemons'][encounter_id]
+                                if (pokemon['pokemon_id'] in args.encounter_whitelist or
+                                pokemon['pokemon_id'] not in args.encounter_blacklist and not args.encounter_whitelist):
+                                    # Wait a while
+                                    time.sleep(args.encounter_delay)
+                                    encounter_result = api.encounter(encounter_id=encounter_id,
+                                                                     spawn_point_id=pokemon['spawnpoint_id'],
+                                                                     player_latitude=step_location[0],
+                                                                     player_longitude=step_location[1])
+                                    if encounter_result is not None and 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
+                                        add_encounter_data(pokemon, encounter_result)
+                                        log.info("Processed encounter {}".format(encounter_id))
+                                    else:
+                                        log.warning("Error encountering {}, status code: {}".format(
+                                            encounter_id, encounter_result['responses']['ENCOUNTER']['status']))
+
 
                         # Get detailed information about gyms
                         if args.gym_info:
