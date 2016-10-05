@@ -495,8 +495,6 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                                 pokemon = parsed['pokemons'][encounter_id]
                                 if (pokemon['pokemon_id'] in args.encounter_whitelist or
                                 pokemon['pokemon_id'] not in args.encounter_blacklist and not args.encounter_whitelist):
-                                    # Wait a while
-                                    time.sleep(args.encounter_delay)
                                     encounter_result = api.encounter(encounter_id=encounter_id,
                                                                      spawn_point_id=pokemon['spawnpoint_id'],
                                                                      player_latitude=step_location[0],
@@ -507,6 +505,8 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                                     else:
                                         log.warning("Error encountering {}, status code: {}".format(
                                             encounter_id, encounter_result['responses']['ENCOUNTER']['status']))
+                                    # Wait a while after encounter - it takes time, right
+                                    time.sleep(args.encounter_delay)
 
 
                         # Get detailed information about gyms
