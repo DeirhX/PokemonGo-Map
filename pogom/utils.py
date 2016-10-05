@@ -3,6 +3,7 @@
 
 import sys
 import urllib2
+from random import random
 
 import configargparse
 import uuid
@@ -445,6 +446,7 @@ def check_ip_still_same():
     retries = 5
     while retries:
         try:
+            time.sleep(random())  # Jitter the check so we don't hammer it all at once
             ip_now = urllib2.urlopen("http://ipecho.net/plain", timeout=15).read()
             log.info('IP check complete: ' + str(ip_now))
             break
