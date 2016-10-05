@@ -491,6 +491,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
 
                         # Get detailed information (IV) about pokemon
                         if args.encounter:
+                            time.sleep(1) # At least some spacing
                             for encounter_id in parsed['pokemons'].keys():
                                 pokemon = parsed['pokemons'][encounter_id]
                                 if (pokemon['pokemon_id'] in args.encounter_whitelist or
