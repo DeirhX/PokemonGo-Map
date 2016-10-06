@@ -350,7 +350,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
     loops_done = -1
 
     # When true, steps will be delayed until expected spawn time
-    first_spawn_loop = True
+    first_spawn_loop = False
     wait_for_spawn = args.spawnpoints_only
     advance_spawns = True
     spawn_wait_offset_secs = 30  # Wait this number of secs after spawn in ready before querying it
