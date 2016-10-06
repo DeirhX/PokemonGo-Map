@@ -33,9 +33,13 @@ def configure(app):
         sys.exit(1)
 
     if args.debug_log:
+        logging.basicConfig(level=logging.DEBUG)
         log.setLevel(logging.DEBUG)
+        logging.getLogger('').setLevel(logging.DEBUG)
     else:
+        logging.basicConfig(level=logging.INFO)
         log.setLevel(logging.INFO)
+        logging.getLogger('').setLevel(logging.INFO)
 
     # Let's not forget to run Grunt / Only needed when running with webserver
     if args.web_server:
