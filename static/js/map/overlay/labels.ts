@@ -211,7 +211,7 @@ export function locationLabel(location: ILocation): string {
       Strength: ${Math.round((location.size + 4) / 5)}
     </div>
     <div>
-      Spawns watched: <b>${location.spawns}</b>
+      Spawns watched: <b>${location.spawns ? location.spawns : "unknown"}</b>
     </div>`;
     if (location.relation === 1) {
         lehtml += `<div><b>Owned</b> ${location.expiry ? (" until " + new Date(location.expiry).toDateString()) : ""}</div>`;
