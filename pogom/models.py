@@ -1010,8 +1010,12 @@ def parse_map(map_dict, step_location, api):
         'longitude': step_location[1],
         'scan_id': args.location_id
     }
-    dispatch_upsert(ScannedCell, scanned)
 
+    if len(pokemons) == 0 and len(pokestops) == 0 and len(gyms) == 0:
+        # log.error('Received empty map response: %s', json.dumps(map_dict))
+        raise EmptyResponseException()
+
+    dispatch_upsert(ScannedCell, scanned)
     return {'pokemons': pokemons, 'pokestops': pokestops, 'gyms': gyms, 'scanned': scanned}
 
 def save_parsed_to_db(pokemons, pokestops, gyms):
@@ -1033,10 +1037,6 @@ def save_parsed_to_db(pokemons, pokestops, gyms):
 
     # clean_database()
     flaskDb.close_db(None)
-
-    if pokemons_upserted == 0 and pokestops_upserted == 0 and gyms_upserted == 0:
-        # log.error('Received empty map response: %s', json.dumps(map_dict))
-        raise EmptyResponseException()
 
     log.info('Upserted %d pokemon, %d pokestops, and %d gyms',
              pokemons_upserted,
