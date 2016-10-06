@@ -9,7 +9,7 @@ import ujson
 from flask import logging
 from pogom.models import Pokemon, Gym, Pokestop, bulk_upsert, ScannedCell
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 pokestops = {} # primary: pokestop_id
 gyms = {}      # primary: gym_id

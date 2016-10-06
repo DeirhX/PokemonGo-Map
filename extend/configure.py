@@ -22,7 +22,7 @@ from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, f
     scan_radius, limit_locations_to_spawns
 from pogom.utils import get_encryption_lib_path, insert_mock_data, get_args
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 args = get_args()
 
 def configure(app):
@@ -57,7 +57,7 @@ def configure(app):
 
     # Turn these back up if debugging
     if args.debug:
-        logging.getLogger("search").setLevel(logging.DEBUG)
+        logging.getLogger("pogom.search").setLevel(logging.DEBUG)
         logging.getLogger("requests").setLevel(logging.DEBUG)
         logging.getLogger("pgoapi").setLevel(logging.DEBUG)
         logging.getLogger("rpc_api").setLevel(logging.DEBUG)

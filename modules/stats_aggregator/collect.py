@@ -6,7 +6,7 @@ import dateutil.parser
 from flask import json
 from flask import logging
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 class Queued:
     scans = Queue()

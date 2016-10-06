@@ -13,7 +13,7 @@ from pogom.models import init_database
 from queuing.db_insert_queue import DbInserterQueueConsumer
 
 enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 consume_threads = 4

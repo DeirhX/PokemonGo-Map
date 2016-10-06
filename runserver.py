@@ -10,7 +10,7 @@ import time
 from extend.log import enableFileLogging
 
 enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 # Currently supported pgoapi
 pgoapi_version = "1.1.7"

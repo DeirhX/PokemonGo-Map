@@ -14,7 +14,7 @@ from modules.stats_aggregator.collect import collect_submit
 from modules.stats_aggregator.shared import aggregate_producer
 
 enableFileLogging('log/pogom-' + str(os.getpid()) + '.log')
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 if __name__ == '__main__':

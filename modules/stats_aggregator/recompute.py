@@ -9,7 +9,7 @@ from flask import logging
 from .shared import aggregate_producer
 from .collect import Queued, Collected
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 scans_time_kept = timedelta(minutes=1)
 refreshes_time_kept = timedelta(minutes=1)
