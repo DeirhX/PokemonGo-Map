@@ -840,6 +840,45 @@ class Spawn(BaseModel):
         spawn.missed_count += 1
         spawn.save()
 
+class Proxy(BaseModel):
+    ipaddress = CharField(max_length=15)
+    port = IntegerField()
+    type = TextField()
+    success_count = IntegerField()
+    fail_count = IntegerField()
+    last_success = DateTimeField()
+    last_fail = DateTimeField()
+
+    class Meta:
+        primary_key = CompositeKey('ipaddress', 'port')
+
+    @staticmethod
+    def get_next_available(type, min_age_seconds, min_time_from_fail_secs):
+        cursor = flaskDb.database.get_cursor()
+        cursor.callproc('lock_available_proxy', (type, min_age_seconds, min_time_from_fail_secs))
+        result = cursor.fetchone()
+        cursor.close()
+        if (result[0] == None):
+            return None
+        proxy = Proxy()
+        proxy.type = result[0]
+        proxy.ipaddress = result[1]
+        proxy.port = result[2]
+        return proxy
+
+    @staticmethod
+    def set_succeeded(proxy):
+        request = Proxy.update(last_success = datetime.utcnow(), success_count = Proxy.success_count + 1) \
+            .where((Proxy.ipaddress == proxy.ipaddress) & (Proxy.port == proxy.port))
+        request.execute()
+
+    @staticmethod
+    def set_failed(proxy):
+        request = Proxy.update(last_fail = datetime.utcnow(), fail_count = Proxy.fail_count + 1)\
+            .where(Proxy.ipaddress == proxy.ipaddress)\
+            .where(Proxy.port == proxy.port)
+        request.execute()
+
 
 class Versions(flaskDb.Model):
     key = CharField()

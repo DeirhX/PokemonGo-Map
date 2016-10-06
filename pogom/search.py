@@ -39,6 +39,7 @@ from pogom.exceptions import NoAuthTicketException, EmptyResponseException, NoAv
 from pogom.utils import json_datetime_iso, check_ip_still_same, local_to_utc
 from queuing.scan_queue import ScanQueueProducer
 from queue import Queue, Empty
+from proxy import check_proxy
 
 from pgoapi import PGoApi
 from pgoapi.utilities import f2i
@@ -47,7 +48,7 @@ from pgoapi.exceptions import AuthException
 
 from . import config
 from .models import parse_map, parse_and_save_gym_details, save_parsed_to_db, add_encounter_data, \
-    Login, args, flaskDb, Pokemon, Spawn, Location, GymDetails
+    Login, args, flaskDb, Pokemon, Spawn, Location, GymDetails, Proxy
 
 log = logging.getLogger(__name__)
 scan_radius = 0.07
@@ -428,9 +429,23 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                 # Create the API instance this will use if not already connected
                 if not api:
                     api = PGoApi()
-                    while not check_ip_still_same():
-                        log.error('IP change detected! Sleeping.')
-                        time.sleep(60)
+
+                    proxy = None
+                    while not proxy:
+                        proxy = Proxy.get_next_available('socks5', 1, 30*60)
+                        if not proxy:
+                            log.error('No proxies available, waiting...')
+                            time.sleep(60)
+                            continue
+                        proxy_ok = check_proxy(proxy, 5)
+                        if proxy_ok:
+                            Proxy.set_succeeded(proxy)
+                        else:
+                            Proxy.set_failed(proxy)
+
+                        while not check_ip_still_same():
+                            log.error('IP change detected! Sleeping.')
+                            time.sleep(60)
 
                 # Let the api know where we intend to be for this loop
                 api.set_position(*step_location)

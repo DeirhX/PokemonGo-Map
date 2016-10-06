@@ -4,6 +4,7 @@
 import logging
 import requests
 import sys
+from models import Proxy
 
 from queue import Queue
 from threading import Thread
@@ -12,47 +13,38 @@ log = logging.getLogger(__name__)
 
 
 # Simple function to do a call to Niantic's system for testing proxy connectivity
-def check_proxy(proxy_queue, timeout, proxies):
+def check_proxy(proxy, timeout):
 
     # Update check url - Thanks ChipWolf #1282 and #1281
     proxy_test_url = 'https://pgorelease.nianticlabs.com/plfe/rpc'
-    proxy = proxy_queue.get()
 
-    if proxy and proxy[1]:
+    proxy_string = '{0}://{1}:{2}'.format(proxy.type, proxy.ipaddress, proxy.port)
+    log.debug('Checking proxy: %s', proxy_string)
 
-        log.debug('Checking proxy: %s', proxy[1])
+    try:
+        proxy_response = requests.post(proxy_test_url, '', proxies={'http': proxy_string, 'https': proxy_string}, timeout=timeout)
 
-        try:
-            proxy_response = requests.post(proxy_test_url, '', proxies={'http': proxy[1], 'https': proxy[1]}, timeout=timeout)
+        if proxy_response.status_code == 200:
+            log.debug('Proxy %s is ok', proxy_string)
+            return True
 
-            if proxy_response.status_code == 200:
-                log.debug('Proxy %s is ok', proxy[1])
-                proxy_queue.task_done()
-                proxies.append(proxy[1])
-                return True
+        elif proxy_response.status_code == 403:
+            log.error("Proxy %s is banned - got status code: %s", proxy_string, str(proxy_response.status_code))
+            return False
 
-            elif proxy_response.status_code == 403:
-                log.error("Proxy %s is banned - got status code: %s", proxy[1], str(proxy_response.status_code))
-                return False
+        else:
+            proxy_error = "Wrong status code - " + str(proxy_response.status_code)
 
-            else:
-                proxy_error = "Wrong status code - " + str(proxy_response.status_code)
+    except requests.ConnectTimeout:
+        proxy_error = "Connection timeout (" + str(timeout) + " second(s) ) via proxy " + proxy_string
 
-        except requests.ConnectTimeout:
-            proxy_error = "Connection timeout (" + str(timeout) + " second(s) ) via proxy " + proxy[1]
+    except requests.ConnectionError:
+        proxy_error = "Failed to connect to proxy " + proxy_string
 
-        except requests.ConnectionError:
-            proxy_error = "Failed to connect to proxy " + proxy[1]
-
-        except Exception as e:
-            proxy_error = e
-
-    else:
-            proxy_error = "Empty proxy server"
+    except Exception as e:
+        proxy_error = e
 
     log.warning('%s', proxy_error)
-    proxy_queue.task_done()
-
     return False
 
 
