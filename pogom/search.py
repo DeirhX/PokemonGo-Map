@@ -431,7 +431,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     api = PGoApi()
 
                     proxy = None
-                    while not proxy:
+                    while args.use_proxy and not proxy:
                         proxy = Proxy.get_next_available('socks5', 1, 30*60)
                         if not proxy:
                             log.error('No proxies available, waiting...')
@@ -728,7 +728,7 @@ def check_login(args, api, position, type):
                     api.check_codename_available(codename=login_info.username)
                     time.sleep(1)
                     api.claim_codename(codename=login_info.username)
-                if args.proxy:
+                if args.use_proxy:
 	                api.set_authentication(provider=auth_service, username = login_info.username, password = login_info.password, proxy_config={'http': args.proxy, 'https': args.proxy})
     	        else:
         	        api.set_authentication(provider=auth_service, username = login_info.username, password = login_info.password)
