@@ -869,7 +869,8 @@ class Proxy(BaseModel):
     @staticmethod
     def set_succeeded(proxy):
         request = Proxy.update(last_success = datetime.utcnow(), success_count = Proxy.success_count + 1) \
-            .where((Proxy.ipaddress == proxy.ipaddress) & (Proxy.port == proxy.port))
+            .where(Proxy.ipaddress == proxy.ipaddress) \
+            .where(Proxy.port == proxy.port)
         request.execute()
 
     @staticmethod

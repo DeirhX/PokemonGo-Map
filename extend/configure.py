@@ -51,6 +51,7 @@ def configure(app):
     # These are very noisey, let's shush them up a bit
     logging.getLogger('peewee').setLevel(logging.INFO)
     logging.getLogger('pogom.search').setLevel(logging.INFO)
+    logging.getLogger('pogom.proxy').setLevel(logging.DEBUG)
     logging.getLogger('requests').setLevel(logging.WARNING)
     logging.getLogger('pgoapi.pgoapi').setLevel(logging.WARNING)
     logging.getLogger('pgoapi.rpc_api').setLevel(logging.INFO)

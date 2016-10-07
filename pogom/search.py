@@ -437,11 +437,13 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                             log.error('No proxies available, waiting...')
                             time.sleep(60)
                             continue
-                        proxy_ok = check_proxy(proxy, 5)
+                        proxy_ok = check_proxy(proxy, 10)
                         if proxy_ok:
                             Proxy.set_succeeded(proxy)
                         else:
                             Proxy.set_failed(proxy)
+                            log.warn('Proxy unusable, looking for next one...')
+                            proxy = None
 
                         while not check_ip_still_same():
                             log.error('IP change detected! Sleeping.')

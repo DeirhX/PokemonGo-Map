@@ -19,6 +19,7 @@ def check_proxy(proxy, timeout):
     proxy_test_url = 'https://pgorelease.nianticlabs.com/plfe/rpc'
 
     proxy_string = '{0}://{1}:{2}'.format(proxy.type, proxy.ipaddress, proxy.port)
+    # proxy_string = 'socks5://92.222.72.91:1082'
     log.debug('Checking proxy: %s', proxy_string)
 
     try:
@@ -38,8 +39,8 @@ def check_proxy(proxy, timeout):
     except requests.ConnectTimeout:
         proxy_error = "Connection timeout (" + str(timeout) + " second(s) ) via proxy " + proxy_string
 
-    except requests.ConnectionError:
-        proxy_error = "Failed to connect to proxy " + proxy_string
+    except requests.ConnectionError as e:
+        proxy_error = "Failed to connect to proxy " + proxy_string + ": " + str(e)
 
     except Exception as e:
         proxy_error = e
