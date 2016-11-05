@@ -78,7 +78,8 @@ export class Spawn implements ISpawn {
     }
 
     private cycleNext(now: Date): void {
-        const hourDiff = Math.floor(Math.abs(now.getTime() - this.nextDespawn.getTime()) / 36e5) + 1;
+        const hourDiff = Math.floor(Math.abs(now.getTime() - this.nextDespawn.getTime()
+                    + (this.nextDespawn.getTimezoneOffset() - now.getTimezoneOffset()) * 60000 ) / 36e5) + 1;
         this.nextSpawn.setHours(this.nextSpawn.getHours() + hourDiff);
         this.nextDespawn.setHours(this.nextDespawn.getHours() + hourDiff);
     }

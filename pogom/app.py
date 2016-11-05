@@ -413,7 +413,7 @@ class Pogom(Flask):
         for l in Location.get_with_relation(member):
             locs.append({'id': l.id, 'latitude': l.latitude, 'longitude': l.longitude, 'size': l.steps,
                          'priority': l.speed, 'name': l.name, 'relation': l.member_location.relation, 'spawns': l.spawn_count,
-                         'expiry': l.member_location.expire_at if l.member_location.expire_at < datetime(2999,1, 1) else None,
+                         'expiry': l.member_location.expire_at if l.member_location.expire_at and l.member_location.expire_at < datetime(2999,1, 1) else None,
                          'pokecubes': 5 + l.spawn_count // 100 if l.spawn_count else 0 })
         m['locations'] = locs
         return jsonify(m)

@@ -27,7 +27,11 @@ export function getColorByDate (value) {
 }
 
 export function updateDisappearTime(element) {
-    const disappearsAt = new Date(parseInt(element.getAttribute("disappears-at"), 10));
+    const disappearTime = parseInt(element.getAttribute("disappears-at"), 10);
+    if (!disappearTime) {
+        return;
+    }
+    const disappearsAt = new Date(disappearTime);
     const now = new Date();
 
     const difference = Math.abs(disappearsAt.getTime() - now.getTime());
