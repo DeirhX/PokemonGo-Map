@@ -941,8 +941,8 @@ def parse_map(map_dict, step_location, api):
                         (p['last_modified_timestamp_ms'] +
                          p['time_till_hidden_ms']) / 1000.0)
                 else:
-                    # Set a value of 15 minutes because currently its unknown but larger than 15.
-                    d_t = datetime.utcfromtimestamp((p['last_modified_timestamp_ms'] + 900000) / 1000.0)
+                    # Set a value of 60 seconds because currently they just won't tell us more
+                    d_t = datetime.utcfromtimestamp((p['last_modified_timestamp_ms'] + 60 * 1000 ) / 1000.0)
 
                 printPokemon(p['pokemon_data']['pokemon_id'], p['latitude'],
                              p['longitude'], d_t)
@@ -955,7 +955,7 @@ def parse_map(map_dict, step_location, api):
                     'pokemon_id': p['pokemon_data']['pokemon_id'],
                     'latitude': p['latitude'],
                     'longitude': p['longitude'],
-                    'disappear_time': calendar.timegm(d_t.timetuple()),
+                    'disappear_time': calendar.timegm(d_t.timetuple()) if d_t else None,
                     'last_modified_time': p['last_modified_timestamp_ms'],
                     'time_until_hidden_ms': p['time_till_hidden_ms']
                 }

@@ -20,17 +20,12 @@ from pogom import config
 from pogom.models import init_database, create_tables, Location, MemberLocation
 from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop, scan_overseer_thread, \
     scan_radius, limit_locations_to_spawns
-from pogom.utils import get_encryption_lib_path, insert_mock_data, get_args
+from pogom.utils import insert_mock_data, get_args
 
 log = logging.getLogger(__name__)
 args = get_args()
 
 def configure(app):
-
-    # Check if we have the proper encryption library file and get its path
-    encryption_lib_path = get_encryption_lib_path()
-    if encryption_lib_path is "":
-        sys.exit(1)
 
     if args.debug_log:
         logging.basicConfig(level=logging.DEBUG)
@@ -164,7 +159,7 @@ def configure(app):
             log.debug('Starting a real search thread')
             # search_thread = Thread(target=search_loop, args=(args,search_control,))
             search_thread = Thread(target=search_overseer_thread, name='Search overseer',
-                                   args=(args, location_list, steps_each, pause_bit, encryption_lib_path))
+                                   args=(args, location_list, steps_each, pause_bit))
         else:
             log.debug('Starting a fake search thread')
             insert_mock_data(position)

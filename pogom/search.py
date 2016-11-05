@@ -246,7 +246,7 @@ def SbSearch(Slist, T):
 
 
 # The main search loop that keeps an eye on the over all process
-def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib_path):
+def search_overseer_thread(args, location_list, steps, pause_bit):
 
     log.info('Search overseer starting')
     parse_lock = Lock()
@@ -268,7 +268,7 @@ def search_overseer_thread(args, location_list, steps, pause_bit, encryption_lib
         log.debug('Starting search worker thread %d', i)
         t = Thread(target=search_worker_thread,
                    name='search_worker_{}'.format(i),
-                   args=(args, locations, global_search_queue, parse_lock, encryption_lib_path))
+                   args=(args, locations, global_search_queue, parse_lock))
         t.daemon = True
         t.start()
 
@@ -339,7 +339,7 @@ def steps_from_location(location, steps):
         list.append(search_args)
     return list
 
-def search_worker_thread(args, iterate_locations, global_search_queue, parse_lock, encryption_lib_path):
+def search_worker_thread(args, iterate_locations, global_search_queue, parse_lock):
 
     log.info('Search worker thread starting')
 
@@ -479,8 +479,6 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                         except NoAvailableLogins:
                             log.error('No available logins that can be used. Waiting for one...')
                             time.sleep(10)
-
-                    api.activate_signature(encryption_lib_path)
 
                     # Make the actual request (finally!)
                     last_scan_time = datetime.now()
@@ -640,7 +638,6 @@ def search_worker_thread_ss(args, account, search_items_queue, parse_lock, encry
             api = PGoApi()
             if args.proxy:
                 api.set_proxy({'http': args.proxy, 'https': args.proxy})
-            api.activate_signature(encryption_lib_path)
             # search forever loop
             while True:
                 # Grab the next thing to search (when available)

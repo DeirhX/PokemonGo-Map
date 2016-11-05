@@ -371,51 +371,58 @@ def send_to_webhook(message_type, message):
             wh_thread.start()
 
 
-def get_encryption_lib_path():
+def get_encryption_lib_paths():
     # win32 doesn't mean necessarily 32 bits
+    hash_lib = None
     if sys.platform == "win32" or sys.platform == "cygwin":
         if platform.architecture()[0] == '64bit':
-            lib_name = "encrypt64bit.dll"
+            encrypt_lib = "encrypt64bit.dll"
+            hash_lib = "niantichash64bit.dll"
         else:
-            lib_name = "encrypt32bit.dll"
+            encrypt_lib = "encrypt32bit.dll"
+            hash_lib = "niantichash32bit.dll"
 
     elif sys.platform == "darwin":
-        lib_name = "libencrypt-osx-64.so"
+        encrypt_lib = "libencrypt-osx-64.so"
 
     elif os.uname()[4].startswith("arm") and platform.architecture()[0] == '32bit':
-        lib_name = "libencrypt-linux-arm-32.so"
+        encrypt_lib = "libencrypt-linux-arm-32.so"
 
     elif os.uname()[4].startswith("aarch64") and platform.architecture()[0] == '64bit':
-        lib_name = "libencrypt-linux-arm-64.so"
+        encrypt_lib = "libencrypt-linux-arm-64.so"
 
     elif sys.platform.startswith('linux'):
         if "centos" in platform.platform():
             if platform.architecture()[0] == '64bit':
-                lib_name = "libencrypt-centos-x86-64.so"
+                encrypt_lib = "libencrypt-centos-x86-64.so"
             else:
-                lib_name = "libencrypt-linux-x86-32.so"
+                encrypt_lib = "libencrypt-linux-x86-32.so"
         else:
             if platform.architecture()[0] == '64bit':
-                lib_name = "libencrypt-linux-x86-64.so"
+                encrypt_lib = "libencrypt-linux-x86-64.so"
             else:
-                lib_name = "libencrypt-linux-x86-32.so"
+                encrypt_lib = "libencrypt-linux-x86-32.so"
 
     elif sys.platform.startswith('freebsd'):
-        lib_name = "libencrypt-freebsd-64.so"
+        encrypt_lib = "libencrypt-freebsd-64.so"
 
     else:
         err = "Unexpected/unsupported platform '{}'".format(sys.platform)
         log.error(err)
         raise Exception(err)
 
-    lib_path = os.path.join(os.path.dirname(__file__), "libencrypt", lib_name)
+    encrypt_lib_path = os.path.join(os.path.dirname(__file__), "lib", encrypt_lib)
+    if hash_lib:
+        hash_lib_path = os.path.join(os.path.dirname(__file__), "lib", hash_lib)
+    else:
+        hash_lib_path = None
 
-    if not os.path.isfile(lib_path):
-        err = "Could not find {} encryption library {}".format(sys.platform, lib_path)
+    if not os.path.isfile(encrypt_lib_path):
+        err = "Could not find {} encryption library {}".format(sys.platform, encrypt_lib_path)
         log.error(err)
         raise Exception(err)
 
-    return lib_path
+    return (encrypt_lib_path, hash_lib_path)
 
 def json_datetime_iso(obj):
     """JSON serializer for objects not serializable by default json code"""

@@ -18,7 +18,7 @@ oauth2client==3.0.0
 python-dateutil
 pika
 LatLon==1.0.1
-git+https://github.com/PokemonGoMap/pgoapi.git#egg=pgoapi
+git+https://github.com/DeirhX/pgoapi.git#egg=pgoapi
 xxhash
 sphinx==1.4.5
 sphinx-autobuild==0.6.0
