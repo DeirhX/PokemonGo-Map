@@ -48,9 +48,9 @@ def collect_entry(ch, method, props, body):
             if (key == str(Pokemon)):
                 for pokemon in value:
                     Pokemon.parse_json(pokemon)
-                    if not pokemon['encounter_id'] in cached['pokemons']:
-                        with new['pokemons_lock']:
-                            new['pokemons'][pokemon['encounter_id']] = cached['pokemons'][pokemon['encounter_id']] = pokemon
+                    # if not pokemon['encounter_id'] in cached['pokemons']:  #always for now
+                    with new['pokemons_lock']:
+                        new['pokemons'][pokemon['encounter_id']] = cached['pokemons'][pokemon['encounter_id']] = pokemon
             elif (key == str(Gym)):
                 for gym in value:
                     Gym.parse_json(gym)
