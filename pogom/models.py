@@ -95,7 +95,7 @@ class Pokemon(BaseModel):
     latitude = DoubleField()
     longitude = DoubleField()
     disappear_time = DateTimeField(index=True)
-    last_modified = DateTimeField()
+    appear_time = DateTimeField()
     last_update = DateTimeField(index=True)
     scan_id = SmallIntegerField()
     individual_attack = IntegerField(null=True)
@@ -113,6 +113,8 @@ class Pokemon(BaseModel):
             data['last_modified'] = json_ts_datetime(data['last_modified'])
         if 'disappear_time' in data:
             data['disappear_time'] = json_ts_datetime(data['disappear_time'])
+        if 'appear_time' in data:
+            data['appear_time'] = json_ts_datetime(data['appear_time'])
         if 'last_update' in data:
             data['last_update'] = json_ts_datetime(data['last_update'])
 
@@ -896,6 +898,7 @@ def construct_pokemon_dict(pokemons, p, d_t):
         'pokemon_id': p['pokemon_data']['pokemon_id'],
         'latitude': p['latitude'],
         'longitude': p['longitude'],
+        'appear_time': datetime.utcnow(),
         'disappear_time': d_t,
         'scan_id': args.location_id,
         'individual_attack': None,
@@ -942,7 +945,7 @@ def parse_map(map_dict, step_location, api):
                          p['time_till_hidden_ms']) / 1000.0)
                 else:
                     # Set a value of 60 seconds because currently they just won't tell us more
-                    d_t = datetime.utcfromtimestamp((p['last_modified_timestamp_ms'] + 60 * 1000 ) / 1000.0)
+                    d_t = None  # datetime.utcfromtimestamp((p['last_modified_timestamp_ms'] + 60 * 1000 ) / 1000.0)
 
                 printPokemon(p['pokemon_data']['pokemon_id'], p['latitude'],
                              p['longitude'], d_t)

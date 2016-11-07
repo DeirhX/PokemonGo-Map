@@ -48,7 +48,8 @@ def collect_entry(ch, method, props, body):
             if (key == str(Pokemon)):
                 for pokemon in value:
                     Pokemon.parse_json(pokemon)
-                    # if not pokemon['encounter_id'] in cached['pokemons']:  #always for now
+                    if pokemon['encounter_id'] in cached['pokemons']: # Use previous appear time
+                        pokemon['appear_time'] = cached['pokemons'][pokemon['encounter_id']]['appear_time']
                     with new['pokemons_lock']:
                         new['pokemons'][pokemon['encounter_id']] = cached['pokemons'][pokemon['encounter_id']] = pokemon
             elif (key == str(Gym)):
