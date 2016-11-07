@@ -508,83 +508,14 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                         # Get detailed information (IV) about pokemon
                         if args.encounter:
                             time.sleep(1) # At least some spacing
-                            for encounter_id in parsed['pokemons'].keys():
-                                pokemon = parsed['pokemons'][encounter_id]
-                                if (pokemon['pokemon_id'] in args.encounter_whitelist or
-                                pokemon['pokemon_id'] not in args.encounter_blacklist and not args.encounter_whitelist):
-                                    encounter_result = api.encounter(encounter_id=encounter_id,
-                                                                     spawn_point_id=pokemon['spawnpoint_id'],
-                                                                     player_latitude=step_location[0],
-                                                                     player_longitude=step_location[1])
-                                    if encounter_result is not None and 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
-                                        add_encounter_data(pokemon, encounter_result)
-                                        log.info("Processed encounter {}".format(encounter_id))
-                                    else:
-                                        log.warning("Error encountering {}, status code: {}".format(
-                                            encounter_id, encounter_result['responses']['ENCOUNTER']['status']))
-                                    # Wait a while after encounter - it takes time, right
-                                    time.sleep(args.encounter_delay)
+                            query_encounter_info(api, parsed['pokemons'], step_location)
 
                         # Save what we got so far. Gym details will be saved in a different transaction if updated
                         save_parsed_to_db(parsed['pokemons'], parsed['pokestops'], parsed['gyms'])
 
                         # Get detailed information about gyms
                         if args.gym_info:
-                            # build up a list of gyms to update
-                            gyms_to_update = {}
-                            for gym in parsed['gyms'].values():
-                                # Can only get gym details within 1km of our position
-                                distance = calc_distance(step_location, [gym['latitude'], gym['longitude']])
-                                if distance < 1:
-                                    # check if we already have details on this gym (if not, get them)
-                                    try:
-                                        record = GymDetails.get(gym_id=gym['gym_id'])
-                                    except GymDetails.DoesNotExist as e:
-                                        gyms_to_update[gym['gym_id']] = gym
-                                        continue
-
-                                    # if we have a record of this gym already, check if the gym has been updated since our last update
-                                    utc_last_modified = local_to_utc(gym['last_modified'].timetuple())
-                                    if record.last_update < utc_last_modified:
-                                        gyms_to_update[gym['gym_id']] = gym
-                                        continue
-                                    else:
-                                        log.debug('Skipping update of gym @ %f/%f, up to date', gym['latitude'],
-                                                  gym['longitude'])
-                                        continue
-                                else:
-                                    log.debug(
-                                        'Skipping update of gym @ %f/%f, too far away from our location at %f/%f (%fkm)',
-                                        gym['latitude'], gym['longitude'], step_location[0], step_location[1],
-                                        distance)
-
-                            if len(gyms_to_update):
-                                gym_responses = {}
-                                current_gym = 1
-                                log.info('Updating {} gyms for location {},{}...'.format(
-                                    len(gyms_to_update), step_location[0], step_location[1]))
-
-                                for gym in gyms_to_update.values():
-                                    log.debug('Getting details for gym {} of {} for location {},{}...'.format(
-                                        current_gym, len(gyms_to_update), step_location[0], step_location[1]))
-                                    time.sleep(random.random() + 2)
-                                    response = gym_request(api, step_location, gym)
-
-                                    # make sure the gym was in range. (sometimes the API gets cranky about gyms that are ALMOST 1km away)
-                                    if response['responses']['GET_GYM_DETAILS']['result'] == 2:
-                                        log.warning('Gym @ %f/%f is out of range (%dkm), skipping',
-                                                    gym['latitude'], gym['longitude'], distance)
-                                    else:
-                                        gym_responses[gym['gym_id']] = response['responses']['GET_GYM_DETAILS']
-
-                                    # increment which gym we're on (for status messages)
-                                    current_gym += 1
-
-                                log.debug('Processing details of {} gyms for location {},{}...'.format(
-                                    len(gyms_to_update), step_location[0], step_location[1]))
-
-                                if gym_responses:
-                                    parse_and_save_gym_details(args, gym_responses, None)
+                            query_gym_info(api, parsed['gyms'], step_location)
 
                         success = True
                         break  # All done, get out of the request-retry loop
@@ -626,6 +557,82 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             time.sleep(sleep_delay_remaining / 1000)
 
         loop_start_time += args.scan_delay * 1000
+
+def query_encounter_info(api, pokemon_dict, step_location):
+    for encounter_id in pokemon_dict.keys():
+        pokemon = pokemon_dict[encounter_id]
+        if (pokemon['pokemon_id'] in args.encounter_whitelist or
+                        pokemon['pokemon_id'] not in args.encounter_blacklist and not args.encounter_whitelist):
+            encounter_result = api.encounter(encounter_id=encounter_id,
+                                             spawn_point_id=pokemon['spawnpoint_id'],
+                                             player_latitude=step_location[0],
+                                             player_longitude=step_location[1])
+            if encounter_result is not None and 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
+                add_encounter_data(pokemon, encounter_result)
+                log.info("Processed encounter {}".format(encounter_id))
+            else:
+                log.warning("Error encountering {}, status code: {}".format(
+                    encounter_id, encounter_result['responses']['ENCOUNTER']['status']))
+            # Wait a while after encounter - it takes time, right
+            time.sleep(args.encounter_delay)
+
+
+def query_gym_info(api, gym_dict, step_location):
+    # build up a list of gyms to update
+    gyms_to_update = {}
+    for gym in gym_dict.values():
+        # Can only get gym details within 1km of our position
+        distance = calc_distance(step_location, [gym['latitude'], gym['longitude']])
+        if distance < 1:
+            # check if we already have details on this gym (if not, get them)
+            try:
+                record = GymDetails.get(gym_id=gym['gym_id'])
+            except GymDetails.DoesNotExist as e:
+                gyms_to_update[gym['gym_id']] = gym
+                continue
+
+            # if we have a record of this gym already, check if the gym has been updated since our last update
+            utc_last_modified = local_to_utc(gym['last_modified'].timetuple())
+            if record.last_update < utc_last_modified:
+                gyms_to_update[gym['gym_id']] = gym
+                continue
+            else:
+                log.debug('Skipping update of gym @ %f/%f, up to date', gym['latitude'],
+                          gym['longitude'])
+                continue
+        else:
+            log.debug(
+                'Skipping update of gym @ %f/%f, too far away from our location at %f/%f (%fkm)',
+                gym['latitude'], gym['longitude'], step_location[0], step_location[1],
+                distance)
+
+    if len(gyms_to_update):
+        gym_responses = {}
+        current_gym = 1
+        log.info('Updating {} gyms for location {},{}...'.format(
+            len(gyms_to_update), step_location[0], step_location[1]))
+
+        for gym in gyms_to_update.values():
+            log.debug('Getting details for gym {} of {} for location {},{}...'.format(
+                current_gym, len(gyms_to_update), step_location[0], step_location[1]))
+            time.sleep(random.random() + 2)
+            response = gym_request(api, step_location, gym)
+
+            # make sure the gym was in range. (sometimes the API gets cranky about gyms that are ALMOST 1km away)
+            if response['responses']['GET_GYM_DETAILS']['result'] == 2:
+                log.warning('Gym @ %f/%f is out of range (%dkm), skipping',
+                            gym['latitude'], gym['longitude'], distance)
+            else:
+                gym_responses[gym['gym_id']] = response['responses']['GET_GYM_DETAILS']
+
+            # increment which gym we're on (for status messages)
+            current_gym += 1
+
+        log.debug('Processing details of {} gyms for location {},{}...'.format(
+            len(gyms_to_update), step_location[0], step_location[1]))
+
+        if gym_responses:
+            parse_and_save_gym_details(args, gym_responses, None)
 
 def search_worker_thread_ss(args, account, search_items_queue, parse_lock, encryption_lib_path):
     stagger_thread(args, account)
