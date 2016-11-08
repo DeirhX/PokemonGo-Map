@@ -147,8 +147,14 @@ def configure(app):
     if args.robot_worker:
         # if args.num_threads <= 1:
         #    location_list.append(position)
-        rings = int(math.ceil(math.sqrt(args.num_threads / 3.0))) # beehive me!  num_workers = 1 + 6 * (n * (n+1)/2))  where n = rings
-        diam_each = round((2 * args.step_limit - 1) / (2 * rings - 1))
+        if args.spawn_scan:
+            rings = int(math.ceil(args.step_limit / 3))
+            diam_each = 3
+            args.num_threads = 1 + ((rings - 1) * 3) * rings
+            args.scan_delay = 10
+        else:
+            rings = int(math.ceil(math.sqrt(args.num_threads / 3.0))) # beehive me!  num_workers = 1 + 6 * (n * (n+1)/2))  where n = rings
+            diam_each = round((2 * args.step_limit - 1) / (2 * rings - 1))
         steps_each = (diam_each + 1) / 2
         location_list = map(lambda x: (x.lat.decimal_degree, x.lon.decimal_degree, 0), generate_hive_cells(position, rings, steps_each))
         if not args.location_id:

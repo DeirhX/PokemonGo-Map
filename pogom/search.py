@@ -353,9 +353,9 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
     # When true, steps will be delayed until expected spawn time
     first_spawn_loop = False
     wait_for_spawn = args.spawnpoints_only
+    waited_for_spawn = False
     advance_spawns = True
     spawn_wait_offset_secs = 30  # Wait this number of secs after spawn in ready before querying it
-    spawn_appear_time = None
     spawn_disappear_time = None
 
     start_time = datetime.now()
@@ -369,7 +369,12 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
         loop_start_time = int(round(time.time() * 1000))
 
         # Grab the next thing to search (when available)
-        if iterate_locations:
+        if not iterate_locations:
+            step, step_location_info, type = global_search_queue.get()
+            step_location_info = (step_location_info,)
+            log.info('Location obtained from global queue, remaining: %d', global_search_queue.qsize())
+
+        else:
             step_location_info = iterate_locations[location_i]
             step = location_i
             if step == 0:
@@ -377,43 +382,41 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             location_i = (location_i + 1) % len(iterate_locations)
             type = 1
             log.info('Location obtained from local queue, loop: %d, step: %d of %d', loops_done, step, len(iterate_locations))
-        else:
-            step, step_location_info, type = global_search_queue.get()
-            step_location_info = (step_location_info,)
-            log.info('Location obtained from global queue, remaining: %d', global_search_queue.qsize())
 
-        # Wait for spawn if we have spawns attached
-        if wait_for_spawn and iterate_locations and len(step_location_info) == 2:
-            spawn = step_location_info[1]
-            next_spawn_second = ((spawn['last_disappear'].minute - spawn['duration_min']) % 60 * 60) \
-                                + spawn['last_disappear'].second
-            spawn_appear_time = start_hour + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs + next_spawn_second)
-            spawn_disappear_time = spawn_appear_time + timedelta(minutes=spawn['duration_min'])
-            now = datetime.now()
+            # Wait for spawn if we have spawns attached
+            if wait_for_spawn and len(step_location_info) == 2:
+                waited_for_spawn = False
+                spawn = step_location_info[1]
+                next_spawn_second = ((spawn['last_disappear'].minute - spawn['duration_min']) % 60 * 60) \
+                                    + spawn['last_disappear'].second
+                spawn_appear_time = start_hour + timedelta(hours=loops_done, seconds=spawn_wait_offset_secs + next_spawn_second)
+                spawn_disappear_time = spawn_appear_time + timedelta(minutes=spawn['duration_min'])
+                now = datetime.now()
 
-            if first_spawn_loop:  # Don't wait on first spawn loop
-                if loops_done:
-                    first_spawn_loop = False
-                    loops_done = 0  # First loop was special and now it's over
-                pass
-            else:
-                # Skip spawns that have already passed for first iteration and find first that didn't
-                if advance_spawns and now > spawn_appear_time:
-                    continue                # Advance until we find a spawn in the future
+                if first_spawn_loop:  # Don't wait on first spawn loop
+                    if loops_done:
+                        first_spawn_loop = False
+                        loops_done = 0  # First loop was special and now it's over
+                    pass
                 else:
-                    advance_spawns = False  # Stop advancing once there is a spawn in the future
+                    # Skip spawns that have already passed for first iteration and find first that didn't
+                    if advance_spawns and now > spawn_appear_time:
+                        continue                # Advance until we find a spawn in the future
+                    else:
+                        advance_spawns = False  # Stop advancing once there is a spawn in the future
 
-                if now > spawn_disappear_time - timedelta(seconds=60):
-                    log.warn("Skipping spawn {0} since it's already past its disappear time {1}".format(
-                        spawn['id'], spawn_disappear_time.time()))
-                    continue
+                    if now > spawn_disappear_time - timedelta(seconds=60):
+                        log.warn("Skipping spawn {0} since it's already past its disappear time {1}".format(
+                            spawn['id'], spawn_disappear_time.time()))
+                        continue
 
-                # Compute next spawn time, adding up iterations of this list as hours passed
-                wait_time = spawn_appear_time - now if spawn_appear_time >= now else timedelta()
+                    # Compute next spawn time, adding up iterations of this list as hours passed
+                    wait_time = spawn_appear_time - now if spawn_appear_time >= now else timedelta()
 
-                log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
-                    wait_time.seconds, spawn['id'],str(spawn_appear_time.time())))
-                time.sleep(max(0, wait_time.seconds)) # Wait for appearance of spawn
+                    log.info('Waiting {0} seconds to scan spawn {1} appearing at {2}'.format(
+                        wait_time.seconds, spawn['id'],str(spawn_appear_time.time())))
+                    time.sleep(max(0, wait_time.seconds)) # Wait for appearance of spawn
+                    waited_for_spawn = True
 
         step_location = step_location_info[0]
 
@@ -498,15 +501,14 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                         Location.update(last_keepalive=datetime.utcnow()).where(Location.id == args.location_id).execute()
                         log.debug('Search step %s completed', step)
                         # Add missed spawn if we actually waited for it and it didn't appear
-                        if wait_for_spawn and spawn_appear_time and spawn_disappear_time and \
-                            last_scan_time > spawn_appear_time and datetime.now() < spawn_disappear_time and \
+                        if waited_for_spawn and \
                             not any (pokemon['spawnpoint_id'] == step_location_info[1]['id'] for pokemon in parsed['pokemons'].values()):
                                 log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
                                     step_location_info[1]['id'], spawn_disappear_time))
                                 Spawn.add_missed(step_location_info[1]['id'])
 
                         # Get detailed information (IV) about pokemon
-                        if args.encounter:
+                        if args.encounter and not args.spawn_scan:
                             time.sleep(1) # At least some spacing
                             query_encounter_info(api, parsed['pokemons'], step_location)
 
@@ -514,7 +516,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                         save_parsed_to_db(parsed['pokemons'], parsed['pokestops'], parsed['gyms'])
 
                         # Get detailed information about gyms
-                        if args.gym_info:
+                        if args.gym_info and not args.spawn_scan:
                             query_gym_info(api, parsed['gyms'], step_location)
 
                         success = True
