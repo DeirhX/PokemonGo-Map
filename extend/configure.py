@@ -148,7 +148,7 @@ def configure(app):
         # if args.num_threads <= 1:
         #    location_list.append(position)
         if args.spawn_scan:
-            rings = int(math.ceil(args.step_limit / 3))
+            rings = int(math.ceil(args.step_limit / 3.0))
             diam_each = 3
             args.num_threads = 1 + ((rings - 1) * 3) * rings
             args.scan_delay = 10
