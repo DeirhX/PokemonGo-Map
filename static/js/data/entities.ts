@@ -30,6 +30,7 @@ export interface IGym extends IMapElement {
     guard_pokemon_id: number;
     gym_points: number;
     name: string;
+    last_update: number;
     pokemon: { [id: string]: IGymPokemon };
 }
 

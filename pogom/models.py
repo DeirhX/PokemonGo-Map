@@ -95,6 +95,7 @@ class Pokemon(BaseModel):
     latitude = DoubleField()
     longitude = DoubleField()
     disappear_time = DateTimeField(index=True)
+    disappear_observed = BooleanField()
     appear_time = DateTimeField()
     last_update = DateTimeField(index=True)
     scan_id = SmallIntegerField()
@@ -309,6 +310,14 @@ class Pokemon(BaseModel):
             trueSpawns.append(spawn)
         return trueSpawns
 
+    @staticmethod
+    def guess_spawn_timing(pokemon_dict):
+        known_spawn = Spawn.select(Spawn.last_disappear, Spawn.duration_min).where(Spawn.id == pokemon_dict['spawnpoint_id'])
+        if known_spawn.count():
+            hour_diff = math.ceil((pokemon_dict['appear_time'] - known_spawn.get().last_disappear).total_seconds() / 3600)
+            pokemon_dict['disappear_time'] = known_spawn.get().last_disappear + timedelta(hours=hour_diff)
+            pokemon_dict['appear_time'] = pokemon_dict['disappear_time'] - Spawn.guess_spawn_length(known_spawn.get().duration_min)
+
 
 class Pokestop(BaseModel):
     pokestop_id = CharField(primary_key=True, max_length=50)
@@ -470,12 +479,14 @@ class Gym(BaseModel):
             details = (GymDetails
                        .select(
                 GymDetails.gym_id,
-                GymDetails.name)
+                GymDetails.name,
+                GymDetails.last_update)
                        .where(GymDetails.gym_id << gym_ids)
                        .dicts())
 
             for d in details:
                 gyms[d['gym_id']]['name'] = d['name']
+                gyms[d['gym_id']]['last_update'] = d['last_update']
 
         # Re-enable the GC.
         gc.enable()
@@ -842,6 +853,16 @@ class Spawn(BaseModel):
         spawn.missed_count += 1
         spawn.save()
 
+    @staticmethod
+    def guess_spawn_length(longest_observed_min):
+        if longest_observed_min > 45:
+            return timedelta(minutes=60)
+        if longest_observed_min > 30:
+            return timedelta(minutes=45)
+        if longest_observed_min > 15:
+            return timedelta(minutes=30)
+        return timedelta(minutes=15)
+
 class Proxy(BaseModel):
     ipaddress = CharField(max_length=15)
     port = IntegerField()
@@ -891,7 +912,7 @@ class Versions(flaskDb.Model):
         primary_key = False
 
 
-def construct_pokemon_dict(pokemons, p, d_t):
+def construct_pokemon_dict(pokemons, p, disappear_time):
     pokemons[p['encounter_id']] = {
         'encounter_id': b64encode(str(p['encounter_id'])),
         'spawnpoint_id': p['spawn_point_id'],
@@ -899,7 +920,8 @@ def construct_pokemon_dict(pokemons, p, d_t):
         'latitude': p['latitude'],
         'longitude': p['longitude'],
         'appear_time': datetime.utcnow(),
-        'disappear_time': d_t,
+        'disappear_time': disappear_time,
+        'disappear_observed': False,
         'scan_id': args.location_id,
         'individual_attack': None,
         'individual_defense': None,

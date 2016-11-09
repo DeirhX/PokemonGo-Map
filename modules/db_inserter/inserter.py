@@ -7,7 +7,7 @@ from threading import Lock
 import dateutil.parser
 import ujson
 from flask import logging
-from pogom.models import Pokemon, Gym, Pokestop, bulk_upsert, ScannedCell
+from pogom.models import Pokemon, Gym, Pokestop, bulk_upsert, ScannedCell, Spawn
 
 log = logging.getLogger(__name__)
 
@@ -48,9 +48,18 @@ def collect_entry(ch, method, props, body):
             if (key == str(Pokemon)):
                 for pokemon in value:
                     Pokemon.parse_json(pokemon)
-                    if pokemon['encounter_id'] in cached['pokemons']: # Use previous appear time
-                        pokemon['appear_time'] = cached['pokemons'][pokemon['encounter_id']]['appear_time']
+                    if pokemon['encounter_id'] in cached['pokemons']: # Already known
+                        if pokemon['disappear_time']: # Update only if actually observed disappear
+                            pokemon['appear_time'] = cached['pokemons'][pokemon['encounter_id']]['appear_time']
+                        else: # No new information here, move along
+                            continue
                     with new['pokemons_lock']:
+                        # Use spawn table to fill in spawn length automatically
+                        if not pokemon['disappear_time']:
+                            Pokemon.guess_spawn_timing(pokemon)
+                            pokemon[u'disappear_observed'] = False
+                        else:
+                            pokemon[u'disappear_observed'] = True
                         new['pokemons'][pokemon['encounter_id']] = cached['pokemons'][pokemon['encounter_id']] = pokemon
             elif (key == str(Gym)):
                 for gym in value:
