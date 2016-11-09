@@ -153,7 +153,7 @@ export function gymLabel(gym: IGym, teamName: string) {
                           </tr>`;
             }
         }
-
+        let lastUpdate = new Date(gym.last_update);
         return `
         <div>
           <center>
@@ -167,6 +167,10 @@ export function gymLabel(gym: IGym, teamName: string) {
               <thead><tr><th>Trainer</th><th>Pokémon</th><th>CP</th><th>A/D/S</th></tr></thead>
                 <tbody>${gymDetailTableRows}</tbody>
               </table>
+              <div>
+               Updated on: ${lastUpdate.getFullYear() + "-" + pad(1 + lastUpdate.getMonth(), 2) + "-" + pad(1 + lastUpdate.getDay(), 2) +
+                " " + pad(lastUpdate.getHours(), 2) + ":" + pad(lastUpdate.getMinutes(), 2) + ":" + pad(lastUpdate.getSeconds(), 2)}
+              </div>
             <div>
               <a href='https://www.google.com/maps/dir/Current+Location/${gym.latitude},$gym.{longitude}?hl=en' target='_blank' title='View in Maps'>Get directions</a>
             </div>
