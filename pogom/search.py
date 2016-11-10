@@ -432,7 +432,6 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                 # Create the API instance this will use if not already connected
                 if not api:
                     api = PGoApi()
-
                     proxy = None
                     while args.use_proxy and not proxy:
                         proxy = Proxy.get_next_available('socks5', 1, 30*60)
@@ -537,15 +536,17 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             # catch any process exceptions, log them, and continue the until_success loop
             except KeyError: # Received empty response probably, this login might be rotten already
                 log.warn('About to relogin with a different account')
-                Login.set_failed(api.login_info)
+                if api.login_info:
+                    Login.set_failed(api.login_info)
                 flaskDb.close_db(None)
                 api = None
             except Exception as e:
                 log.exception('Exception in search_worker: %s', e)
-                try:
-                    Login.set_failed(api.login_info)
-                except Exception as e:
-                    log.exception('Failed to write into database')
+                if api.login_info:
+                    try:
+                        Login.set_failed(api.login_info)
+                    except Exception as e:
+                        log.exception('Failed to write into database')
                 flaskDb.close_db(None)
                 api = None
 
@@ -714,7 +715,7 @@ def check_login(args, api, position, type):
             else:
                 login_name = Login.get_least_used(1, 35, type)[0] # 30mins is the normal relogin timeout
                 if login_name:
-                    login_info = Login.get_by_username(login_name)
+                    login_info = api.login_info = Login.get_by_username(login_name)
                 else:
                     flaskDb.close_db(None)
                     raise NoAvailableLogins()
@@ -741,7 +742,6 @@ def check_login(args, api, position, type):
                 if api._auth_provider._access_token:
                     log.debug('Login for account %s successful', login_info.username)
                     Login.set_success(login_info)
-                    api.login_info = login_info
                     break
             except AuthException:
                 pass
