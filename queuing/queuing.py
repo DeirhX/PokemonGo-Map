@@ -122,7 +122,6 @@ class Producer:
             raise Exception('Not connected')
         while True:
             try:
-                self.connect()
                 self._do_basic_publish(message, delivery_mode)
                 break
             except pika.exceptions.ConnectionClosed:
@@ -131,7 +130,19 @@ class Producer:
             except Exception as ex:
                 log.exception('Unknown rabbit error "' + str(ex) + '", retrying in ten')
                 time.sleep(10)
+            self.reconnect()
 
+    def reconnect(self):
+        while True:
+            try:
+                self.connect()
+                break
+            except pika.exceptions.ConnectionClosed:
+                log.warning('Rabbit connection closed, retrying')
+                time.sleep(1)
+            except Exception as ex:
+                log.exception('Unknown rabbit error "' + str(ex) + '", retrying in ten')
+                time.sleep(10)
 
     def _do_basic_publish(self, message, delivery_mode):
         raise Exception('_do_basic_publish needs to be implemented')
