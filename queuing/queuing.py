@@ -44,8 +44,9 @@ class Consumer:
         raise Exception('connect needs to be implemented')
 
     def disconnect(self):
-        self.connection.close()
-        self.connection = None
+        if self.connection:
+            self.connection.close()
+            self.connection = None
 
     def empty_queue(self):
         self.channel.queue_delete(queue=self.queue_name)
@@ -65,6 +66,7 @@ class Consumer:
             except Exception as ex:
                 log.exception('Unknown rabbit error "' + str(ex) + '", retrying in ten')
                 time.sleep(10)
+            self.disconnect()
 
 
 
@@ -135,6 +137,7 @@ class Producer:
     def reconnect(self):
         while True:
             try:
+                self.disconnect()
                 self.connect()
                 break
             except pika.exceptions.ConnectionClosed:
@@ -168,9 +171,6 @@ class QueueProducer(Producer):
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue=self.queue_name, durable=self.durable)
 
-    def reconnect(self):
-        connect()
-
     def _do_basic_publish(self, message, delivery_mode):
         self.channel.basic_publish(exchange='', routing_key=self.queue_name, body=message,
                                    properties=pika.BasicProperties(delivery_mode=delivery_mode))
@@ -188,9 +188,6 @@ class ExchangeProducer(Producer):
         self.connection = connect()
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange=self.exchange_name, type=self.type)
-
-    def reconnect(self):
-        connect()
 
     def _do_basic_publish(self, message, delivery_mode):
         self.channel.basic_publish(exchange=self.exchange_name, routing_key='', body=message,
