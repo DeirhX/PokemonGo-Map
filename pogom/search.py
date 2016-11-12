@@ -548,11 +548,6 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                 api = None
             except Exception as e:
                 log.exception('Exception in search_worker: %s', e)
-                if api.login_info:
-                    try:
-                        Login.set_failed(api.login_info)
-                    except Exception as e:
-                        log.exception('Failed to write into database')
                 flaskDb.close_db(None)
                 api = None
 
