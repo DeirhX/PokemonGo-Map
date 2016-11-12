@@ -540,7 +540,10 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             except KeyError: # Received empty response probably, this login might be rotten already
                 log.warn('About to relogin with a different account')
                 if api.login_info:
-                    Login.set_failed(api.login_info)
+                    try:
+                        Login.set_failed(api.login_info)
+                    except Exception as e:
+                        log.exception('Failed to write into database')
                 flaskDb.close_db(None)
                 api = None
             except Exception as e:
@@ -560,6 +563,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
         # loop, hang out until its up.
         sleep_delay_remaining = loop_start_time + (args.scan_delay * 1000) - int(round(time.time() * 1000))
         if sleep_delay_remaining > 0:
+            log.info('Sleeping for %g secs', sleep_delay_remaining / 1000)
             time.sleep(sleep_delay_remaining / 1000)
 
         loop_start_time += args.scan_delay * 1000
