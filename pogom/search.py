@@ -451,6 +451,9 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                             log.error('IP change detected! Sleeping.')
                             time.sleep(60)
 
+                    if args.proxy:
+                        api.set_proxy({'http': args.proxy, 'https': args.proxy})
+
                 # Let the api know where we intend to be for this loop
                 api.set_position(*step_location)
 

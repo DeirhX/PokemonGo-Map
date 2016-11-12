@@ -175,7 +175,8 @@ def get_args():
                                 help='List of pokemon to NOT encounter for more stats')
     parser.add_argument('-gym', '--gym-info', help='Get all details about gyms (causes an additional API hit for every gym)',
                         action='store_true', default=True)
-    parser.add_argument('-px', '--use_proxy', help='Proxy url (e.g. socks5://127.0.0.1:9050)', action='store_true', default=False)
+    parser.add_argument('-px', '--proxy', help='Proxy url (e.g. socks5://127.0.0.1:9050)', type=str)
+    parser.add_argument('-pxu', '--use_proxy', help='Proxy url (e.g. socks5://127.0.0.1:9050)', action='store_true', default=False)
     parser.add_argument('-pxsc', '--proxy-skip-check', help='Disable checking of proxies before start', action='store_true', default=False)
     parser.add_argument('-pxt', '--proxy-timeout', help='Timeout settings for proxy checker in seconds ', type=int, default=5)
     parser.add_argument('-pxd', '--proxy-display', help='Display info on which proxy beeing used (index or full) To be used with -ps', type=str, default='index')

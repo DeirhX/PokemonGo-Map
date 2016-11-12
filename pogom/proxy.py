@@ -17,8 +17,13 @@ def check_proxy(proxy, timeout):
 
     # Update check url - Thanks ChipWolf #1282 and #1281
     proxy_test_url = 'https://pgorelease.nianticlabs.com/plfe/rpc'
-
-    proxy_string = '{0}://{1}:{2}'.format(proxy.type, proxy.ipaddress, proxy.port)
+    if type(proxy) is not str:
+        if hasattr(proxy, 'username'):
+            proxy_string = '{0}://{1}:{2}@{3}:{4}'.format(proxy.type, proxy.username, proxy.password, proxy.ipaddress, proxy.port)
+        else:
+            proxy_string = '{0}://{1}:{2}'.format(proxy.type, proxy.ipaddress, proxy.port)
+    else:
+        proxy_string = proxy
     # proxy_string = 'socks5://92.222.72.91:1082'
     log.debug('Checking proxy: %s', proxy_string)
 

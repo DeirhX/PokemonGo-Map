@@ -18,6 +18,7 @@ from extend.scan import begin_consume_queue
 from extend.stats import begin_share_receive_stats
 from pogom import config
 from pogom.models import init_database, create_tables, Location, MemberLocation
+from pogom.proxy import check_proxy
 from pogom.search import create_scan_queue_dispatcher, search_overseer_thread, fake_search_loop, scan_overseer_thread, \
     scan_radius, limit_locations_to_spawns
 from pogom.utils import insert_mock_data, get_args
@@ -145,6 +146,10 @@ def configure(app):
         scan_thread.start()
 
     if args.robot_worker:
+        if args.proxy:
+            if not check_proxy(args.proxy, 10):
+                raise Exception('Proxy invalid, cannot continue')
+
         # if args.num_threads <= 1:
         #    location_list.append(position)
         if args.spawn_scan:
