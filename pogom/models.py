@@ -849,9 +849,10 @@ class Spawn(BaseModel):
 
     @staticmethod
     def add_missed(id):
-        spawn = (Spawn.select().where(Spawn.id == id)).get()
-        spawn.missed_count += 1
-        spawn.save()
+        spawn = (Spawn.select().where(Spawn.id == id))
+        if spawn.count():
+            spawn.get().missed_count += 1
+            spawn.get().save()
 
     @staticmethod
     def guess_spawn_length(longest_observed_min):
