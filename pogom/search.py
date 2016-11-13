@@ -367,6 +367,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
 
         # Get current time
         loop_start_time = int(round(time.time() * 1000))
+        spawns = []
 
         # Grab the next thing to search (when available)
         if not iterate_locations:
@@ -380,7 +381,6 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             if step == 0:
                 loops_done += 1
             location_i = (location_i + 1) % len(iterate_locations)
-            type = 1
             log.info('Location obtained from local queue, loop: %d, step: %d of %d', loops_done, step, len(iterate_locations))
 
             # Wait for spawn if we have spawns attached
@@ -417,139 +417,11 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                         wait_time.seconds, spawn['id'],str(spawn_appear_time.time())))
                     time.sleep(max(0, wait_time.seconds)) # Wait for appearance of spawn
                     waited_for_spawn = True
+                    spawn['disappear_time'] = spawn_disappear_time
+                    spawns.append(spawn)
 
         step_location = step_location_info[0]
-
-        # Was the scan successful at last?
-        success = False
-        fail = False
-
-        # Will not stop unless...we succeed or fail really, really hard
-        while not success and not fail:
-            try:
-                log.info('Dispatching request in search loop')
-
-                # Create the API instance this will use if not already connected
-                if not api:
-                    api = PGoApi()
-                    proxy = None
-                    while args.use_proxy and not proxy:
-                        proxy = Proxy.get_next_available('socks5', 1, 30*60)
-                        if not proxy:
-                            log.error('No proxies available, waiting...')
-                            time.sleep(60)
-                            continue
-                        proxy_ok = check_proxy(proxy, 10)
-                        if proxy_ok:
-                            Proxy.set_succeeded(proxy)
-                        else:
-                            Proxy.set_failed(proxy)
-                            log.warn('Proxy unusable, looking for next one...')
-                            proxy = None
-
-                        while not check_ip_still_same():
-                            log.error('IP change detected! Sleeping.')
-                            time.sleep(60)
-
-                    if args.proxy:
-                        api.set_proxy({'http': args.proxy, 'https': args.proxy})
-
-                # Let the api know where we intend to be for this loop
-                api.set_position(*step_location)
-
-                # The loop to try very hard to scan this step
-                failed_total = 0
-                while True:
-
-                    # After so many attempts, let's get out of here
-                    if failed_total >= args.scan_retries:
-                        # I am choosing to NOT place this item back in the queue
-                        # otherwise we could get a "bad scan" area and be stuck
-                        # on this overall loop forever. Better to lose one cell
-                        # than have the scanner, essentially, halt.
-                        log.error('Search step %d went over max scan_retires; abandoning', step)
-                        raise KeyError
-                        break
-
-                    # Increase sleep delay between each failed scan
-                    # By default scan_dela=5, scan_retries=5 so
-                    # We'd see timeouts of 5, 10, 15, 20, 25
-                    sleep_time = args.scan_delay * (1 + failed_total)
-
-                    # Ok, let's get started -- get a login or wait for one
-                    while True:
-                        try:
-                            check_login(args, api, step_location, type)
-                            break
-                        except NoAvailableLogins:
-                            log.error('No available logins that can be used. Waiting for one...')
-                            time.sleep(10)
-
-                    # Make the actual request (finally!)
-                    last_scan_time = datetime.now()
-                    response_dict = map_request(api, step_location)
-
-                    # G'damnit, nothing back. Mark it up, sleep, carry on
-                    if not response_dict:
-                        log.error('Search step %d area download failed, retrying request in %g seconds', step, sleep_time)
-                        failed_total += 1
-                        time.sleep(sleep_time)
-                        continue
-
-                    # Got the response, lock for parsing and do so (or fail, whatever)
-                    # with parse_lock: # no need for lock
-                    try:
-                        parsed = parse_map(response_dict, step_location, api)
-                        Location.update(last_keepalive=datetime.utcnow()).where(Location.id == args.location_id).execute()
-                        log.debug('Search step %s completed', step)
-                        # Add missed spawn if we actually waited for it and it didn't appear
-                        if waited_for_spawn and \
-                            not any (pokemon['spawnpoint_id'] == step_location_info[1]['id'] for pokemon in parsed['pokemons'].values()):
-                                log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
-                                    step_location_info[1]['id'], spawn_disappear_time))
-                                Spawn.add_missed(step_location_info[1]['id'])
-
-                        # Get detailed information (IV) about pokemon
-                        if args.encounter and not args.spawn_scan:
-                            time.sleep(1) # At least some spacing
-                            query_encounter_info(api, parsed['pokemons'], step_location)
-
-                        # Save what we got so far. Gym details will be saved in a different transaction if updated
-                        save_parsed_to_db(parsed['pokemons'], parsed['pokestops'], parsed['gyms'])
-
-                        # Get detailed information about gyms
-                        if args.gym_info and not args.spawn_scan:
-                            query_gym_info(api, parsed['gyms'], step_location)
-
-                        success = True
-                        break  # All done, get out of the request-retry loop
-                    except EmptyResponseException:
-                        log.warn('Empty response from server, retrying in %g seconds', sleep_time)
-                        failed_total += 1
-                        time.sleep(sleep_time)
-                    except KeyError as e:
-                        log.exception('Search step %s map parsing failed, will retry in %g seconds. Error: %s', step, sleep_time, str(e))
-                        failed_total += 1
-                        time.sleep(sleep_time)
-                        raise # This could be serious and likely need to relog
-
-                flaskDb.close_db(None)
-                time.sleep(args.scan_delay)
-
-            # catch any process exceptions, log them, and continue the until_success loop
-            except KeyError: # Received empty response probably, this login might be rotten already
-                log.warn('About to relogin with a different account')
-                if api.login_info:
-                    try:
-                        Login.set_failed(api.login_info)
-                    except Exception as e:
-                        log.exception('Failed to write into database')
-                flaskDb.close_db(None)
-                api = None
-            except Exception as e:
-                log.exception('Exception in search_worker: %s', e)
-                flaskDb.close_db(None)
-                api = None
+        api = scan_one_cell(api, args, step_location, step, spawns)
 
         # We got over until_success loop so that means we're successful, yay! Get the next one
         if not iterate_locations:
@@ -562,6 +434,141 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             time.sleep(sleep_delay_remaining / 1000)
 
         loop_start_time += args.scan_delay * 1000
+
+
+def scan_one_cell(api, args, step_location, step_id, spawns):
+    # Was the scan successful at last?
+    success = False
+    fail = False
+
+    # Will not stop unless...we succeed or fail really, really hard
+    while not success and not fail:
+        try:
+            log.info('Dispatching request in search loop')
+
+            # Create the API instance this will use if not already connected
+            if not api:
+                api = PGoApi()
+                proxy = None
+                while args.use_proxy and not proxy:
+                    proxy = Proxy.get_next_available('socks5', 1, 30*60)
+                    if not proxy:
+                        log.error('No proxies available, waiting...')
+                        time.sleep(60)
+                        continue
+                    proxy_ok = check_proxy(proxy, 10)
+                    if proxy_ok:
+                        Proxy.set_succeeded(proxy)
+                    else:
+                        Proxy.set_failed(proxy)
+                        log.warn('Proxy unusable, looking for next one...')
+                        proxy = None
+
+                    while not check_ip_still_same():
+                        log.error('IP change detected! Sleeping.')
+                        time.sleep(60)
+
+                if args.proxy:
+                    api.set_proxy({'http': args.proxy, 'https': args.proxy})
+
+            # Let the api know where we intend to be for this loop
+            api.set_position(*step_location)
+
+            # The loop to try very hard to scan this step
+            failed_total = 0
+            while True:
+
+                # After so many attempts, let's get out of here
+                if failed_total >= args.scan_retries:
+                    # I am choosing to NOT place this item back in the queue
+                    # otherwise we could get a "bad scan" area and be stuck
+                    # on this overall loop forever. Better to lose one cell
+                    # than have the scanner, essentially, halt.
+                    log.error('Search step %d went over max scan_retires; abandoning', step_id)
+                    raise KeyError
+
+                # Increase sleep delay between each failed scan
+                # By default scan_dela=5, scan_retries=5 so
+                # We'd see timeouts of 5, 10, 15, 20, 25
+                sleep_time = args.scan_delay * (1 + failed_total)
+
+                # Ok, let's get started -- get a login or wait for one
+                while True:
+                    try:
+                        check_login(args, api, step_location, 1)
+                        break
+                    except NoAvailableLogins:
+                        log.error('No available logins that can be used. Waiting for one...')
+                        time.sleep(10)
+
+                # Make the actual request (finally!)
+                last_scan_time = datetime.now()
+                response_dict = map_request(api, step_location)
+
+                # G'damnit, nothing back. Mark it up, sleep, carry on
+                if not response_dict:
+                    log.error('Search step %d area download failed, retrying request in %g seconds', step_id, sleep_time)
+                    failed_total += 1
+                    time.sleep(sleep_time)
+                    continue
+
+                # Got the response, lock for parsing and do so (or fail, whatever)
+                # with parse_lock: # no need for lock
+                try:
+                    parsed = parse_map(response_dict, step_location, api)
+                    Location.update(last_keepalive=datetime.utcnow()).where(Location.id == args.location_id).execute()
+                    # Add missed spawn if we actually waited for it and it didn't appear
+                    if spawns and len(spawns):
+                        for spawn in spawns:
+                            if not any (pokemon['spawnpoint_id'] == spawn['id'] for pokemon in parsed['pokemons'].values()):
+                                log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
+                                    spawn['id'], spawn['disappear_time']))
+                                Spawn.add_missed(spawn['id'])
+
+                    # Get detailed information (IV) about pokemon
+                    if args.encounter and not args.spawn_scan:
+                        time.sleep(1) # At least some spacing
+                        query_encounter_info(api, parsed['pokemons'], step_location)
+
+                    # Save what we got so far. Gym details will be saved in a different transaction if updated
+                    save_parsed_to_db(parsed['pokemons'], parsed['pokestops'], parsed['gyms'])
+
+                    # Get detailed information about gyms
+                    if args.gym_info and not args.spawn_scan:
+                        query_gym_info(api, parsed['gyms'], step_location)
+
+                    success = True
+                    break  # All done, get out of the request-retry loop
+                except EmptyResponseException:
+                    log.warn('Empty response from server, retrying in %g seconds', sleep_time)
+                    failed_total += 1
+                    time.sleep(sleep_time)
+                except KeyError as e:
+                    log.exception('Search step %s map parsing failed, will retry in %g seconds. Error: %s', step_id, sleep_time, str(e))
+                    failed_total += 1
+                    time.sleep(sleep_time)
+                    raise # This could be serious and likely need to relog
+
+            flaskDb.close_db(None)
+            time.sleep(args.scan_delay)
+
+        # catch any process exceptions, log them, and continue the until_success loop
+        except KeyError: # Received empty response probably, this login might be rotten already
+            log.warn('About to relogin with a different account')
+            if api.login_info:
+                try:
+                    Login.set_failed(api.login_info)
+                except Exception as e:
+                    log.exception('Failed to write into database')
+            flaskDb.close_db(None)
+            api = None
+        except Exception as e:
+            log.exception('Exception in search_worker: %s', e)
+            flaskDb.close_db(None)
+            api = None
+
+    return api
+
 
 def query_encounter_info(api, pokemon_dict, step_location):
     for encounter_id in pokemon_dict.keys():

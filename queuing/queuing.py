@@ -154,7 +154,8 @@ class Producer:
         raise Exception('connect needs to be implemented')
 
     def disconnect(self):
-        self.connection.close()
+        if self.connection.is_open and not self.connection.is_closed and not self.connection.is_closing:
+            self.connection.close()
         self.connection = None
 
 class QueueProducer(Producer):
