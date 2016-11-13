@@ -540,6 +540,9 @@ def scan_one_cell(api, args, step_location, step_id, spawns):
                                 log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
                                     spawn['id'], spawn['disappear_time']))
                                 Spawn.add_missed(spawn['id'])
+                                # Add missed pokemon as database entry
+                                missed_pokemon = Pokemon.create_missed(spawn, datetime.utcnow())
+                                parsed['pokemons'][spawn['id']] = missed_pokemon  # Should use encounter_id as key but we don't know it
 
                     # Get detailed information (IV) about pokemon
                     if args.encounter and not args.spawn_scan:

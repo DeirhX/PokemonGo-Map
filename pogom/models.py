@@ -95,7 +95,7 @@ class Pokemon(BaseModel):
     latitude = DoubleField()
     longitude = DoubleField()
     disappear_time = DateTimeField(index=True)
-    disappear_observed = BooleanField()
+    disappear_observed = SmallIntegerField()
     appear_time = DateTimeField()
     last_update = DateTimeField(index=True)
     scan_id = SmallIntegerField()
@@ -309,6 +309,17 @@ class Pokemon(BaseModel):
             # if it gets to here its  a good spawn
             trueSpawns.append(spawn)
         return trueSpawns
+
+    @classmethod
+    def create_missed(cls, spawn, timestamp):
+        cls.pokemon_id = 0
+        cls.spawnpoint_id = spawn['id']
+        cls.latitude = spawn['latitude']
+        cls.longitude = spawn['longitude']
+        cls.encounter_id = ''
+        cls.last_update = timestamp
+        cls.disappear_observed = -1
+        return cls
 
     @staticmethod
     def guess_spawn_timing(pokemon_dict):
