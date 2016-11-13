@@ -140,7 +140,7 @@ def configure(app):
     if args.scan_worker:
         begin_consume_queue()
         scan_thread = Thread(target=scan_overseer_thread, name='Scan overseer',
-                               args=(args, args.num_threads, pause_bit, encryption_lib_path))
+                               args=(args, args.num_threads, pause_bit))
         scan_thread.daemon = True
         scan_thread.name = 'scan_overseer_thread'
         scan_thread.start()

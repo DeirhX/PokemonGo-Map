@@ -207,13 +207,13 @@ def fake_search_loop():
         time.sleep(10)
 
 # The main search loop that keeps an eye on the over all process
-def scan_overseer_thread(args, scan_threads, pause_bit, encryption_lib_path):
+def scan_overseer_thread(args, scan_threads, pause_bit):
 
     for i in range(scan_threads):
         log.debug('Starting search worker thread %d', i)
         t = Thread(target=search_worker_thread,
                    name='search_worker_{}'.format(i),
-                   args=(args, None, global_search_queue, None, encryption_lib_path))
+                   args=(args, None, global_search_queue, None))
         t.daemon = True
         t.start()
 
