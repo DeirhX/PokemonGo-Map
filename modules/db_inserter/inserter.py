@@ -55,11 +55,8 @@ def collect_entry(ch, method, props, body):
                             continue
                     with new['pokemons_lock']:
                         # Use spawn table to fill in spawn length automatically
-                        if not pokemon['disappear_time']:
+                        if pokemon[u'disappear_observed'] == 0:
                             Pokemon.guess_spawn_timing(pokemon)
-                            pokemon[u'disappear_observed'] = False
-                        else:
-                            pokemon[u'disappear_observed'] = True
                         new['pokemons'][pokemon['encounter_id']] = cached['pokemons'][pokemon['encounter_id']] = pokemon
             elif (key == str(Gym)):
                 for gym in value:

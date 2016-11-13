@@ -933,7 +933,7 @@ def construct_pokemon_dict(pokemons, p, disappear_time):
         'longitude': p['longitude'],
         'appear_time': datetime.utcnow(),
         'disappear_time': disappear_time,
-        'disappear_observed': False,
+        'disappear_observed': 0 if not disappear_time else 1,
         'scan_id': args.location_id,
         'individual_attack': None,
         'individual_defense': None,
