@@ -310,16 +310,17 @@ class Pokemon(BaseModel):
             trueSpawns.append(spawn)
         return trueSpawns
 
-    @classmethod
-    def create_missed(cls, spawn, timestamp):
-        cls.pokemon_id = 0
-        cls.spawnpoint_id = spawn['id']
-        cls.latitude = spawn['latitude']
-        cls.longitude = spawn['longitude']
-        cls.encounter_id = ''
-        cls.last_update = timestamp
-        cls.disappear_observed = -1
-        return cls
+    @staticmethod
+    def create_missed(spawn, timestamp):
+        return {
+            'pokemon_id': 0,
+            'spawnpoint_id': spawn['id'],
+            'latitude': spawn['latitude'],
+            'longitude': spawn['longitude'],
+            'encounter_id': spawn['id'] + "-" + str(timestamp.time()),  # Unknown actually
+            'last_update': timestamp,
+            'disappear_observed': -1,
+        }
 
     @staticmethod
     def guess_spawn_timing(pokemon_dict):

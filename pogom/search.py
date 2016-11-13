@@ -22,6 +22,8 @@ import pprint
 import time
 import math
 import json
+from itertools import groupby
+
 import geopy.distance as geopy_distance
 import os
 import random
@@ -366,6 +368,10 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
         if not iterate_locations:
             raise Exception('Wait for spawn must have a local location list')
         spawn_queue = PriorityQueue()
+        # Group spawns into locations
+        spawns_by_location = { }
+        for k, g in groupby(iterate_locations, lambda x: x[0]):
+            spawns_by_location[k] = [entry[1] for entry in g]
         # Plan into priority queue based on datetime. location[1] = spawn
         for location in iterate_locations:
             spawn_queue.put( (datetime(start_time.year, start_time.month, start_time.day, start_time.hour,
@@ -433,8 +439,12 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
                     wait_time.seconds, spawn['id'],str(spawn_appear_time.time())))
                 time.sleep(max(0, wait_time.seconds)) # Wait for appearance of spawn
                 waited_for_spawn = True
-                spawn['disappear_time'] = spawn_disappear_time
-                spawns.append(spawn)
+
+                spawns = spawns_by_location[location]
+                for location_spawn in spawns:
+                    delta = now - location_spawn['last_disappear']
+                    location_spawn['next_disappear'] = location_spawn['last_disappear'] \
+                                                       + timedelta(hours = math.ceil(delta.total_seconds() / 3600.0)) # Advance beyond now
 
         step_location = step_location_info[0]
         api = scan_one_cell(api, args, step_location, step, spawns)
@@ -538,7 +548,7 @@ def scan_one_cell(api, args, step_location, step_id, spawns):
                         for spawn in spawns:
                             if not any (pokemon['spawnpoint_id'] == spawn['id'] for pokemon in parsed['pokemons'].values()):
                                 log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
-                                    spawn['id'], spawn['disappear_time']))
+                                    spawn['id'], spawn['next_disappear']))
                                 Spawn.add_missed(spawn['id'])
                                 # Add missed pokemon as database entry
                                 missed_pokemon = Pokemon.create_missed(spawn, datetime.utcnow())
