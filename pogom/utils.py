@@ -269,9 +269,9 @@ def insert_mock_data(position):
     latitude, longitude = float(position[0]), float(position[1])
 
     locations = [l for l in generate_location_steps((latitude, longitude), num_pokemon, 0.07)]
-    disappear_time = datetime.now() + timedelta(hours=1)
+    disappear_time = datetime.utcnow() + timedelta(hours=1)
 
-    detect_time = datetime.now()
+    detect_time = datetime.utcnow()
 
     for i in range(1, num_pokemon):
         Pokemon.create(encounter_id=uuid.uuid4(),
@@ -287,7 +287,7 @@ def insert_mock_data(position):
                         enabled=True,
                         latitude=locations[i + num_pokemon][0],
                         longitude=locations[i + num_pokemon][1],
-                        last_modified=datetime.now(),
+                        last_modified=datetime.utcnow(),
                         # Every other pokestop be lured
                         lure_expiration=disappear_time if (i % 2 == 0) else None,
                         )
@@ -298,7 +298,7 @@ def insert_mock_data(position):
                    guard_pokemon_id=(i + 1) % 150,
                    latitude=locations[i + num_pokemon + num_pokestop][0],
                    longitude=locations[i + num_pokemon + num_pokestop][1],
-                   last_modified=datetime.now(),
+                   last_modified=datetime.utcnow(),
                    enabled=True,
                    gym_points=1000
                    )

@@ -312,15 +312,15 @@ class Pokemon(BaseModel):
 
     @staticmethod
     def create_missed(spawn, timestamp):
-        return {
-            'pokemon_id': 0,
-            'spawnpoint_id': spawn['id'],
-            'latitude': spawn['latitude'],
-            'longitude': spawn['longitude'],
-            'encounter_id': spawn['id'] + "-" + str(timestamp.time()),  # Unknown actually
-            'last_update': timestamp,
-            'disappear_observed': -1,
-        }
+        return construct_pokemon(
+            encounter_id=spawn['id'] + "-" + str(timestamp.time()),  # Unknown actually
+            spawnpoint_id=spawn['id'],
+            pokemon_id=0,
+            latitude=spawn['latitude'],
+            longitude=spawn['longitude'],
+            last_update=timestamp,
+            disappear_observed=-1
+        )
 
     @staticmethod
     def guess_spawn_timing(pokemon_dict):
@@ -924,17 +924,18 @@ class Versions(flaskDb.Model):
     class Meta:
         primary_key = False
 
-
-def construct_pokemon_dict(pokemons, p, disappear_time):
-    pokemons[p['encounter_id']] = {
-        'encounter_id': b64encode(str(p['encounter_id'])),
-        'spawnpoint_id': p['spawn_point_id'],
-        'pokemon_id': p['pokemon_data']['pokemon_id'],
-        'latitude': p['latitude'],
-        'longitude': p['longitude'],
-        'appear_time': datetime.utcnow(),
+def construct_pokemon(encounter_id, spawnpoint_id, pokemon_id, latitude, longitude, last_update,
+                      appear_time=None, disappear_time=None, disappear_observed=0):
+    return {
+        'encounter_id': encounter_id,
+        'spawnpoint_id': spawnpoint_id,
+        'pokemon_id': pokemon_id,
+        'latitude': latitude,
+        'longitude': longitude,
+        'appear_time': appear_time,
         'disappear_time': disappear_time,
-        'disappear_observed': 0 if not disappear_time else 1,
+        'disappear_observed': disappear_observed,
+        'last_update': last_update,
         'scan_id': args.location_id,
         'individual_attack': None,
         'individual_defense': None,
@@ -942,6 +943,19 @@ def construct_pokemon_dict(pokemons, p, disappear_time):
         'attack_1': None,
         'attack_2': None,
     }
+
+def construct_pokemon_dict(pokemons, p, update_time, disappear_time):
+    pokemons[p['encounter_id']] = construct_pokemon(
+        encounter_id=b64encode(str(p['encounter_id'])),
+        spawnpoint_id=p['spawn_point_id'],
+        pokemon_id=p['pokemon_data']['pokemon_id'],
+        latitude=p['latitude'],
+        longitude=p['longitude'],
+        appear_time=datetime.utcnow(),
+        disappear_time=disappear_time,
+        disappear_observed=0 if not disappear_time else 1,
+        last_update=update_time
+    )
 
 def add_encounter_data(pokemon, encounter_result):
     pokemon_info = encounter_result['responses']['ENCOUNTER']['wild_pokemon']['pokemon_data']
@@ -963,6 +977,7 @@ def parse_map(map_dict, step_location, api):
     gyms = {}
     scanned = {}
     scan = {}
+    timestamp = None
 
     # log.info('Received map response: %s', json.dumps(map_dict))
 
@@ -970,6 +985,8 @@ def parse_map(map_dict, step_location, api):
     #    raise NoAuthTicketException
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     for cell in cells:
+        if not timestamp and 'current_timestamp_ms' in cell:
+            timestamp = datetime.utcfromtimestamp(cell['current_timestamp_ms'] / 1000.0)
         if config['parse_pokemon']:
             for p in cell.get('wild_pokemons', []):
                 # time_till_hidden_ms was overflowing causing a negative integer.
@@ -985,7 +1002,7 @@ def parse_map(map_dict, step_location, api):
                 printPokemon(p['pokemon_data']['pokemon_id'], p['latitude'],
                              p['longitude'], d_t)
 
-                construct_pokemon_dict(pokemons, p, d_t)
+                construct_pokemon_dict(pokemons, p, timestamp if timestamp else datetime.utcnow(), d_t)
 
                 webhook_data = {
                     'encounter_id': b64encode(str(p['encounter_id'])),
@@ -1094,7 +1111,7 @@ def parse_map(map_dict, step_location, api):
         raise EmptyResponseException()
 
     dispatch_upsert(ScannedCell, scanned)
-    return {'pokemons': pokemons, 'pokestops': pokestops, 'gyms': gyms, 'scanned': scanned}
+    return {'pokemons': pokemons, 'pokestops': pokestops, 'gyms': gyms, 'scanned': scanned, 'timestamp': timestamp}
 
 def save_parsed_to_db(pokemons, pokestops, gyms):
     pokemons_upserted = 0

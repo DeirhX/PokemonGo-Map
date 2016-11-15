@@ -355,7 +355,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
     location_i = 0
     loops_done = -1
 
-    start_time = datetime.now()
+    start_time = datetime.utcnow()
     start_hour = start_time - timedelta(minutes=start_time.minute, seconds=start_time.second)
 
     # When true, steps will be delayed until expected spawn time
@@ -409,7 +409,7 @@ def search_worker_thread(args, iterate_locations, global_search_queue, parse_loc
             spawn_appear_time, location, spawn = spawn_queue.get()
             spawn_disappear_time = spawn_appear_time + timedelta(minutes=spawn['duration_min'])
             spawn_queue.put((spawn_appear_time + timedelta(hours=1), location, spawn))
-            now = datetime.now()
+            now = datetime.utcnow()
 
             step_location_info = (location, spawn)
             step = 1
@@ -529,7 +529,7 @@ def scan_one_cell(api, args, step_location, step_id, spawns):
                         time.sleep(10)
 
                 # Make the actual request (finally!)
-                last_scan_time = datetime.now()
+                last_scan_time = datetime.utcnow()
                 response_dict = map_request(api, step_location)
 
                 # G'damnit, nothing back. Mark it up, sleep, carry on
@@ -548,13 +548,13 @@ def scan_one_cell(api, args, step_location, step_id, spawns):
                     if spawns and len(spawns):
                         for spawn in spawns:
                             if not any (pokemon['spawnpoint_id'] == spawn['id'] for pokemon in parsed['pokemons'].values()) \
-                                and datetime.now() > spawn['next_appear'] and datetime.now < spawn['next_disappear']:
+                                and parsed['timestamp'] > spawn['next_appear'] and parsed['timestamp'] < spawn['next_disappear']:
                                     # TODO: Use server time
                                     log.warn('Spawn {0} did not spawn anything but should have been active till {1}'.format(
                                         spawn['id'], spawn['next_disappear']))
                                     Spawn.add_missed(spawn['id'])
                                     # Add missed pokemon as database entry
-                                    missed_pokemon = Pokemon.create_missed(spawn, datetime.utcnow())
+                                    missed_pokemon = Pokemon.create_missed(spawn, parsed['timestamp'])
                                     parsed['pokemons'][spawn['id']] = missed_pokemon  # Should use encounter_id as key but we don't know it
 
                     # Get detailed information (IV) about pokemon
