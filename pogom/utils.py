@@ -143,6 +143,8 @@ def get_args():
     parser.add_argument('--db-port', help='Port for the database', type=int, default=3306)
     parser.add_argument('--db-max_connections', help='Max connections (per thread) for the database',
                         type=int, default=5)
+    parser.add_argument('-db-no-queue', '--db-no-queue', help='Avoid DB queue', action='store_true',
+                        default=False)
     parser.add_argument('-wh', '--webhook', help='Define URL(s) to POST webhook information to',
                         nargs='*', default=False, dest='webhooks')
     parser.add_argument('--webhook-updates-only', help='Only send updates (pokémon & lured pokéstops)',

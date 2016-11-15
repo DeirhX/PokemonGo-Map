@@ -110,8 +110,6 @@ class Pokemon(BaseModel):
 
     @staticmethod
     def parse_json(data):
-        if 'last_modified' in data:
-            data['last_modified'] = json_ts_datetime(data['last_modified'])
         if 'disappear_time' in data:
             data['disappear_time'] = json_ts_datetime(data['disappear_time'])
         if 'appear_time' in data:
@@ -1279,7 +1277,7 @@ dispatch_upsert_producer = DbInserterQueueProducer()
 dispatch_upsert_producer.connect()
 
 def dispatch_upsert(cls, data):
-    if (cls is Pokemon) or (cls is Gym) or (cls is Pokestop) or (cls is ScannedCell):
+    if not args.db_no_queue and ((cls is Pokemon) or (cls is Gym) or (cls is Pokestop) or (cls is ScannedCell)):
         dispatch_upsert_queue.put(ujson.dumps({str(cls): data.values()}))
     else:
         bulk_upsert(cls, data)
